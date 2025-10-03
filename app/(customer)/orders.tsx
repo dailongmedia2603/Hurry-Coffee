@@ -1,49 +1,52 @@
-import React, { useState, useMemo } from "react";
-import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity } from "react-native";
+import React, { useState, useMemo, useEffect } from "react";
+import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import LocationCard from '@/src/components/LocationCard';
 import { Location } from '@/types';
-
-const MOCK_LOCATIONS: Location[] = [
-  {
-    id: 'LOC001',
-    name: 'Hurry Coffee - Quận 1',
-    address: '123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM',
-    image_url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2047&auto=format&fit=crop',
-    distance: '2.5 km',
-    opening_hours: '7:00 - 22:00',
-  },
-  {
-    id: 'LOC002',
-    name: 'Hurry Coffee - Quận 3',
-    address: '456 Võ Văn Tần, Phường 5, Quận 3, TP.HCM',
-    image_url: 'https://images.unsplash.com/photo-1511920183353-3c7c95a5742c?q=80&w=1974&auto=format&fit=crop',
-    distance: '4.1 km',
-    opening_hours: '6:30 - 22:30',
-  },
-  {
-    id: 'LOC003',
-    name: 'Hurry Coffee - Gò Vấp',
-    address: '789 Quang Trung, Phường 10, Gò Vấp, TP.HCM',
-    image_url: 'https://images.unsplash.com/photo-1525896523256-314f24a78705?q=80&w=2070&auto=format&fit=crop',
-    distance: '8.9 km',
-    opening_hours: '7:00 - 23:00',
-  },
-];
+import { supabase } from "@/src/integrations/supabase/client";
 
 export default function LocationsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [locations, setLocations] = useState<Location[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchLocations = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('locations')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Error fetching locations:', error);
+            } else {
+                setLocations(data || []);
+            }
+            setLoading(false);
+        };
+
+        fetchLocations();
+    }, []);
 
     const filteredLocations = useMemo(() => {
         if (!searchQuery) {
-            return MOCK_LOCATIONS;
+            return locations;
         }
         const lowercasedQuery = searchQuery.toLowerCase();
-        return MOCK_LOCATIONS.filter(location => 
+        return locations.filter(location => 
             location.name.toLowerCase().includes(lowercasedQuery) || 
             location.address.toLowerCase().includes(lowercasedQuery)
         );
-    }, [searchQuery]);
+    }, [searchQuery, locations]);
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.centered}>
+                <ActivityIndicator size="large" color="#73509c" />
+            </SafeAreaView>
+        );
+    }
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -76,6 +79,12 @@ export default function LocationsScreen() {
 }
 
 const styles = StyleSheet.create({
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F5F5F5',
+    },
 	safeArea: {
 		flex: 1,
 		backgroundColor: "#F5F5F5",
