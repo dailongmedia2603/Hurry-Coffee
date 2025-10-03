@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   TextInput,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -94,23 +95,12 @@ export default function CustomerHomeScreen() {
           <Ionicons name="notifications-outline" size={28} color="#fff" />
         </View>
       </LinearGradient>
-      <View style={styles.promoSection}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.promoTitle}>
-            Grab Our Exclusive Food Discounts Now!
-          </Text>
-          <TouchableOpacity
-            style={styles.orderButton}
-            onPress={() => alert("Order Now Pressed!")}
-          >
-            <Text style={styles.orderButtonText}>Order Now</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.discountCircle}>
-          <Text style={styles.discountText}>Discount</Text>
-          <Text style={styles.discountValue}>35%</Text>
-        </View>
-      </View>
+      {/* Bạn có thể thay đổi URI hình ảnh ở đây để hiển thị quảng cáo khác */}
+      <Image
+        source={{ uri: 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
+        style={styles.promoImage}
+        resizeMode="cover"
+      />
     </View>
   );
 
@@ -225,54 +215,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginHorizontal: 4,
   },
-  promoSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    paddingHorizontal: 16,
+  promoImage: {
+    width: '92%',
+    height: 140,
+    borderRadius: 16,
+    alignSelf: 'center',
     marginTop: 20,
-  },
-  promoTitle: {
-    color: "#FAFAFA",
-    fontSize: 32,
-    fontWeight: "bold",
-    lineHeight: 40,
-  },
-  orderButton: {
-    backgroundColor: "#FF6810",
-    borderRadius: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignSelf: "flex-start",
-    marginTop: 20,
-  },
-  orderButtonText: {
-    color: "#FAFAFA",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  discountCircle: {
-    backgroundColor: "#fff",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    marginLeft: 10,
-  },
-  discountText: {
-    fontSize: 12,
-    color: "#333",
-  },
-  discountValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ED1C24",
   },
   contentContainer: {
     backgroundColor: "#F5F5F5",
