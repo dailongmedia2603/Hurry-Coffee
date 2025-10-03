@@ -11,9 +11,9 @@ import {
   FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { supabase } from "../../src/integrations/supabase/client";
-import ProductCard from "../../src/components/ProductCard";
-import { Product } from "../../src/types";
+import { supabase } from "@/integrations/supabase/client";
+import ProductCard from "@/components/ProductCard";
+import { Product } from "@/types";
 
 export default function CustomerHomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
