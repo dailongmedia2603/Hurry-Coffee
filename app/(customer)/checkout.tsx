@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/src/context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const { items, totalPrice, totalItems, addItem, decreaseItem, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
+  const [notes, setNotes] = useState('');
 
   const handlePlaceOrder = async () => {
     setLoading(true);
@@ -30,7 +31,7 @@ export default function CheckoutScreen() {
       // 1. Create an order
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
-        .insert({ user_id: user.id, total: totalPrice })
+        .insert({ user_id: user.id, total: totalPrice, notes: notes })
         .select()
         .single();
 
@@ -99,6 +100,21 @@ export default function CheckoutScreen() {
                 </View>
             )}
             contentContainerStyle={styles.listContainer}
+            ListFooterComponent={
+              <View style={styles.notesSection}>
+                <Text style={styles.notesTitle}>Ghi chú</Text>
+                <View style={styles.notesInputContainer}>
+                  <Ionicons name="document-text-outline" size={20} color="#999" style={styles.notesIcon} />
+                  <TextInput
+                    placeholder="Thêm ghi chú cho nhà hàng..."
+                    style={styles.notesInput}
+                    value={notes}
+                    onChangeText={setNotes}
+                    multiline
+                  />
+                </View>
+              </View>
+            }
         />
       )}
 
@@ -139,4 +155,32 @@ const styles = StyleSheet.create({
     totalPrice: { fontSize: 22, fontWeight: 'bold' },
     checkoutButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center' },
     checkoutButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    notesSection: {
+      backgroundColor: '#fff',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    notesTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 12,
+    },
+    notesInputContainer: {
+      flexDirection: 'row',
+      backgroundColor: '#f3f4f6',
+      borderRadius: 10,
+      paddingHorizontal: 15,
+      paddingVertical: 10,
+      minHeight: 80,
+    },
+    notesIcon: {
+      marginRight: 10,
+      marginTop: 5,
+    },
+    notesInput: {
+      flex: 1,
+      fontSize: 16,
+      textAlignVertical: 'top',
+    },
 });
