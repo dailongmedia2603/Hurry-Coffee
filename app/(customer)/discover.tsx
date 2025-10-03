@@ -23,10 +23,23 @@ const formatPrice = (price: number) => {
   }).format(price);
 };
 
-const MenuItem = ({ product, onAddToCart }: { product: Product, onAddToCart: (product: Product) => void }) => {
+const MenuItem = ({
+  product,
+  onAddToCart,
+  onDecreaseFromCart,
+  quantity,
+}: {
+  product: Product;
+  onAddToCart: (product: Product) => void;
+  onDecreaseFromCart: (product: Product) => void;
+  quantity: number;
+}) => {
   const router = useRouter();
   return (
-    <TouchableOpacity style={styles.menuItemContainer} onPress={() => router.push(`/(customer)/product/${product.id}`)}>
+    <TouchableOpacity
+      style={styles.menuItemContainer}
+      onPress={() => router.push(`/(customer)/product/${product.id}`)}
+    >
       <Image
         source={{ uri: product.image_url || "https://via.placeholder.com/100" }}
         style={styles.menuItemImage}
@@ -38,9 +51,30 @@ const MenuItem = ({ product, onAddToCart }: { product: Product, onAddToCart: (pr
         </Text>
         <Text style={styles.menuItemPrice}>{formatPrice(product.price)}</Text>
       </View>
-      <TouchableOpacity style={styles.addButton} onPress={() => onAddToCart(product)}>
-        <Ionicons name="add" size={24} color="#73509c" />
-      </TouchableOpacity>
+      {quantity > 0 ? (
+        <View style={styles.quantityControl}>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => onDecreaseFromCart(product)}
+          >
+            <Ionicons name="remove" size={20} color="#73509c" />
+          </TouchableOpacity>
+          <Text style={styles.quantityText}>{quantity}</Text>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => onAddToCart(product)}
+          >
+            <Ionicons name="add" size={20} color="#73509c" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => onAddToCart(product)}
+        >
+          <Ionicons name="add" size={24} color="#73509c" />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
@@ -51,17 +85,21 @@ export default function DiscoverScreen() {
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { addItem, totalItems, totalPrice } = useCart();
+  const { addItem, decreaseItem, getItemQuantity, totalItems, totalPrice } = useCart();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
-      const { data: categoryData, error: categoryError } = await supabase.rpc('get_distinct_categories');
+      const { data: categoryData, error: categoryError } = await supabase.rpc(
+        "get_distinct_categories"
+      );
       if (categoryError) {
         console.error("Error fetching categories:", categoryError);
       } else if (categoryData) {
-        const fetchedCategories = categoryData.map((c: { category: string }) => c.category);
+        const fetchedCategories = categoryData.map(
+          (c: { category: string }) => c.category
+        );
         setCategories(["All Menu", ...fetchedCategories]);
       }
 
@@ -81,7 +119,11 @@ export default function DiscoverScreen() {
   }, []);
 
   const handleAddToCart = (product: Product) => {
-    addItem(product, 1, 'M');
+    addItem(product, 1, "M");
+  };
+
+  const handleDecreaseFromCart = (product: Product) => {
+    decreaseItem(product.id, "M");
   };
 
   const filteredProducts = useMemo(() => {
@@ -93,20 +135,30 @@ export default function DiscoverScreen() {
 
   const renderCategories = () => (
     <View style={styles.categoriesContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+      >
         {categories.map((category) => (
           <TouchableOpacity
             key={category}
             style={[
               styles.categoryChip,
-              activeCategory === category ? styles.categoryChipActive : styles.categoryChipInactive,
+              activeCategory === category
+                ? styles.categoryChipActive
+                : styles.categoryChipInactive,
             ]}
             onPress={() => setActiveCategory(category)}
           >
-            <Text style={[
-              styles.categoryChipText,
-              activeCategory === category ? styles.categoryChipTextActive : styles.categoryChipTextInactive,
-            ]}>
+            <Text
+              style={[
+                styles.categoryChipText,
+                activeCategory === category
+                  ? styles.categoryChipTextActive
+                  : styles.categoryChipTextInactive,
+              ]}
+            >
               {category}
             </Text>
           </TouchableOpacity>
@@ -119,47 +171,58 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push('/(customer)/')}>
+          <TouchableOpacity
+            onPress={() =>
+              router.canGoBack() ? router.back() : router.push("/(customer)/")
+            }
+          >
             <Ionicons name="arrow-back" size={24} color="#161616" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {"Chi tiết nhà hàng"}
-          </Text>
+          <Text style={styles.headerTitle}>{"Chi tiết nhà hàng"}</Text>
           <TouchableOpacity>
             <Ionicons name="search" size={24} color="#161616" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop' }}
-              style={styles.restaurantImage}
-              resizeMode="cover"
-            />
+          <Image
+            source={{
+              uri: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop",
+            }}
+            style={styles.restaurantImage}
+            resizeMode="cover"
+          />
         </View>
 
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
-            <Ionicons name="bicycle-outline" size={16} color="#656565" style={styles.detailIcon} />
-            <Text style={styles.detailText}>
-              {"Giao hàng nhanh"}
-            </Text>
+            <Ionicons
+              name="bicycle-outline"
+              size={16}
+              color="#656565"
+              style={styles.detailIcon}
+            />
+            <Text style={styles.detailText}>{"Giao hàng nhanh"}</Text>
           </View>
-          <Text style={styles.restaurantName}>
-            {"Nhà hàng ABC"}
-          </Text>
+          <Text style={styles.restaurantName}>{"Nhà hàng ABC"}</Text>
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
-              <Ionicons name="location-outline" size={16} color="#7C7C7C" style={styles.detailIcon} />
-              <Text style={styles.subDetailText}>
-                {"Bali, Indonesia"}
-              </Text>
+              <Ionicons
+                name="location-outline"
+                size={16}
+                color="#7C7C7C"
+                style={styles.detailIcon}
+              />
+              <Text style={styles.subDetailText}>{"Bali, Indonesia"}</Text>
             </View>
             <View style={styles.detailItem}>
-              <Ionicons name="star" size={16} color="#FFC107" style={styles.detailIcon} />
-              <Text style={styles.subDetailText}>
-                {"4.9 (1k+ đánh giá)"}
-              </Text>
+              <Ionicons
+                name="star"
+                size={16}
+                color="#FFC107"
+                style={styles.detailIcon}
+              />
+              <Text style={styles.subDetailText}>{"4.9 (1k+ đánh giá)"}</Text>
             </View>
           </View>
         </View>
@@ -172,35 +235,50 @@ export default function DiscoverScreen() {
             <ActivityIndicator size="large" color="#73509c" />
           ) : (
             filteredProducts.map((product) => (
-              <MenuItem key={product.id} product={product} onAddToCart={handleAddToCart} />
+              <MenuItem
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                onDecreaseFromCart={handleDecreaseFromCart}
+                quantity={getItemQuantity(product.id, "M")}
+              />
             ))
           )}
         </View>
       </ScrollView>
       {totalItems > 0 && (
-        <TouchableOpacity style={styles.cartBar} onPress={() => router.push('/(customer)/cart')}>
-            <View style={styles.cartInfo}>
-                <Text style={styles.cartBarText}>{totalItems} món</Text>
-                <Text style={styles.cartBarPrice}>{formatPrice(totalPrice)}</Text>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.cartButton}
+            onPress={() => router.push("/(customer)/cart")}
+          >
+            <Ionicons name="basket-outline" size={28} color="#333" />
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>{totalItems}</Text>
             </View>
-            <View style={styles.viewCartButton}>
-                <Text style={styles.viewCartText}>Xem giỏ hàng</Text>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-            </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buyNowButton}
+            onPress={() => router.push("/(customer)/cart")}
+          >
+            <Text style={styles.buyNowButtonText}>
+              Buy Now - {formatPrice(totalPrice)}
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: "#FFFFFF" 
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
   },
-  scrollView: { 
-    flex: 1, 
-    backgroundColor: "#FAFAFA" 
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
   },
   header: {
     flexDirection: "row",
@@ -221,11 +299,11 @@ const styles = StyleSheet.create({
     height: 200,
     marginBottom: 16,
     marginHorizontal: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   restaurantImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   detailsContainer: {
     marginBottom: 16,
@@ -269,39 +347,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   categoryChipActive: {
-    backgroundColor: '#FF6C44',
-    borderColor: '#FF6C44',
+    backgroundColor: "#FF6C44",
+    borderColor: "#FF6C44",
   },
   categoryChipInactive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E0E0E0',
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E0E0E0",
   },
   categoryChipText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   categoryChipTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   categoryChipTextInactive: {
-    color: '#333333',
+    color: "#333333",
   },
   menuContainer: {
     marginHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   menuTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
   },
   menuItemContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
-    alignItems: 'center',
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -316,74 +394,103 @@ const styles = StyleSheet.create({
   },
   menuItemDetails: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     marginRight: 12,
   },
   menuItemName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   menuItemDescription: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginVertical: 4,
   },
   menuItemPrice: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#73509c',
+    fontWeight: "bold",
+    color: "#73509c",
     marginTop: 4,
   },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F0EBF8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F0EBF8",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  cartBar: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 80,
-    left: 16,
-    right: 16,
-    backgroundColor: '#73509c',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  quantityControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0EBF8",
+    borderRadius: 20,
   },
-  cartInfo: {
-    flexDirection: 'column',
+  quantityButton: {
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  cartBarText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+  quantityText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#73509c",
+    minWidth: 20,
+    textAlign: "center",
   },
-  cartBarPrice: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    paddingBottom: Platform.OS === "ios" ? 34 : 12,
   },
-  viewCartButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+  cartButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    backgroundColor: "#fff",
   },
-  viewCartText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginRight: 8,
+  cartBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "#FF6C44",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cartBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  buyNowButton: {
+    flex: 1,
+    backgroundColor: "#FF3B30",
+    paddingVertical: 16,
+    borderRadius: 30,
+    alignItems: "center",
+    marginLeft: 16,
+  },
+  buyNowButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

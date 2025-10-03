@@ -10,6 +10,8 @@ export interface CartItem {
 interface CartContextType {
   items: CartItem[];
   addItem: (product: Product, quantity: number, size: string) => void;
+  decreaseItem: (productId: string, size: string) => void;
+  getItemQuantity: (productId: string, size: string) => number;
   totalItems: number;
   totalPrice: number;
 }
@@ -43,11 +45,37 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const decreaseItem = (productId: string, size: string) => {
+    setItems(prevItems => {
+      const existingItemIndex = prevItems.findIndex(
+        item => item.product.id === productId && item.size === size
+      );
+
+      if (existingItemIndex > -1) {
+        const newItems = [...prevItems];
+        if (newItems[existingItemIndex].quantity > 1) {
+          newItems[existingItemIndex].quantity -= 1;
+          return newItems;
+        } else {
+          return newItems.filter((_, index) => index !== existingItemIndex);
+        }
+      }
+      return prevItems;
+    });
+  };
+
+  const getItemQuantity = (productId: string, size: string) => {
+    const item = items.find(
+      item => item.product.id === productId && item.size === size
+    );
+    return item ? item.quantity : 0;
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, addItem, decreaseItem, getItemQuantity, totalItems, totalPrice }}>
       {children}
     </CartContext.Provider>
   );
