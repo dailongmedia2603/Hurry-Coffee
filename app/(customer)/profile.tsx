@@ -1,28 +1,28 @@
-import { View, Text, StyleSheet } from "react-native";
+import React from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useAuth } from '../../../src/context/AuthContext';
+import LoginScreen from '../../../src/components/Auth/LoginScreen';
+import ProfileScreen from '../../../src/components/Auth/ProfileScreen';
 
-export default function ProfileScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Hồ sơ cá nhân</Text>
-      <Text style={styles.subtitle}>Tính năng này đang được xây dựng.</Text>
-    </View>
-  );
+export default function ProfileTabScreen() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#73509c" />
+      </View>
+    );
+  }
+
+  return session ? <ProfileScreen /> : <LoginScreen />;
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "gray",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
 });
