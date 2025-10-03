@@ -10,7 +10,7 @@ export default function CustomerLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false, // Ẩn header cho tất cả các tab
+        headerShown: false,
         tabBarActiveTintColor: ACTIVE_COLOR,
         tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarStyle: {
@@ -105,12 +105,19 @@ export default function CustomerLayout() {
           ),
         }}
       />
-      {/* Ẩn màn hình này khỏi thanh menu */}
       <Tabs.Screen
         name="category/[name]"
         options={{
           href: null,
         }}
+      />
+      <Tabs.Screen
+        name="product/[id]"
+        options={{
+          href: null,
+          presentation: 'modal',
+          headerShown: false,
+        } as any}
       />
     </Tabs>
   );

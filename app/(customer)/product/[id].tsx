@@ -1,0 +1,245 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, ScrollView, SafeAreaView } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../../../src/integrations/supabase/client';
+import { Product } from '../../../types';
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price);
+};
+
+export default function ProductDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchProduct = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching product:', error);
+      } else {
+        setProduct(data);
+      }
+      setLoading(false);
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    // Logic to add to cart can be implemented here
+    console.log(`Added ${quantity} of ${product.name} to cart.`);
+    router.back(); // Close the modal
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#73509c" />
+      </View>
+    );
+  }
+
+  if (!product) {
+    return (
+      <View style={styles.centered}>
+        <Text>Product not found.</Text>
+      </View>
+    );
+  }
+
+  const totalPrice = product.price * quantity;
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container}>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.6)', 'transparent']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+              <Ionicons name="arrow-back" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Detail</Text>
+            <TouchableOpacity style={styles.headerButton}>
+              <Ionicons name="cart-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+        <Image
+          source={{ uri: product.image_url || 'https://via.placeholder.com/400' }}
+          style={styles.productImage}
+        />
+
+        <View style={styles.contentContainer}>
+          <Text style={styles.productName}>{product.name}</Text>
+          <Text style={styles.productDescription}>{product.description}</Text>
+
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={20} color="#FFC107" />
+            <Text style={styles.ratingText}>4.9 (115 Reviews)</Text>
+          </View>
+
+          <View style={styles.separator} />
+
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.descriptionText}>
+            {product.description || 'No detailed description available for this delicious item. Enjoy the taste!'}
+          </Text>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <View style={styles.quantitySelector}>
+          <TouchableOpacity
+            onPress={() => setQuantity(q => Math.max(1, q - 1))}
+            style={styles.quantityButton}
+          >
+            <Ionicons name="remove" size={24} color="#73509c" />
+          </TouchableOpacity>
+          <Text style={styles.quantityText}>{quantity}</Text>
+          <TouchableOpacity
+            onPress={() => setQuantity(q => q + 1)}
+            style={styles.quantityButton}
+          >
+            <Ionicons name="add" size={24} color="#73509c" />
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+          <Text style={styles.addToCartButtonText}>Add to Cart - {formatPrice(totalPrice)}</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    paddingTop: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  productImage: {
+    width: '100%',
+    height: 350,
+  },
+  contentContainer: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
+  },
+  productName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  productDescription: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 16,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  ratingText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: '#666',
+    lineHeight: 24,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    backgroundColor: '#fff',
+  },
+  quantitySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 30,
+    padding: 4,
+  },
+  quantityButton: {
+    padding: 8,
+  },
+  quantityText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+  },
+  addToCartButton: {
+    flex: 1,
+    backgroundColor: '#73509c',
+    paddingVertical: 16,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginLeft: 16,
+  },
+  addToCartButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});

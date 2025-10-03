@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, Image, StyleSheet, ViewStyle } from "react-native";
+import { View, Text, Image, StyleSheet, ViewStyle, TouchableOpacity } from "react-native";
 import { Product } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -11,10 +12,15 @@ const formatPrice = (price: number) => {
 };
 
 const MenuItemCard = ({ product, style }: { product: Product, style?: ViewStyle }) => {
+  const router = useRouter();
   const oldPrice = product.price * 1.5; // Dummy old price
 
+  const handlePress = () => {
+    router.push(`/(customer)/product/${product.id}`);
+  };
+
   return (
-    <View style={[styles.card, style]}>
+    <TouchableOpacity onPress={handlePress} style={[styles.card, style]}>
       <Image
         source={{ uri: product.image_url || "https://via.placeholder.com/150" }}
         style={styles.image}
@@ -29,7 +35,7 @@ const MenuItemCard = ({ product, style }: { product: Product, style?: ViewStyle 
         <Text style={styles.price}>{formatPrice(product.price)}</Text>
         <Text style={styles.oldPrice}>{formatPrice(oldPrice)}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
