@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   SafeAreaView,
   View,
@@ -17,40 +17,65 @@ import { Product } from "../../types";
 import MenuItemCard from "../../src/components/MenuItemCard";
 import CategoryChip from "../../src/components/CategoryChip";
 
-const categories = [
-  { name: "Rice", icon: "restaurant-outline" as const },
-  { name: "Snacks", icon: "ice-cream-outline" as const },
-  { name: "Drinks", icon: "beer-outline" as const },
-  { name: "More", icon: "ellipsis-horizontal-circle-outline" as const },
-];
+const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
+  Rice: "restaurant-outline",
+  Snacks: "ice-cream-outline",
+  Drinks: "beer-outline",
+  default: "fast-food-outline",
+};
 
 export default function CustomerHomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Rice");
+  const [activeCategory, setActiveCategory] = useState("");
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+
+      const { data: categoryData, error: categoryError } = await supabase.rpc('get_distinct_categories');
+      
+      if (categoryError) {
+        console.error("Error fetching categories:", categoryError);
+      } else if (categoryData) {
+        const fetchedCategories = categoryData.map((c: { category: string }) => ({
+          name: c.category,
+          icon: categoryIcons[c.category] || categoryIcons.default,
+        }));
+        setCategories([...fetchedCategories, { name: "More", icon: "ellipsis-horizontal-circle-outline" }]);
+        if (fetchedCategories.length > 0) {
+          setActiveCategory(fetchedCategories[0].name);
+        }
+      }
+
+      const { data: productData, error: productError } = await supabase
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching products:", error);
-      } else if (data) {
-        setProducts(data);
+      if (productError) {
+        console.error("Error fetching products:", productError);
+      } else if (productData) {
+        setProducts(productData);
       }
+      
       setLoading(false);
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const recommendedProducts = products.slice(0, 5);
-  const nearYouProducts = products.slice(5, 10);
+  const filteredProducts = useMemo(() => {
+    if (!activeCategory || activeCategory === "More") {
+      return products;
+    }
+    return products.filter((product) => product.category === activeCategory);
+  }, [activeCategory, products]);
+
+  const recommendedProducts = filteredProducts.slice(0, 5);
+  const nearYouProducts = filteredProducts.slice(5, 10);
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -124,7 +149,7 @@ export default function CustomerHomeScreen() {
       return <ActivityIndicator size="large" color="#ED1C24" style={{ marginTop: 20 }} />;
     }
     if (data.length === 0 && !loading) {
-      return <Text style={styles.placeholderText}>No products found.</Text>;
+      return <Text style={styles.placeholderText}>No products found for this category.</Text>;
     }
     return (
       <View style={styles.sectionContainer}>
