@@ -135,13 +135,16 @@ export default function CustomerHomeScreen() {
     if (data.length === 0 && !loading) {
       return null;
     }
+    const isRecommendedSection = title === "Món ngon cho bạn";
     return (
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeMore}>See more</Text>
-          </TouchableOpacity>
+          {!isRecommendedSection && (
+            <TouchableOpacity>
+              <Text style={styles.seeMore}>Tất cả</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <FlatList
           data={data}
