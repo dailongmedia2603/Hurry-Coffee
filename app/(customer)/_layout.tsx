@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Platform } from "react-native";
 
 const ACTIVE_COLOR = "#ED1C24";
 const INACTIVE_COLOR = "#666";
@@ -9,13 +10,33 @@ export default function CustomerLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false, // Ẩn header cho tất cả các tab
         tabBarActiveTintColor: ACTIVE_COLOR,
         tabBarInactiveTintColor: INACTIVE_COLOR,
-        headerStyle: {
+        tabBarStyle: {
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
           backgroundColor: "#FFFFFF",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          height: Platform.OS === "ios" ? 90 : 70,
+          paddingTop: 10,
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: -3,
+          },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 10,
+          borderTopWidth: 0,
         },
-        headerTitleStyle: {
-          fontWeight: "bold",
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "500",
+          marginBottom: Platform.OS === "android" ? 10 : 0,
         },
       }}
     >
@@ -23,7 +44,6 @@ export default function CustomerLayout() {
         name="index"
         options={{
           title: "Home",
-          headerShown: false, // Ẩn header
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
