@@ -171,7 +171,7 @@ export default function DiscoverScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.imageContainer}>
-          <Image source={{ uri: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop" }} style={styles.restaurantImage} resizeMode="cover" />
+          <Image source={{ uri: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto.format&fit=crop" }} style={styles.restaurantImage} resizeMode="cover" />
         </View>
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}><Ionicons name="bicycle-outline" size={16} color="#656565" style={styles.detailIcon} /><Text style={styles.detailText}>{"Giao hàng nhanh"}</Text></View>
@@ -198,15 +198,17 @@ export default function DiscoverScreen() {
           )}
         </View>
       </ScrollView>
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/(customer)/cart")}>
-          <Ionicons name="cart-outline" size={28} color="#333" />
-          {totalItems > 0 && (<View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>)}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/(customer)/cart")}>
-          <Text style={styles.buyNowButtonText}>Đặt đơn - {formatPrice(totalPrice)}</Text>
-        </TouchableOpacity>
-      </View>
+      {totalItems > 0 && (
+        <View style={styles.footer}>
+            <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/(customer)/checkout")}>
+                <Ionicons name="cart-outline" size={28} color="#333" />
+                <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/(customer)/checkout")}>
+                <Text style={styles.buyNowButtonText}>Xem giỏ hàng - {formatPrice(totalPrice)}</Text>
+            </TouchableOpacity>
+        </View>
+      )}
       <ProductOptionsModal
         visible={isModalVisible}
         product={selectedProduct}

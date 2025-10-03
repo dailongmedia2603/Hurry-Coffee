@@ -1,49 +1,65 @@
-import React from "react";
-import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, StyleSheet, TextInput, FlatList } from "react-native";
+import React, { useState, useCallback } from "react";
+import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import OrderCard from '@/src/components/OrderCard';
 import { Order } from '@/types';
+import { supabase } from "@/src/integrations/supabase/client";
+import { useFocusEffect } from "expo-router";
 
-const MOCK_ORDERS: Order[] = [
-  {
-    id: 'ORD001',
-    created_at: '2024-10-03T10:00:00Z',
-    status: 'Đang giao',
-    total: 150000,
-    items_count: 3,
-    restaurant_name: 'Nhà hàng ABC',
-    restaurant_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop',
-  },
-  {
-    id: 'ORD002',
-    created_at: '2024-10-02T18:30:00Z',
-    status: 'Hoàn thành',
-    total: 250000,
-    items_count: 5,
-    restaurant_name: 'Quán ăn XYZ',
-    restaurant_image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop',
-  },
-  {
-    id: 'ORD003',
-    created_at: '2024-10-03T11:00:00Z',
-    status: 'Đang xử lý',
-    total: 95000,
-    items_count: 2,
-    restaurant_name: 'Cà phê The Coffee House',
-    restaurant_image_url: 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?q=80&w=1974&auto=format&fit=crop',
-  },
-  {
-    id: 'ORD004',
-    created_at: '2024-09-30T12:00:00Z',
-    status: 'Đã hủy',
-    total: 120000,
-    items_count: 2,
-    restaurant_name: 'Nhà hàng ABC',
-    restaurant_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop',
-  },
-];
+// This is a temporary type extension until we create a proper view in Supabase
+type OrderWithDetails = Order & {
+    restaurant_name: string;
+    restaurant_image_url: string;
+    items_count: number;
+};
 
 export default function MyOrdersScreen() {
+    const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchOrders = async () => {
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setOrders([]);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items(count)
+                `)
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const ordersWithDetails = data.map(order => ({
+                ...order,
+                // These are mock details for now. In a real app, you'd join tables or fetch this info.
+                restaurant_name: 'Nhà hàng Hurry Coffee',
+                restaurant_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto.format&fit=crop',
+                items_count: order.order_items[0]?.count || 0,
+            }));
+
+            setOrders(ordersWithDetails);
+
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchOrders();
+        }, [])
+    );
+
 	return (
 		<SafeAreaView style={styles.safeArea}>
 			<View style={styles.headerContainer}>
@@ -61,13 +77,23 @@ export default function MyOrdersScreen() {
 					<Ionicons name="options-outline" size={24} color="#333" />
 				</TouchableOpacity>
 			</View>
-			<FlatList
-				data={MOCK_ORDERS}
-				renderItem={({ item }) => <OrderCard order={item} />}
-				keyExtractor={(item) => item.id}
-				contentContainerStyle={styles.listContainer}
-				showsVerticalScrollIndicator={false}
-			/>
+            {loading ? (
+                <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} />
+            ) : orders.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Bạn chưa có đơn hàng nào.</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={orders}
+                    renderItem={({ item }) => <OrderCard order={item} />}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContainer}
+                    showsVerticalScrollIndicator={false}
+                    onRefresh={fetchOrders}
+                    refreshing={loading}
+                />
+            )}
 		</SafeAreaView>
 	);
 }
@@ -128,4 +154,13 @@ const styles = StyleSheet.create({
 		paddingTop: 16,
 		paddingBottom: 100,
 	},
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#666',
+    },
 });

@@ -22,7 +22,7 @@ export default function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('M');
   const sizes = ['S', 'M', 'L'];
-  const { addItem } = useCart();
+  const { addItem, totalItems } = useCart();
 
   useEffect(() => {
     if (!id) return;
@@ -46,10 +46,15 @@ export default function ProductDetailScreen() {
     fetchProduct();
   }, [id]);
 
+  const handleAddToCart = () => {
+    if (!product) return;
+    addItem(product, quantity, selectedSize);
+  };
+  
   const handleBuyNow = () => {
     if (!product) return;
     addItem(product, quantity, selectedSize);
-    router.push('/(customer)/cart');
+    router.push('/(customer)/checkout');
   };
 
   if (loading) {
@@ -143,11 +148,13 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cartButton}>
+        <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
           <Ionicons name="basket-outline" size={28} color="#333" />
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>1</Text>
-          </View>
+          {totalItems > 0 && (
+            <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{totalItems}</Text>
+            </View>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
           <Text style={styles.buyNowButtonText}>Buy Now - {formatPrice(totalPrice)}</Text>
