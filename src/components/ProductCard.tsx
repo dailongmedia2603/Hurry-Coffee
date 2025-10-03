@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { Product } from "@/types";
+import { Product } from "../types"; // Reverted to relative path
 
 // A helper function to format currency
 const formatPrice = (price: number) => {
