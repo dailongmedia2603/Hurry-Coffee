@@ -246,27 +246,27 @@ export default function DiscoverScreen() {
           )}
         </View>
       </ScrollView>
-      {totalItems > 0 && (
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={() => router.push("/(customer)/cart")}
-          >
-            <Ionicons name="basket-outline" size={28} color="#333" />
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => router.push("/(customer)/cart")}
+        >
+          <Ionicons name="basket-outline" size={28} color="#333" />
+          {totalItems > 0 && (
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{totalItems}</Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.buyNowButton}
-            onPress={() => router.push("/(customer)/cart")}
-          >
-            <Text style={styles.buyNowButtonText}>
-              Buy Now - {formatPrice(totalPrice)}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.buyNowButton}
+          onPress={() => router.push("/(customer)/cart")}
+        >
+          <Text style={styles.buyNowButtonText}>
+            Buy Now - {formatPrice(totalPrice)}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
