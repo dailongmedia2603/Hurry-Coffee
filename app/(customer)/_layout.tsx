@@ -1,13 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { CartProvider } from "@/src/context/CartContext";
+import { supabase } from "@/src/integrations/supabase/client";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#666";
 
 export default function CustomerLayout() {
+  useEffect(() => {
+    const signInAnonymously = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) console.error("Error signing in anonymously:", error);
+      }
+    };
+    signInAnonymously();
+  }, []);
+
   return (
     <CartProvider>
       <Tabs
