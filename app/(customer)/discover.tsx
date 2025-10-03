@@ -251,7 +251,7 @@ export default function DiscoverScreen() {
           style={styles.cartButton}
           onPress={() => router.push("/(customer)/cart")}
         >
-          <Ionicons name="basket-outline" size={28} color="#333" />
+          <Ionicons name="cart-outline" size={28} color="#333" />
           {totalItems > 0 && (
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{totalItems}</Text>
@@ -263,7 +263,7 @@ export default function DiscoverScreen() {
           onPress={() => router.push("/(customer)/cart")}
         >
           <Text style={styles.buyNowButtonText}>
-            Buy Now - {formatPrice(totalPrice)}
+            Đặt đơn - {formatPrice(totalPrice)}
           </Text>
         </TouchableOpacity>
       </View>
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
   },
   buyNowButton: {
     flex: 1,
-    backgroundColor: "#FF3B30",
+    backgroundColor: "#73509c",
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: "center",
