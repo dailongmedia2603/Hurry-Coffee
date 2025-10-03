@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import LocationCard from '@/src/components/LocationCard';
@@ -32,6 +32,19 @@ const MOCK_LOCATIONS: Location[] = [
 ];
 
 export default function LocationsScreen() {
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredLocations = useMemo(() => {
+        if (!searchQuery) {
+            return MOCK_LOCATIONS;
+        }
+        const lowercasedQuery = searchQuery.toLowerCase();
+        return MOCK_LOCATIONS.filter(location => 
+            location.name.toLowerCase().includes(lowercasedQuery) || 
+            location.address.toLowerCase().includes(lowercasedQuery)
+        );
+    }, [searchQuery]);
+
 	return (
 		<SafeAreaView style={styles.safeArea}>
 			<View style={styles.headerContainer}>
@@ -43,6 +56,8 @@ export default function LocationsScreen() {
 					<TextInput 
 						placeholder="Tìm kiếm cửa hàng..."
 						style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
 					/>
 				</View>
 				<TouchableOpacity style={styles.filterButton}>
@@ -50,7 +65,7 @@ export default function LocationsScreen() {
 				</TouchableOpacity>
 			</View>
 			<FlatList
-				data={MOCK_LOCATIONS}
+				data={filteredLocations}
 				renderItem={({ item }) => <LocationCard location={item} />}
 				keyExtractor={(item) => item.id}
 				contentContainerStyle={styles.listContainer}
