@@ -71,7 +71,10 @@ export default function ProductDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 180 }} // Thêm khoảng đệm cho chân trang dính
+      >
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
           style={styles.headerGradient}
@@ -259,7 +262,9 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 90, // Thêm khoảng đệm cho thanh menu
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     backgroundColor: '#fff',
