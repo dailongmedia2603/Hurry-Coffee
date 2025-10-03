@@ -19,3 +19,12 @@ export interface Order {
   restaurant_name: string;
   restaurant_image_url: string;
 }
+
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  image_url: string;
+  distance: string;
+  opening_hours: string;
+}
