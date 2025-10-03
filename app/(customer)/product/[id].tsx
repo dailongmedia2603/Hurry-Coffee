@@ -44,11 +44,10 @@ export default function ProductDetailScreen() {
     fetchProduct();
   }, [id]);
 
-  const handleAddToCart = () => {
+  const handleBuyNow = () => {
     if (!product) return;
-    // Logic to add to cart can be implemented here
     console.log(`Added ${quantity} of ${product.name} (Size: ${selectedSize}) to cart.`);
-    router.back(); // Close the modal
+    router.push('/(customer)/cart');
   };
 
   if (loading) {
@@ -81,9 +80,7 @@ export default function ProductDetailScreen() {
               <Ionicons name="arrow-back" size={28} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Detail</Text>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="cart-outline" size={28} color="#fff" />
-            </TouchableOpacity>
+            <View style={styles.headerButton} />
           </View>
         </LinearGradient>
 
@@ -141,12 +138,19 @@ export default function ProductDetailScreen() {
               <Ionicons name="add" size={22} color="#73509c" />
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-            <Text style={styles.addToCartButtonText}>Thêm vào giỏ hàng - {formatPrice(totalPrice)}</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.cartButton}>
+          <Ionicons name="basket-outline" size={28} color="#333" />
+          <View style={styles.cartBadge}>
+            <Text style={styles.cartBadgeText}>1</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
+          <Text style={styles.buyNowButtonText}>Buy Now - {formatPrice(totalPrice)}</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -172,6 +176,10 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
@@ -260,14 +268,55 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginHorizontal: 15,
   },
-  addToCartButton: {
-    width: '100%',
-    backgroundColor: '#73509c',
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingBottom: 34,
+  },
+  cartButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#FF6C44',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  buyNowButton: {
+    flex: 1,
+    backgroundColor: '#FF3B30',
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
+    marginLeft: 16,
   },
-  addToCartButtonText: {
+  buyNowButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
