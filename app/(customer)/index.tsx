@@ -78,30 +78,27 @@ export default function CustomerHomeScreen() {
   const recommendedProducts = products.slice(0, 10);
 
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <LinearGradient
-        colors={["#161616", "rgba(22, 22, 22, 0.1)"]}
-        style={styles.gradient}
-      >
-        <View style={styles.topBar}>
-          <View>
-            <Text style={styles.locationLabel}>Location</Text>
-            <View style={styles.locationDetails}>
-              <Ionicons name="location-sharp" size={16} color="#fff" />
-              <Text style={styles.locationText}>Bali, Indonesia</Text>
-              <Ionicons name="chevron-down" size={16} color="#fff" />
-            </View>
+    <LinearGradient
+      colors={["#161616", "#ED1C24"]}
+      style={styles.headerContainer}
+    >
+      <View style={styles.topBar}>
+        <View>
+          <Text style={styles.locationLabel}>Location</Text>
+          <View style={styles.locationDetails}>
+            <Ionicons name="location-sharp" size={16} color="#fff" />
+            <Text style={styles.locationText}>Bali, Indonesia</Text>
+            <Ionicons name="chevron-down" size={16} color="#fff" />
           </View>
-          <Ionicons name="notifications-outline" size={28} color="#fff" />
         </View>
-      </LinearGradient>
-      {/* Bạn có thể thay đổi URI hình ảnh ở đây để hiển thị quảng cáo khác */}
+        <Ionicons name="notifications-outline" size={28} color="#fff" />
+      </View>
       <Image
         source={{ uri: 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
         style={styles.promoImage}
         resizeMode="cover"
       />
-    </View>
+    </LinearGradient>
   );
 
   const renderSearchBar = () => (
@@ -181,17 +178,14 @@ export default function CustomerHomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ED1C24",
+    backgroundColor: "#F5F5F5",
   },
   scrollView: {
     flex: 1,
     backgroundColor: "#F5F5F5",
   },
   headerContainer: {
-    backgroundColor: "#ED1C24",
     paddingBottom: 60,
-  },
-  gradient: {
     paddingTop: 16,
     paddingHorizontal: 16,
   },
@@ -216,7 +210,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   promoImage: {
-    width: '92%',
+    width: '100%',
     height: 140,
     borderRadius: 16,
     alignSelf: 'center',
