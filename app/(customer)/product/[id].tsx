@@ -71,10 +71,7 @@ export default function ProductDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
-        style={styles.container}
-        contentContainerStyle={{ paddingBottom: 180 }}
-      >
+      <ScrollView style={styles.container}>
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
           style={styles.headerGradient}
@@ -128,29 +125,28 @@ export default function ProductDetailScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          <View style={styles.quantitySelector}>
+            <TouchableOpacity
+              onPress={() => setQuantity(q => Math.max(1, q - 1))}
+              style={styles.quantityButton}
+            >
+              <Ionicons name="remove" size={22} color="#73509c" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{quantity}</Text>
+            <TouchableOpacity
+              onPress={() => setQuantity(q => q + 1)}
+              style={styles.quantityButton}
+            >
+              <Ionicons name="add" size={22} color="#73509c" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+            <Text style={styles.addToCartButtonText}>Thêm vào giỏ hàng - {formatPrice(totalPrice)}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={styles.quantitySelector}>
-          <TouchableOpacity
-            onPress={() => setQuantity(q => Math.max(1, q - 1))}
-            style={styles.quantityButton}
-          >
-            <Ionicons name="remove" size={24} color="#73509c" />
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{quantity}</Text>
-          <TouchableOpacity
-            onPress={() => setQuantity(q => q + 1)}
-            style={styles.quantityButton}
-          >
-            <Ionicons name="add" size={24} color="#73509c" />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-          <Text style={styles.addToCartButtonText}>Thêm vào giỏ hàng - {formatPrice(totalPrice)}</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -192,6 +188,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -24,
+    paddingBottom: 120,
   },
   productName: {
     fontSize: 28,
@@ -249,31 +246,19 @@ const styles = StyleSheet.create({
   sizeButtonTextSelected: {
     color: '#fff',
   },
-  footer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 90,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    backgroundColor: '#fff',
-  },
   quantitySelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 30,
-    padding: 4,
-    alignSelf: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    marginVertical: 20,
   },
   quantityButton: {
     padding: 8,
   },
   quantityText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginHorizontal: 16,
+    marginHorizontal: 15,
   },
   addToCartButton: {
     width: '100%',
