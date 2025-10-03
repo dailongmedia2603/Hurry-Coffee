@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     marginTop: -40,
     paddingTop: 20,
+    paddingBottom: 100, // Thêm khoảng đệm ở dưới
     flex: 1,
   },
   searchContainer: {
