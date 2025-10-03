@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '../../../src/integrations/supabase/client';
-import { Product } from '../../../types';
-import MenuItemCard from '../../../src/components/MenuItemCard';
+import { supabase } from '../../src/integrations/supabase/client';
+import { Product } from '../../types';
+import MenuItemCard from '../../src/components/MenuItemCard';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CategoryScreen() {

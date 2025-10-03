@@ -142,7 +142,7 @@ export default function CustomerHomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
           {!isRecommendedSection && (
-            <TouchableOpacity onPress={() => router.push(`/(customer)/category/${title}`)}>
+            <TouchableOpacity onPress={() => router.push(`/category/${title}`)}>
               <Text style={styles.seeMore}>Tất cả</Text>
             </TouchableOpacity>
           )}
