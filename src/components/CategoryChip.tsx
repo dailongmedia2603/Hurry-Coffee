@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chipActive: {
-    backgroundColor: "#FF6810",
+    backgroundColor: "#73509c",
   },
   chipInactive: {
     backgroundColor: "#FFFFFF",

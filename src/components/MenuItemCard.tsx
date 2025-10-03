@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#ED1C24",
+    color: "#73509c",
   },
   oldPrice: {
     fontSize: 12,

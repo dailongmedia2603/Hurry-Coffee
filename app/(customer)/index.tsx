@@ -79,8 +79,7 @@ export default function CustomerHomeScreen() {
 
   const renderHeader = () => (
     <LinearGradient
-      colors={["#161616", "#ED1C24"]}
-      locations={[0, 0.4]} // Điều chỉnh điểm dừng của màu
+      colors={["#402c75", "#73509c"]}
       style={styles.headerContainer}
     >
       <View style={styles.topBar}>
@@ -130,7 +129,7 @@ export default function CustomerHomeScreen() {
 
   const renderProductSection = (title: string, data: Product[]) => {
     if (loading) {
-      return <ActivityIndicator size="large" color="#ED1C24" style={{ marginTop: 20 }} />;
+      return <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} />;
     }
     if (data.length === 0 && !loading) {
       return null;
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingBottom: 60,
-    paddingTop: 44, // Tăng padding để đẩy nội dung xuống
+    paddingTop: 44,
     paddingHorizontal: 16,
   },
   topBar: {
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     marginTop: -40,
     paddingTop: 20,
-    paddingBottom: 100, // Thêm khoảng đệm ở dưới
+    paddingBottom: 100,
     flex: 1,
   },
   searchContainer: {
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
   },
   seeMore: {
     fontSize: 14,
-    color: "#ED1C24",
+    color: "#73509c",
     fontWeight: "500",
   },
   placeholderText: {

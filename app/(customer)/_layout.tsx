@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 
-const ACTIVE_COLOR = "#ED1C24";
+const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#666";
 
 export default function CustomerLayout() {
