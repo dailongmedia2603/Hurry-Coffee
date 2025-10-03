@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -7,10 +7,70 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { supabase } from "../../src/integrations/supabase/client";
+import ProductCard from "../../src/components/ProductCard";
+import { Product } from "../../src/types";
 
 export default function CustomerHomeScreen() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching products:", error);
+      } else if (data) {
+        setProducts(data);
+        const uniqueCategories = [
+          "Tất cả",
+          ...new Set(data.map((p) => p.category).filter(Boolean)),
+        ];
+        setCategories(uniqueCategories);
+      }
+      setLoading(false);
+    };
+
+    fetchProducts();
+  }, []);
+
+  const filteredProducts =
+    selectedCategory === "Tất cả"
+      ? products
+      : products.filter((p) => p.category === selectedCategory);
+
+  const renderMenu = () => {
+    if (loading) {
+      return (
+        <ActivityIndicator size="large" color="#ED1C24" style={{ marginTop: 20 }} />
+      );
+    }
+
+    if (filteredProducts.length === 0) {
+      return <Text style={styles.placeholderText}>Không có sản phẩm nào.</Text>;
+    }
+
+    return (
+      <FlatList
+        data={filteredProducts}
+        renderItem={({ item }) => <ProductCard product={item} />}
+        keyExtractor={(item) => item.id.toString()}
+        scrollEnabled={false} // Let the parent ScrollView handle scrolling
+      />
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
@@ -90,12 +150,38 @@ export default function CustomerHomeScreen() {
 
         <View style={styles.menuContainer}>
           <Text style={styles.menuTitle}>Thực đơn của chúng tôi</Text>
-          {/* Product list will be rendered here */}
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderText}>
-              Danh sách sản phẩm sẽ sớm xuất hiện ở đây...
-            </Text>
+
+          <View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryContainer}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === category &&
+                      styles.categoryButtonActive,
+                  ]}
+                  onPress={() => setSelectedCategory(category)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      selectedCategory === category &&
+                        styles.categoryTextActive,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
+
+          {renderMenu()}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -168,7 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginHorizontal: 16,
-    marginTop: -60, // Pulls the section up into the gradient
+    marginTop: -60,
   },
   promoTextContainer: {
     flex: 1,
@@ -205,14 +291,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
   },
-  placeholder: {
-    backgroundColor: "#FFF",
-    padding: 20,
-    borderRadius: 8,
-    alignItems: "center",
-  },
   placeholderText: {
     fontSize: 16,
     color: "gray",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  categoryContainer: {
+    paddingBottom: 20,
+  },
+  categoryButton: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  categoryButtonActive: {
+    backgroundColor: "#ED1C24",
+    borderColor: "#ED1C24",
+  },
+  categoryText: {
+    color: "#333",
+    fontWeight: "500",
+  },
+  categoryTextActive: {
+    color: "#FFF",
   },
 });
