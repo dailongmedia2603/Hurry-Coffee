@@ -80,6 +80,7 @@ export default function CustomerHomeScreen() {
   const renderHeader = () => (
     <LinearGradient
       colors={["#161616", "#ED1C24"]}
+      locations={[0, 0.4]} // Điều chỉnh điểm dừng của màu
       style={styles.headerContainer}
     >
       <View style={styles.topBar}>
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingBottom: 60,
-    paddingTop: 16,
+    paddingTop: 44, // Tăng padding để đẩy nội dung xuống
     paddingHorizontal: 16,
   },
   topBar: {

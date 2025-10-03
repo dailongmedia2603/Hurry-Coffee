@@ -23,7 +23,7 @@ export default function CustomerLayout() {
         name="index"
         options={{
           title: "Home",
-          headerTitle: "Hurry Coffee",
+          headerShown: false, // Ẩn header
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
