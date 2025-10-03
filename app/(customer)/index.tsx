@@ -14,10 +14,10 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { supabase } from "../../src/integrations/supabase/client";
-import { Product } from "../../types";
-import MenuItemCard from "../../src/components/MenuItemCard";
-import CategoryChip from "../../src/components/CategoryChip";
+import { supabase } from "@/src/integrations/supabase/client";
+import { Product } from "@/types";
+import MenuItemCard from "@/src/components/MenuItemCard";
+import CategoryChip from "@/src/components/CategoryChip";
 
 const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
   Rice: "restaurant-outline",

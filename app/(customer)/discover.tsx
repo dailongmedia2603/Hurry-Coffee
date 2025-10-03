@@ -8,11 +8,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "../../src/integrations/supabase/client";
-import { Product } from "../../types";
+import { supabase } from "@/src/integrations/supabase/client";
+import { Product } from "@/types";
 import { useRouter } from "expo-router";
+import { useCart } from "@/src/context/CartContext";
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -21,7 +23,7 @@ const formatPrice = (price: number) => {
   }).format(price);
 };
 
-const MenuItem = ({ product }: { product: Product }) => {
+const MenuItem = ({ product, onAddToCart }: { product: Product, onAddToCart: (product: Product) => void }) => {
   const router = useRouter();
   return (
     <TouchableOpacity style={styles.menuItemContainer} onPress={() => router.push(`/(customer)/product/${product.id}`)}>
@@ -36,7 +38,7 @@ const MenuItem = ({ product }: { product: Product }) => {
         </Text>
         <Text style={styles.menuItemPrice}>{formatPrice(product.price)}</Text>
       </View>
-      <TouchableOpacity style={styles.addButton}>
+      <TouchableOpacity style={styles.addButton} onPress={() => onAddToCart(product)}>
         <Ionicons name="add" size={24} color="#73509c" />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -49,12 +51,12 @@ export default function DiscoverScreen() {
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { addItem, totalItems, totalPrice } = useCart();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch categories
       const { data: categoryData, error: categoryError } = await supabase.rpc('get_distinct_categories');
       if (categoryError) {
         console.error("Error fetching categories:", categoryError);
@@ -63,7 +65,6 @@ export default function DiscoverScreen() {
         setCategories(["All Menu", ...fetchedCategories]);
       }
 
-      // Fetch products
       const { data: productData, error: productError } = await supabase
         .from("products")
         .select("*");
@@ -78,6 +79,10 @@ export default function DiscoverScreen() {
 
     fetchData();
   }, []);
+
+  const handleAddToCart = (product: Product) => {
+    addItem(product, 1, 'M');
+  };
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === "All Menu") {
@@ -167,11 +172,23 @@ export default function DiscoverScreen() {
             <ActivityIndicator size="large" color="#73509c" />
           ) : (
             filteredProducts.map((product) => (
-              <MenuItem key={product.id} product={product} />
+              <MenuItem key={product.id} product={product} onAddToCart={handleAddToCart} />
             ))
           )}
         </View>
       </ScrollView>
+      {totalItems > 0 && (
+        <TouchableOpacity style={styles.cartBar} onPress={() => router.push('/(customer)/cart')}>
+            <View style={styles.cartInfo}>
+                <Text style={styles.cartBarText}>{totalItems} món</Text>
+                <Text style={styles.cartBarPrice}>{formatPrice(totalPrice)}</Text>
+            </View>
+            <View style={styles.viewCartButton}>
+                <Text style={styles.viewCartText}>Xem giỏ hàng</Text>
+                <Ionicons name="arrow-forward" size={16} color="#fff" />
+            </View>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -324,5 +341,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0EBF8',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cartBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 80,
+    left: 16,
+    right: 16,
+    backgroundColor: '#73509c',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  cartInfo: {
+    flexDirection: 'column',
+  },
+  cartBarText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cartBarPrice: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  viewCartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  viewCartText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 8,
   },
 });

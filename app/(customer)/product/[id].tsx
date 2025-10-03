@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Scr
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../../../src/integrations/supabase/client';
-import { Product } from '../../../types';
+import { supabase } from '@/src/integrations/supabase/client';
+import { Product } from '@/types';
+import { useCart } from '@/src/context/CartContext';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -21,6 +22,7 @@ export default function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('M');
   const sizes = ['S', 'M', 'L'];
+  const { addItem } = useCart();
 
   useEffect(() => {
     if (!id) return;
@@ -46,7 +48,7 @@ export default function ProductDetailScreen() {
 
   const handleBuyNow = () => {
     if (!product) return;
-    console.log(`Added ${quantity} of ${product.name} (Size: ${selectedSize}) to cart.`);
+    addItem(product, quantity, selectedSize);
     router.push('/(customer)/cart');
   };
 
