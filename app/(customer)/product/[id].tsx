@@ -73,7 +73,7 @@ export default function ProductDetailScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView 
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 180 }} // Thêm khoảng đệm cho chân trang dính
+        contentContainerStyle={{ paddingBottom: 180 }}
       >
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
@@ -128,11 +128,6 @@ export default function ProductDetailScreen() {
               </TouchableOpacity>
             ))}
           </View>
-
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>
-            {product.description || 'No detailed description available for this delicious item. Enjoy the taste!'}
-          </Text>
         </View>
       </ScrollView>
 
@@ -162,7 +157,7 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerGradient: {
     position: 'absolute',
@@ -228,11 +223,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  descriptionText: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
-  },
   sizeSelectorContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -260,11 +250,9 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 90, // Thêm khoảng đệm cho thanh menu
+    paddingBottom: 90,
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     backgroundColor: '#fff',
@@ -276,6 +264,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderRadius: 30,
     padding: 4,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   quantityButton: {
     padding: 8,
@@ -286,12 +276,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   addToCartButton: {
-    flex: 1,
+    width: '100%',
     backgroundColor: '#73509c',
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
-    marginLeft: 16,
   },
   addToCartButtonText: {
     color: '#fff',
