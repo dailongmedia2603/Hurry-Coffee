@@ -19,6 +19,8 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState('M');
+  const sizes = ['S', 'M', 'L'];
 
   useEffect(() => {
     if (!id) return;
@@ -45,7 +47,7 @@ export default function ProductDetailScreen() {
   const handleAddToCart = () => {
     if (!product) return;
     // Logic to add to cart can be implemented here
-    console.log(`Added ${quantity} of ${product.name} to cart.`);
+    console.log(`Added ${quantity} of ${product.name} (Size: ${selectedSize}) to cart.`);
     router.back(); // Close the modal
   };
 
@@ -101,6 +103,29 @@ export default function ProductDetailScreen() {
 
           <View style={styles.separator} />
 
+          <Text style={styles.sectionTitle}>Size</Text>
+          <View style={styles.sizeSelectorContainer}>
+            {sizes.map((size) => (
+              <TouchableOpacity
+                key={size}
+                style={[
+                  styles.sizeButton,
+                  selectedSize === size && styles.sizeButtonSelected,
+                ]}
+                onPress={() => setSelectedSize(size)}
+              >
+                <Text
+                  style={[
+                    styles.sizeButtonText,
+                    selectedSize === size && styles.sizeButtonTextSelected,
+                  ]}
+                >
+                  {size}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.descriptionText}>
             {product.description || 'No detailed description available for this delicious item. Enjoy the taste!'}
@@ -125,7 +150,7 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-          <Text style={styles.addToCartButtonText}>Add to Cart - {formatPrice(totalPrice)}</Text>
+          <Text style={styles.addToCartButtonText}>Thêm vào giỏ hàng - {formatPrice(totalPrice)}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -198,12 +223,38 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   descriptionText: {
     fontSize: 16,
     color: '#666',
     lineHeight: 24,
+  },
+  sizeSelectorContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  sizeButton: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 30,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sizeButtonSelected: {
+    backgroundColor: '#73509c',
+    borderColor: '#73509c',
+  },
+  sizeButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  sizeButtonTextSelected: {
+    color: '#fff',
   },
   footer: {
     flexDirection: 'row',
