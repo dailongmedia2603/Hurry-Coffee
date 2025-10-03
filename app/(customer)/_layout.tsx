@@ -43,10 +43,10 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Menu",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? "home" : "home-outline"}
+              name={focused ? "grid" : "grid-outline"}
               color={color}
               size={size}
             />
@@ -56,10 +56,10 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: "Discover",
+          title: "Đặt Món",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? "compass" : "compass-outline"}
+              name={focused ? "fast-food" : "fast-food-outline"}
               color={color}
               size={size}
             />
@@ -69,10 +69,10 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: "My Cart",
+          title: "Đơn Đặt",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? "cart" : "cart-outline"}
+              name={focused ? "receipt" : "receipt-outline"}
               color={color}
               size={size}
             />
@@ -82,10 +82,10 @@ export default function CustomerLayout() {
       <Tabs.Screen
         name="orders"
         options={{
-          title: "Food Order",
+          title: "Địa Điểm",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? "receipt" : "receipt-outline"}
+              name={focused ? "location" : "location-outline"}
               color={color}
               size={size}
             />
