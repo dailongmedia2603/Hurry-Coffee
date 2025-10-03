@@ -198,17 +198,19 @@ export default function DiscoverScreen() {
           )}
         </View>
       </ScrollView>
-      {totalItems > 0 && (
-        <View style={styles.footer}>
-            <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/(customer)/checkout")}>
-                <Ionicons name="cart-outline" size={28} color="#333" />
+      <View style={styles.footer}>
+          <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/(customer)/checkout")}>
+              <Ionicons name="cart-outline" size={28} color="#333" />
+              {totalItems > 0 && (
                 <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/(customer)/checkout")}>
-                <Text style={styles.buyNowButtonText}>Xem giỏ hàng - {formatPrice(totalPrice)}</Text>
-            </TouchableOpacity>
-        </View>
-      )}
+              )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/(customer)/checkout")}>
+              <Text style={styles.buyNowButtonText}>
+                {totalItems > 0 ? `Xem giỏ hàng - ${formatPrice(totalPrice)}` : 'Xem giỏ hàng'}
+              </Text>
+          </TouchableOpacity>
+      </View>
       <ProductOptionsModal
         visible={isModalVisible}
         product={selectedProduct}
