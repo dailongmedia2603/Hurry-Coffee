@@ -107,13 +107,10 @@ export default function CustomerHomeScreen() {
       <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
       <TextInput
         style={styles.searchInput}
-        placeholder="Search food"
+        placeholder="Tìm món nhanh"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
-      <TouchableOpacity style={styles.filterButton}>
-        <Ionicons name="options-outline" size={24} color="#ED1C24" />
-      </TouchableOpacity>
     </View>
   );
 
@@ -246,11 +243,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
-  },
-  filterButton: {
-    backgroundColor: "#FEECEB",
-    borderRadius: 15,
-    padding: 8,
   },
   categoriesContainer: {
     flexDirection: "row",
