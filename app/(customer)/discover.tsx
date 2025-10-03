@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   SafeAreaView,
   View,
@@ -45,27 +45,70 @@ const MenuItem = ({ product }: { product: Product }) => {
 
 export default function DiscoverScreen() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .limit(10);
 
-      if (error) {
-        console.error("Error fetching products:", error);
+      // Fetch categories
+      const { data: categoryData, error: categoryError } = await supabase.rpc('get_distinct_categories');
+      if (categoryError) {
+        console.error("Error fetching categories:", categoryError);
+      } else if (categoryData) {
+        const fetchedCategories = categoryData.map((c: { category: string }) => c.category);
+        setCategories(["All Menu", ...fetchedCategories]);
+      }
+
+      // Fetch products
+      const { data: productData, error: productError } = await supabase
+        .from("products")
+        .select("*");
+
+      if (productError) {
+        console.error("Error fetching products:", productError);
       } else {
-        setProducts(data || []);
+        setProducts(productData || []);
       }
       setLoading(false);
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
+
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === "All Menu") {
+      return products;
+    }
+    return products.filter((product) => product.category === activeCategory);
+  }, [activeCategory, products]);
+
+  const renderCategories = () => (
+    <View style={styles.categoriesContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryChip,
+              activeCategory === category ? styles.categoryChipActive : styles.categoryChipInactive,
+            ]}
+            onPress={() => setActiveCategory(category)}
+          >
+            <Text style={[
+              styles.categoryChipText,
+              activeCategory === category ? styles.categoryChipTextActive : styles.categoryChipTextInactive,
+            ]}>
+              {category}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -116,12 +159,14 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
+        {renderCategories()}
+
         <View style={styles.menuContainer}>
           <Text style={styles.menuTitle}>Thực đơn</Text>
           {loading ? (
             <ActivityIndicator size="large" color="#73509c" />
           ) : (
-            products.map((product) => (
+            filteredProducts.map((product) => (
               <MenuItem key={product.id} product={product} />
             ))
           )}
@@ -147,7 +192,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
     paddingVertical: 20,
     paddingHorizontal: 16,
-    marginBottom: 16,
   },
   headerTitle: {
     color: "#161616",
@@ -167,7 +211,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   detailsContainer: {
-    marginBottom: 28,
+    marginBottom: 16,
     marginHorizontal: 16,
   },
   detailRow: {
@@ -196,6 +240,34 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
+  },
+  categoriesContainer: {
+    marginBottom: 16,
+  },
+  categoryChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  categoryChipActive: {
+    backgroundColor: '#FF6C44',
+    borderColor: '#FF6C44',
+  },
+  categoryChipInactive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0E0',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  categoryChipTextActive: {
+    color: '#FFFFFF',
+  },
+  categoryChipTextInactive: {
+    color: '#333333',
   },
   menuContainer: {
     marginHorizontal: 16,
@@ -228,6 +300,7 @@ const styles = StyleSheet.create({
   menuItemDetails: {
     flex: 1,
     justifyContent: 'center',
+    marginRight: 12,
   },
   menuItemName: {
     fontSize: 16,
