@@ -74,8 +74,7 @@ export default function CustomerHomeScreen() {
     return products.filter((product) => product.category === activeCategory);
   }, [activeCategory, products]);
 
-  const recommendedProducts = filteredProducts.slice(0, 5);
-  const nearYouProducts = filteredProducts.slice(5, 10);
+  const recommendedProducts = products.slice(0, 10);
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -149,7 +148,7 @@ export default function CustomerHomeScreen() {
       return <ActivityIndicator size="large" color="#ED1C24" style={{ marginTop: 20 }} />;
     }
     if (data.length === 0 && !loading) {
-      return <Text style={styles.placeholderText}>No products found for this category.</Text>;
+      return null;
     }
     return (
       <View style={styles.sectionContainer}>
@@ -181,8 +180,8 @@ export default function CustomerHomeScreen() {
         <View style={styles.contentContainer}>
           {renderSearchBar()}
           {renderCategories()}
-          {renderProductSection("Recommended For You", recommendedProducts)}
-          {renderProductSection("Near You", nearYouProducts)}
+          {renderProductSection("Món ngon cho bạn", recommendedProducts)}
+          {activeCategory && activeCategory !== "More" && renderProductSection(activeCategory, filteredProducts)}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -271,7 +270,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   discountValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#ED1C24",
   },
