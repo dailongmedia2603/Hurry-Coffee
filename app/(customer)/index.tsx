@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { supabase } from "../../src/integrations/supabase/client";
 import { Product } from "../../types";
 import MenuItemCard from "../../src/components/MenuItemCard";
@@ -26,6 +27,7 @@ const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
 };
 
 export default function CustomerHomeScreen() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,7 +142,7 @@ export default function CustomerHomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
           {!isRecommendedSection && (
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push(`/(customer)/category/${title}`)}>
               <Text style={styles.seeMore}>Tất cả</Text>
             </TouchableOpacity>
           )}
