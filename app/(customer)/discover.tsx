@@ -15,6 +15,7 @@ import { supabase } from "@/src/integrations/supabase/client";
 import { Product } from "@/types";
 import { useRouter } from "expo-router";
 import { useCart } from "@/src/context/CartContext";
+import ProductOptionsModal from "@/src/components/ProductOptionsModal";
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -27,11 +28,13 @@ const MenuItem = ({
   product,
   onAddToCart,
   onDecreaseFromCart,
+  onOpenOptions,
   quantity,
 }: {
   product: Product;
   onAddToCart: (product: Product) => void;
   onDecreaseFromCart: (product: Product) => void;
+  onOpenOptions: (product: Product) => void;
   quantity: number;
 }) => {
   const router = useRouter();
@@ -70,7 +73,7 @@ const MenuItem = ({
       ) : (
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => onAddToCart(product)}
+          onPress={() => onOpenOptions(product)}
         >
           <Ionicons name="add" size={24} color="#73509c" />
         </TouchableOpacity>
@@ -85,36 +88,27 @@ export default function DiscoverScreen() {
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { addItem, decreaseItem, getItemQuantity, totalItems, totalPrice } = useCart();
+  const { addItem, decreaseItem, getProductQuantity, totalItems, totalPrice } = useCart();
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-
       const { data: categoryData, error: categoryError } = await supabase.rpc(
         "get_distinct_categories"
       );
-      if (categoryError) {
-        console.error("Error fetching categories:", categoryError);
-      } else if (categoryData) {
-        const fetchedCategories = categoryData.map(
-          (c: { category: string }) => c.category
-        );
+      if (categoryError) console.error("Error fetching categories:", categoryError);
+      else if (categoryData) {
+        const fetchedCategories = categoryData.map((c: { category: string }) => c.category);
         setCategories(["All Menu", ...fetchedCategories]);
       }
 
-      const { data: productData, error: productError } = await supabase
-        .from("products")
-        .select("*");
-
-      if (productError) {
-        console.error("Error fetching products:", productError);
-      } else {
-        setProducts(productData || []);
-      }
+      const { data: productData, error: productError } = await supabase.from("products").select("*");
+      if (productError) console.error("Error fetching products:", productError);
+      else setProducts(productData || []);
       setLoading(false);
     };
-
     fetchData();
   }, []);
 
@@ -126,39 +120,36 @@ export default function DiscoverScreen() {
     decreaseItem(product.id, "M");
   };
 
+  const handleOpenOptions = (product: Product) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedProduct(null);
+  };
+
+  const handleAddToCartFromModal = (product: Product, quantity: number, size: string) => {
+    addItem(product, quantity, size);
+    handleCloseModal();
+  };
+
   const filteredProducts = useMemo(() => {
-    if (activeCategory === "All Menu") {
-      return products;
-    }
+    if (activeCategory === "All Menu") return products;
     return products.filter((product) => product.category === activeCategory);
   }, [activeCategory, products]);
 
   const renderCategories = () => (
     <View style={styles.categoriesContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
         {categories.map((category) => (
           <TouchableOpacity
             key={category}
-            style={[
-              styles.categoryChip,
-              activeCategory === category
-                ? styles.categoryChipActive
-                : styles.categoryChipInactive,
-            ]}
+            style={[styles.categoryChip, activeCategory === category ? styles.categoryChipActive : styles.categoryChipInactive]}
             onPress={() => setActiveCategory(category)}
           >
-            <Text
-              style={[
-                styles.categoryChipText,
-                activeCategory === category
-                  ? styles.categoryChipTextActive
-                  : styles.categoryChipTextInactive,
-              ]}
-            >
+            <Text style={[styles.categoryChipText, activeCategory === category ? styles.categoryChipTextActive : styles.categoryChipTextInactive]}>
               {category}
             </Text>
           </TouchableOpacity>
@@ -171,11 +162,7 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() =>
-              router.canGoBack() ? router.back() : router.push("/(customer)/")
-            }
-          >
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push("/(customer)/")}>
             <Ionicons name="arrow-back" size={24} color="#161616" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{"Chi tiết nhà hàng"}</Text>
@@ -183,314 +170,90 @@ export default function DiscoverScreen() {
             <Ionicons name="search" size={24} color="#161616" />
           </TouchableOpacity>
         </View>
-
         <View style={styles.imageContainer}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop",
-            }}
-            style={styles.restaurantImage}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop" }} style={styles.restaurantImage} resizeMode="cover" />
         </View>
-
         <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
-            <Ionicons
-              name="bicycle-outline"
-              size={16}
-              color="#656565"
-              style={styles.detailIcon}
-            />
-            <Text style={styles.detailText}>{"Giao hàng nhanh"}</Text>
-          </View>
+          <View style={styles.detailRow}><Ionicons name="bicycle-outline" size={16} color="#656565" style={styles.detailIcon} /><Text style={styles.detailText}>{"Giao hàng nhanh"}</Text></View>
           <Text style={styles.restaurantName}>{"Nhà hàng ABC"}</Text>
           <View style={styles.detailRow}>
-            <View style={styles.detailItem}>
-              <Ionicons
-                name="location-outline"
-                size={16}
-                color="#7C7C7C"
-                style={styles.detailIcon}
-              />
-              <Text style={styles.subDetailText}>{"Bali, Indonesia"}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Ionicons
-                name="star"
-                size={16}
-                color="#FFC107"
-                style={styles.detailIcon}
-              />
-              <Text style={styles.subDetailText}>{"4.9 (1k+ đánh giá)"}</Text>
-            </View>
+            <View style={styles.detailItem}><Ionicons name="location-outline" size={16} color="#7C7C7C" style={styles.detailIcon} /><Text style={styles.subDetailText}>{"Bali, Indonesia"}</Text></View>
+            <View style={styles.detailItem}><Ionicons name="star" size={16} color="#FFC107" style={styles.detailIcon} /><Text style={styles.subDetailText}>{"4.9 (1k+ đánh giá)"}</Text></View>
           </View>
         </View>
-
         {renderCategories()}
-
         <View style={styles.menuContainer}>
           <Text style={styles.menuTitle}>Thực đơn</Text>
-          {loading ? (
-            <ActivityIndicator size="large" color="#73509c" />
-          ) : (
+          {loading ? <ActivityIndicator size="large" color="#73509c" /> : (
             filteredProducts.map((product) => (
               <MenuItem
                 key={product.id}
                 product={product}
                 onAddToCart={handleAddToCart}
                 onDecreaseFromCart={handleDecreaseFromCart}
-                quantity={getItemQuantity(product.id, "M")}
+                onOpenOptions={handleOpenOptions}
+                quantity={getProductQuantity(product.id)}
               />
             ))
           )}
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() => router.push("/(customer)/cart")}
-        >
+        <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/(customer)/cart")}>
           <Ionicons name="cart-outline" size={28} color="#333" />
-          {totalItems > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{totalItems}</Text>
-            </View>
-          )}
+          {totalItems > 0 && (<View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>)}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.buyNowButton}
-          onPress={() => router.push("/(customer)/cart")}
-        >
-          <Text style={styles.buyNowButtonText}>
-            Đặt đơn - {formatPrice(totalPrice)}
-          </Text>
+        <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/(customer)/cart")}>
+          <Text style={styles.buyNowButtonText}>Đặt đơn - {formatPrice(totalPrice)}</Text>
         </TouchableOpacity>
       </View>
+      <ProductOptionsModal
+        visible={isModalVisible}
+        product={selectedProduct}
+        onClose={handleCloseModal}
+        onAddToCart={handleAddToCartFromModal}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#FAFAFA",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  headerTitle: {
-    color: "#161616",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  imageContainer: {
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
-    height: 200,
-    marginBottom: 16,
-    marginHorizontal: 16,
-    overflow: "hidden",
-  },
-  restaurantImage: {
-    width: "100%",
-    height: "100%",
-  },
-  detailsContainer: {
-    marginBottom: 16,
-    marginHorizontal: 16,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  detailIcon: {
-    marginRight: 4,
-  },
-  detailText: {
-    color: "#656565",
-    fontSize: 12,
-  },
-  subDetailText: {
-    color: "#7C7C7C",
-    fontSize: 12,
-  },
-  restaurantName: {
-    color: "#161616",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  categoriesContainer: {
-    marginBottom: 16,
-  },
-  categoryChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  categoryChipActive: {
-    backgroundColor: "#FF6C44",
-    borderColor: "#FF6C44",
-  },
-  categoryChipInactive: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E0E0E0",
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  categoryChipTextActive: {
-    color: "#FFFFFF",
-  },
-  categoryChipTextInactive: {
-    color: "#333333",
-  },
-  menuContainer: {
-    marginHorizontal: 16,
-    paddingBottom: 120,
-  },
-  menuTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  menuItemContainer: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  menuItemImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  menuItemDetails: {
-    flex: 1,
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  menuItemName: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  menuItemDescription: {
-    fontSize: 12,
-    color: "#666",
-    marginVertical: 4,
-  },
-  menuItemPrice: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#73509c",
-    marginTop: 4,
-  },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0EBF8",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  quantityControl: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F0EBF8",
-    borderRadius: 20,
-  },
-  quantityButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#73509c",
-    minWidth: 20,
-    textAlign: "center",
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-    paddingBottom: Platform.OS === "ios" ? 34 : 12,
-  },
-  cartButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-    backgroundColor: "#fff",
-  },
-  cartBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: "#FF6C44",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cartBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  buyNowButton: {
-    flex: 1,
-    backgroundColor: "#73509c",
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    marginLeft: 16,
-  },
-  buyNowButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
+  headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
+  imageContainer: { backgroundColor: "#F0F0F0", borderRadius: 12, height: 200, marginBottom: 16, marginHorizontal: 16, overflow: "hidden" },
+  restaurantImage: { width: "100%", height: "100%" },
+  detailsContainer: { marginBottom: 16, marginHorizontal: 16 },
+  detailRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  detailItem: { flexDirection: "row", alignItems: "center", marginRight: 15 },
+  detailIcon: { marginRight: 4 },
+  detailText: { color: "#656565", fontSize: 12 },
+  subDetailText: { color: "#7C7C7C", fontSize: 12 },
+  restaurantName: { color: "#161616", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
+  categoriesContainer: { marginBottom: 16 },
+  categoryChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, borderWidth: 1 },
+  categoryChipActive: { backgroundColor: "#FF6C44", borderColor: "#FF6C44" },
+  categoryChipInactive: { backgroundColor: "#FFFFFF", borderColor: "#E0E0E0" },
+  categoryChipText: { fontSize: 14, fontWeight: "500" },
+  categoryChipTextActive: { color: "#FFFFFF" },
+  categoryChipTextInactive: { color: "#333333" },
+  menuContainer: { marginHorizontal: 16, paddingBottom: 120 },
+  menuTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 16 },
+  menuItemContainer: { flexDirection: "row", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, marginBottom: 12, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+  menuItemImage: { width: 80, height: 80, borderRadius: 8, marginRight: 12 },
+  menuItemDetails: { flex: 1, justifyContent: "center", marginRight: 12 },
+  menuItemName: { fontSize: 16, fontWeight: "bold" },
+  menuItemDescription: { fontSize: 12, color: "#666", marginVertical: 4 },
+  menuItemPrice: { fontSize: 14, fontWeight: "bold", color: "#73509c", marginTop: 4 },
+  addButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#F0EBF8", justifyContent: "center", alignItems: "center" },
+  quantityControl: { flexDirection: "row", alignItems: "center", backgroundColor: "#F0EBF8", borderRadius: 20 },
+  quantityButton: { width: 36, height: 36, justifyContent: "center", alignItems: "center" },
+  quantityText: { fontSize: 16, fontWeight: "bold", color: "#73509c", minWidth: 20, textAlign: "center" },
+  footer: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 20, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f0f0f0", paddingBottom: Platform.OS === "ios" ? 34 : 12 },
+  cartButton: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: "#e0e0e0", justifyContent: "center", alignItems: "center", position: "relative", backgroundColor: "#fff" },
+  cartBadge: { position: "absolute", top: 0, right: 0, backgroundColor: "#FF6C44", borderRadius: 10, width: 20, height: 20, justifyContent: "center", alignItems: "center" },
+  cartBadgeText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
+  buyNowButton: { flex: 1, backgroundColor: "#73509c", paddingVertical: 16, borderRadius: 30, alignItems: "center", marginLeft: 16 },
+  buyNowButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
