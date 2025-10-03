@@ -105,6 +105,13 @@ export default function CustomerLayout() {
           ),
         }}
       />
+      {/* Ẩn màn hình này khỏi thanh menu */}
+      <Tabs.Screen
+        name="category/[name]"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
