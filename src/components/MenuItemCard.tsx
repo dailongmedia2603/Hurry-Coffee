@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, Image, StyleSheet, ViewStyle } from "react-native";
 import { Product } from "../../types";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -10,11 +10,11 @@ const formatPrice = (price: number) => {
   }).format(price);
 };
 
-const MenuItemCard = ({ product }: { product: Product }) => {
+const MenuItemCard = ({ product, style }: { product: Product, style?: ViewStyle }) => {
   const oldPrice = product.price * 1.5; // Dummy old price
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       <Image
         source={{ uri: product.image_url || "https://via.placeholder.com/150" }}
         style={styles.image}

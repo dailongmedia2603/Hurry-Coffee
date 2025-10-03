@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '../../src/integrations/supabase/client';
-import { Product } from '../../types';
-import MenuItemCard from '../../src/components/MenuItemCard';
+import { supabase } from '../../../src/integrations/supabase/client';
+import { Product } from '../../../types';
+import MenuItemCard from '../../../src/components/MenuItemCard';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CategoryScreen() {
@@ -54,7 +54,7 @@ export default function CategoryScreen() {
         data={products}
         renderItem={({ item }) => (
           <View style={styles.cardContainer}>
-            <MenuItemCard product={item} />
+            <MenuItemCard product={item} style={{ width: '100%', marginRight: 0 }} />
           </View>
         )}
         keyExtractor={(item) => item.id}
@@ -95,11 +95,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listContainer: {
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 100, // Thêm khoảng đệm cho thanh menu
   },
   cardContainer: {
-    flex: 1,
-    alignItems: 'center',
-    marginVertical: 8,
+    flex: 1/2,
+    padding: 8,
   },
 });
