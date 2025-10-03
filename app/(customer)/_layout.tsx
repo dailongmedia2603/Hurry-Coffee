@@ -115,8 +115,8 @@ export default function CustomerLayout() {
         name="product/[id]"
         options={{
           href: null,
-          presentation: 'modal',
           headerShown: false,
+          tabBarStyle: { display: "none" },
         } as any}
       />
     </Tabs>
