@@ -46,7 +46,7 @@ export default function CustomerLayout() {
           title: "Menu",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? "apps" : "apps-outline"}
+              name={focused ? "restaurant" : "restaurant-outline"}
               color={color}
               size={size}
             />
