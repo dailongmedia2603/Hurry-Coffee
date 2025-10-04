@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   FlatList,
+  TextInput,
   Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -30,6 +31,7 @@ export default function CustomerHomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
 
   useEffect(() => {
@@ -75,6 +77,15 @@ export default function CustomerHomeScreen() {
     return products.filter((product) => product.category === activeCategory);
   }, [activeCategory, products]);
 
+  const searchedProducts = useMemo(() => {
+    if (!searchQuery) {
+      return [];
+    }
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, products]);
+
   const recommendedProducts = products.slice(0, 10);
 
   const renderHeader = () => (
@@ -101,6 +112,18 @@ export default function CustomerHomeScreen() {
     </LinearGradient>
   );
 
+  const renderSearchBar = () => (
+    <View style={styles.searchContainer}>
+      <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Tìm món nhanh"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+    </View>
+  );
+
   const renderCategories = () => (
     <View style={styles.categoriesContainer}>
       {categories.map((cat) => (
@@ -115,11 +138,14 @@ export default function CustomerHomeScreen() {
     </View>
   );
 
-  const renderProductSection = (title: string, data: Product[]) => {
-    if (loading) {
+  const renderProductSection = (title: string, data: Product[], isSearchResult = false) => {
+    if (loading && !isSearchResult) {
       return <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} />;
     }
     if (data.length === 0 && !loading) {
+      if (isSearchResult) {
+        return <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>;
+      }
       return null;
     }
     const isRecommendedSection = title === "Món ngon cho bạn";
@@ -127,7 +153,7 @@ export default function CustomerHomeScreen() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
-          {!isRecommendedSection && (
+          {!isRecommendedSection && !isSearchResult && (
             <TouchableOpacity onPress={() => router.push(`/category/${title}`)}>
               <Text style={styles.seeMore}>Tất cả</Text>
             </TouchableOpacity>
@@ -153,9 +179,16 @@ export default function CustomerHomeScreen() {
       >
         {renderHeader()}
         <View style={styles.contentContainer}>
-          {renderCategories()}
-          {renderProductSection("Món ngon cho bạn", recommendedProducts)}
-          {activeCategory && activeCategory !== "More" && renderProductSection(activeCategory, categoryFilteredProducts)}
+          {renderSearchBar()}
+          {searchQuery ? (
+            renderProductSection("Kết quả tìm kiếm", searchedProducts, true)
+          ) : (
+            <>
+              {renderCategories()}
+              {renderProductSection("Món ngon cho bạn", recommendedProducts)}
+              {activeCategory && activeCategory !== "More" && renderProductSection(activeCategory, categoryFilteredProducts)}
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -172,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
   headerContainer: {
-    paddingBottom: 20,
+    paddingBottom: 60,
     paddingTop: 44,
     paddingHorizontal: 16,
   },
@@ -207,10 +240,32 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    marginTop: -20,
+    marginTop: -40,
     paddingTop: 20,
     paddingBottom: 100,
     flex: 1,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
   },
   categoriesContainer: {
     flexDirection: "row",
@@ -237,4 +292,9 @@ const styles = StyleSheet.create({
     color: "#73509c",
     fontWeight: "500",
   },
+  placeholderText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666'
+  }
 });
