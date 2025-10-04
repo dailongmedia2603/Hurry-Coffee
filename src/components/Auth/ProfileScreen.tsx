@@ -111,8 +111,10 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={['#efd9ae', '#ffffff']}
-        locations={[0, 0.4]}
+        colors={['#f5e9d3', '#ffffff']}
+        start={{ x: 1, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        locations={[0, 0.3]}
         style={styles.gradient}
       />
       <ScrollView
