@@ -15,8 +15,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Location } from '@/types';
+import { Location, UserAddress } from '@/types';
 import LocationPickerModal from './LocationPickerModal';
+import AddressPickerModal from './AddressPickerModal';
 
 type OrderType = 'delivery' | 'pickup';
 
@@ -39,7 +40,13 @@ type ConfirmationModalProps = {
 const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: ConfirmationModalProps) => {
   const { user, profile } = useAuth();
   const [orderType, setOrderType] = useState<OrderType>('delivery');
-  const [address, setAddress] = useState('');
+  
+  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
+  const [customAddress, setCustomAddress] = useState('');
+  const [userAddresses, setUserAddresses] = useState<UserAddress[]>([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [isAddressPickerVisible, setAddressPickerVisible] = useState(false);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -50,25 +57,54 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
   useEffect(() => {
+    const fetchAddresses = async (userId: string) => {
+      setAddressLoading(true);
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching user addresses:', error);
+      } else if (data && data.length > 0) {
+        setUserAddresses(data);
+        setSelectedAddress(data[0]);
+      } else {
+        setUserAddresses([]);
+        setSelectedAddress(null);
+      }
+      setAddressLoading(false);
+    };
+
     if (visible) {
       if (user) {
-        // Người dùng đã đăng nhập
-        setName(profile?.full_name || '');
         const userPhone = user.phone ? user.phone.replace(/^\+84/, '0') : '';
         setPhone(userPhone);
         setIsPhoneVerified(true);
         setIsOtpSent(false);
         setOtp('');
+        fetchAddresses(user.id);
       } else {
-        // Người dùng là khách
         setName('');
         setPhone('');
         setIsPhoneVerified(false);
         setIsOtpSent(false);
         setOtp('');
+        setUserAddresses([]);
+        setSelectedAddress(null);
       }
+      setCustomAddress('');
     }
   }, [user, profile, visible]);
+
+  useEffect(() => {
+    if (selectedAddress) {
+      setName(selectedAddress.name);
+    } else if (userAddresses.length === 0 && user) {
+      setName(profile?.full_name || '');
+    }
+  }, [selectedAddress, userAddresses, profile, user]);
 
   const handleSendOtp = async () => {
     if (!phone) {
@@ -120,7 +156,9 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   const handleConfirm = () => {
     const isDelivery = orderType === 'delivery';
-    if (!name || !phone || (isDelivery && !address) || (!isDelivery && !selectedLocation)) {
+    const finalAddress = selectedAddress ? selectedAddress.address : customAddress;
+
+    if (!name || !phone || (isDelivery && !finalAddress) || (!isDelivery && !selectedLocation)) {
         Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
         return;
     }
@@ -130,12 +168,49 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
     }
     onConfirm({
       orderType,
-      address: isDelivery ? address : selectedLocation!.name,
+      address: isDelivery ? finalAddress : selectedLocation!.name,
       locationId: isDelivery ? null : selectedLocation!.id,
       name,
       phone,
       isPhoneVerified,
     });
+  };
+
+  const renderDeliveryAddressInput = () => {
+    if (addressLoading) {
+      return (
+        <View style={styles.addressButton}>
+          <ActivityIndicator color="#73509c" />
+        </View>
+      );
+    }
+
+    if (userAddresses.length > 0) {
+      return (
+        <TouchableOpacity style={styles.addressButton} onPress={() => setAddressPickerVisible(true)}>
+          <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.addressNameText} numberOfLines={1}>{selectedAddress?.name}</Text>
+            <Text style={styles.addressDetailText} numberOfLines={1}>
+              {selectedAddress ? selectedAddress.address : 'Chọn một địa chỉ'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View style={styles.addressButton}>
+        <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
+        <TextInput 
+          style={styles.input}
+          placeholder='Nhập địa chỉ của bạn'
+          value={customAddress}
+          onChangeText={setCustomAddress}
+        />
+      </View>
+    );
   };
 
   return (
@@ -180,15 +255,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
               {orderType === 'delivery' ? 'Địa chỉ giao hàng' : 'Chọn điểm ghé lấy'}
             </Text>
             {orderType === 'delivery' ? (
-                <View style={styles.addressButton}>
-                    <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
-                    <TextInput 
-                        style={styles.input}
-                        placeholder='Nhập địa chỉ của bạn'
-                        value={address}
-                        onChangeText={setAddress}
-                    />
-                </View>
+                renderDeliveryAddressInput()
             ) : (
                 <TouchableOpacity style={styles.addressButton} onPress={() => setLocationPickerVisible(true)}>
                     <Ionicons name="storefront-outline" size={20} color="#666" style={styles.inputIcon} />
@@ -242,6 +309,15 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
           setSelectedLocation(location);
         }}
       />
+      <AddressPickerModal
+        visible={isAddressPickerVisible}
+        onClose={() => setAddressPickerVisible(false)}
+        addresses={userAddresses}
+        onSelect={(address) => {
+          setSelectedAddress(address);
+          setAddressPickerVisible(false);
+        }}
+      />
     </Modal>
   );
 };
@@ -258,7 +334,7 @@ const styles = StyleSheet.create({
   toggleButtonActive: { backgroundColor: '#73509c' },
   toggleButtonText: { fontSize: 14, fontWeight: '600', color: '#73509c', marginLeft: 8 },
   toggleButtonTextActive: { color: '#fff' },
-  addressButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50 },
+  addressButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, minHeight: 50, paddingVertical: 8 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50, marginBottom: 12 },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 16, color: '#333' },
@@ -269,6 +345,8 @@ const styles = StyleSheet.create({
   verifiedText: { color: '#00C853', marginLeft: 8, fontWeight: '500' },
   confirmButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center', marginTop: 20 },
   confirmButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  addressNameText: { fontSize: 16, fontWeight: '500', color: '#333' },
+  addressDetailText: { fontSize: 14, color: '#666' },
 });
 
 export default ConfirmationModal;
