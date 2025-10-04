@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
@@ -9,6 +9,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const otpInputs = useRef<(TextInput | null)[]>([]);
 
   const formatPhoneNumber = (phoneNumber: string) => {
     const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
@@ -21,7 +22,7 @@ export default function LoginScreen() {
       return;
     }
     setLoading(true);
-    setErrorMessage(''); // Xóa lỗi cũ
+    setErrorMessage('');
     const formattedPhone = formatPhoneNumber(phone);
     const { error } = await supabase.auth.signInWithOtp({
       phone: formattedPhone,
@@ -29,21 +30,20 @@ export default function LoginScreen() {
 
     if (error) {
       console.error("Lỗi chi tiết khi gửi OTP:", JSON.stringify(error, null, 2));
-      setErrorMessage("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại."); // Hiển thị lỗi thân thiện
+      setErrorMessage("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại.");
     } else {
       setOtpSent(true);
-      Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
     }
     setLoading(false);
   }
 
   async function verifyOtp() {
-    if (!phone || !otp) {
-      setErrorMessage("Vui lòng nhập đầy đủ thông tin.");
+    if (!phone || otp.length !== 6) {
+      setErrorMessage("Vui lòng nhập đủ 6 số của mã OTP.");
       return;
     }
     setLoading(true);
-    setErrorMessage(''); // Xóa lỗi cũ
+    setErrorMessage('');
     const formattedPhone = formatPhoneNumber(phone);
     const { error } = await supabase.auth.verifyOtp({
       phone: formattedPhone,
@@ -53,10 +53,26 @@ export default function LoginScreen() {
 
     if (error) {
       console.error("Lỗi chi tiết khi xác thực OTP:", JSON.stringify(error, null, 2));
-      setErrorMessage("Mã OTP không hợp lệ. Vui lòng thử lại."); // Hiển thị lỗi thân thiện
+      setErrorMessage("Mã OTP không hợp lệ. Vui lòng thử lại.");
     }
     setLoading(false);
   }
+
+  const handleOtpChange = (text: string, index: number) => {
+    const newOtp = otp.split('');
+    newOtp[index] = text;
+    setOtp(newOtp.join(''));
+
+    if (text && index < 5) {
+      otpInputs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = ({ nativeEvent: { key } }: any, index: number) => {
+    if (key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -87,20 +103,25 @@ export default function LoginScreen() {
         </>
       ) : (
         <>
-          <View style={styles.inputContainer}>
-            <Ionicons name="keypad-outline" size={24} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Mã OTP"
-              keyboardType="number-pad"
-              value={otp}
-              onChangeText={setOtp}
-            />
+          <Text style={styles.otpPrompt}>Nhập mã OTP được gửi đến số điện thoại của bạn.</Text>
+          <View style={styles.otpContainer}>
+            {[...Array(6)].map((_, index) => (
+              <TextInput
+                key={index}
+                ref={(el) => { otpInputs.current[index] = el; }}
+                style={[styles.otpInput, otp[index] ? styles.otpInputFilled : null]}
+                keyboardType="number-pad"
+                maxLength={1}
+                onChangeText={(text) => handleOtpChange(text, index)}
+                onKeyPress={(e) => handleKeyPress(e, index)}
+                value={otp[index] || ''}
+              />
+            ))}
           </View>
           <TouchableOpacity style={styles.button} onPress={verifyOtp} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Xác nhận</Text>}
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setOtpSent(false); setErrorMessage(''); }}>
+          <TouchableOpacity onPress={() => { setOtpSent(false); setErrorMessage(''); setOtp(''); }}>
             <Text style={styles.linkText}>Nhập lại số điện thoại</Text>
           </TouchableOpacity>
         </>
@@ -172,5 +193,31 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: 'center',
     fontSize: 16,
+  },
+  otpPrompt: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
+  },
+  otpInput: {
+    width: 48,
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  otpInputFilled: {
+    borderColor: '#73509c',
   },
 });
