@@ -23,7 +23,8 @@ export default function MyOrdersScreen() {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            let query = supabase.from('orders').select(`*, order_items(count)`);
+            // Sử dụng left join (`!left`) để đảm bảo các đơn hàng được trả về ngay cả khi chúng không có order_items
+            let query = supabase.from('orders').select(`*, order_items!left(count)`);
 
             if (user) {
                 query = query.eq('user_id', user.id);
@@ -53,6 +54,7 @@ export default function MyOrdersScreen() {
                 ...order,
                 restaurant_name: 'Nhà hàng Hurry Coffee',
                 restaurant_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto.format&fit=crop',
+                // Kết quả của count là một mảng như [{ count: N }], vì vậy chúng ta truy cập nó như thế này.
                 items_count: order.order_items[0]?.count || 0,
             }));
 
