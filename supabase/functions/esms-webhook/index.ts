@@ -38,14 +38,15 @@ serve(async (req) => {
       ApiKey: apiKey,
       SecretKey: secretKey,
       Phone: userPhone,
-      Channels: ["sms"],
+      Channels: ["sms"], // Chỉ tập trung vào kênh SMS cho OTP
       Data: [
         {
-          Content: `${otp} la ma xac minh cua ban`,
+          Content: `${otp} la ma xac minh dang ky ${brandname} cua ban`,
           IsUnicode: "0",
-          SmsType: "2",
+          SmsType: "2", // Theo mẫu của nhà cung cấp
           Brandname: brandname,
           RequestId: crypto.randomUUID(),
+          Sandbox: "0" // Thêm tham số Sandbox theo mẫu
         }
       ]
     };
@@ -63,7 +64,7 @@ serve(async (req) => {
 
     if (esmsResult.CodeResult != 100) {
       console.error("eSMS API Error:", esmsResult)
-      throw new Error(`Failed to send OTP. Error: ${esmsResult.ErrorMessage}`)
+      throw new Error(`Failed to send OTP. Error: ${esmsResult.ErrorMessage || 'Unknown error'}`)
     }
 
     console.log("--- eSMS Webhook finished successfully ---");
