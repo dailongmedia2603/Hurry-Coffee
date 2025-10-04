@@ -71,8 +71,12 @@ export default function CheckoutScreen() {
       Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
 
     } catch (error) {
-      console.error("Error placing order:", error);
-      Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.");
+      console.error("Chi tiết lỗi đặt hàng:", error);
+      const message = (error && typeof error === 'object' && 'message' in error) 
+        ? String(error.message) 
+        : "Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.";
+      
+      Alert.alert("Lỗi Đặt Hàng", `Chi tiết: ${message}`);
     } finally {
       setLoading(false);
     }
