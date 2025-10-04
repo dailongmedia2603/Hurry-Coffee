@@ -27,7 +27,8 @@ export default function LoginScreen() {
     });
 
     if (error) {
-      Alert.alert('Lỗi', error.message);
+      console.error("Lỗi chi tiết khi gửi OTP:", JSON.stringify(error, null, 2));
+      Alert.alert('Lỗi gửi OTP', error.message);
     } else {
       setOtpSent(true);
       Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
@@ -49,7 +50,8 @@ export default function LoginScreen() {
     });
 
     if (error) {
-      Alert.alert('Lỗi', error.message);
+      console.error("Lỗi chi tiết khi xác thực OTP:", JSON.stringify(error, null, 2));
+      Alert.alert('Lỗi xác thực', error.message);
     }
     // Không cần làm gì thêm, listener onAuthStateChange trong AuthContext sẽ xử lý việc cập nhật session.
     setLoading(false);
