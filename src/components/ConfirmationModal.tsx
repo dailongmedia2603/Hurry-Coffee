@@ -44,15 +44,29 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(!!user);
   const [otpLoading, setOtpLoading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setName(profile?.full_name || '');
-      setPhone(user.phone || '');
+    if (visible) {
+      if (user) {
+        // Người dùng đã đăng nhập
+        setName(profile?.full_name || '');
+        const userPhone = user.phone ? user.phone.replace(/^\+84/, '0') : '';
+        setPhone(userPhone);
+        setIsPhoneVerified(true);
+        setIsOtpSent(false);
+        setOtp('');
+      } else {
+        // Người dùng là khách
+        setName('');
+        setPhone('');
+        setIsPhoneVerified(false);
+        setIsOtpSent(false);
+        setOtp('');
+      }
     }
   }, [user, profile, visible]);
 
@@ -90,7 +104,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       Alert.alert('Lỗi xác thực', error.message);
     } else {
       setIsPhoneVerified(true);
-      Alert.alert('Thành công', 'Số điện thoại đã được xác thực.');
+      Alert.alert('Thành công', 'Số điện thoại đã được xác thực và bạn đã đăng nhập.');
     }
   };
 
@@ -98,6 +112,10 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
     const isDelivery = orderType === 'delivery';
     if (!name || !phone || (isDelivery && !address) || (!isDelivery && !selectedLocation)) {
         Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
+        return;
+    }
+    if (!isPhoneVerified) {
+        Alert.alert('Thiếu xác thực', 'Vui lòng xác thực số điện thoại của bạn để tiếp tục.');
         return;
     }
     onConfirm({
