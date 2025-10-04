@@ -28,7 +28,8 @@ export default function CheckoutScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { data: newOrder, error: orderError } = await supabase
+      // Simplified the insert command by removing .select().single()
+      const { data: newOrderData, error: orderError } = await supabase
         .from('orders')
         .insert({ 
             user_id: user?.id || null, 
@@ -41,10 +42,13 @@ export default function CheckoutScreen() {
             customer_phone: details.phone,
             is_phone_verified: details.isPhoneVerified,
         })
-        .select()
+        .select() // Keep select to get the returned data
         .single();
 
       if (orderError) throw orderError;
+      if (!newOrderData) throw new Error("Không nhận được dữ liệu đơn hàng sau khi tạo.");
+
+      const newOrder = newOrderData;
 
       // If the user is anonymous, save the order ID to secure store
       if (!user) {
