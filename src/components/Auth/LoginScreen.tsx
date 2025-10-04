@@ -8,21 +8,20 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const formatPhoneNumber = (phoneNumber: string) => {
-    // Xóa mọi ký tự không phải là số, sau đó xử lý
-    // 1. Xóa mã quốc gia +84 hoặc số 0 ở đầu nếu có
     const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
-    // 2. Trả về số điện thoại với định dạng +84...
     return `+84${cleaned}`;
   };
 
   async function signInWithPhone() {
     if (!phone) {
-      Alert.alert("Vui lòng nhập số điện thoại của bạn.");
+      setErrorMessage("Vui lòng nhập số điện thoại của bạn.");
       return;
     }
     setLoading(true);
+    setErrorMessage(''); // Xóa lỗi cũ
     const formattedPhone = formatPhoneNumber(phone);
     const { error } = await supabase.auth.signInWithOtp({
       phone: formattedPhone,
@@ -30,7 +29,7 @@ export default function LoginScreen() {
 
     if (error) {
       console.error("Lỗi chi tiết khi gửi OTP:", JSON.stringify(error, null, 2));
-      Alert.alert('Lỗi gửi OTP', error.message);
+      setErrorMessage(error.message); // Hiển thị lỗi trên giao diện
     } else {
       setOtpSent(true);
       Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
@@ -40,10 +39,11 @@ export default function LoginScreen() {
 
   async function verifyOtp() {
     if (!phone || !otp) {
-      Alert.alert("Vui lòng nhập đầy đủ thông tin.");
+      setErrorMessage("Vui lòng nhập đầy đủ thông tin.");
       return;
     }
     setLoading(true);
+    setErrorMessage(''); // Xóa lỗi cũ
     const formattedPhone = formatPhoneNumber(phone);
     const { error } = await supabase.auth.verifyOtp({
       phone: formattedPhone,
@@ -53,9 +53,8 @@ export default function LoginScreen() {
 
     if (error) {
       console.error("Lỗi chi tiết khi xác thực OTP:", JSON.stringify(error, null, 2));
-      Alert.alert('Lỗi xác thực', error.message);
+      setErrorMessage(error.message); // Hiển thị lỗi trên giao diện
     }
-    // Không cần làm gì thêm, listener onAuthStateChange trong AuthContext sẽ xử lý việc cập nhật session.
     setLoading(false);
   }
 
@@ -68,6 +67,8 @@ export default function LoginScreen() {
       <Text style={styles.title}>Đăng nhập</Text>
       <Text style={styles.subtitle}>Vui lòng đăng nhập để xem hồ sơ và các ưu đãi dành riêng cho bạn.</Text>
       
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
       {!otpSent ? (
         <>
           <View style={styles.inputContainer}>
@@ -99,7 +100,7 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.button} onPress={verifyOtp} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Xác nhận</Text>}
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setOtpSent(false)}>
+          <TouchableOpacity onPress={() => { setOtpSent(false); setErrorMessage(''); }}>
             <Text style={styles.linkText}>Nhập lại số điện thoại</Text>
           </TouchableOpacity>
         </>
@@ -165,5 +166,11 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#73509c',
     marginTop: 20,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 15,
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
