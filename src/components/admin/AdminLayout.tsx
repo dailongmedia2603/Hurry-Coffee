@@ -4,10 +4,10 @@ import { Link, usePathname, Slot } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 const menuItems = [
-  { href: '/(admin)', label: 'Tổng quan', icon: 'home-outline' as const },
-  { href: '/(admin)/orders', label: 'Đơn hàng', icon: 'receipt-outline' as const },
-  { href: '/(admin)/menu', label: 'Thực đơn', icon: 'fast-food-outline' as const },
-  { href: '/(admin)/locations', label: 'Địa điểm', icon: 'location-outline' as const },
+  { href: '/admin', label: 'Tổng quan', icon: 'home-outline' as const },
+  { href: '/admin/orders', label: 'Đơn hàng', icon: 'receipt-outline' as const },
+  { href: '/admin/menu', label: 'Thực đơn', icon: 'fast-food-outline' as const },
+  { href: '/admin/locations', label: 'Địa điểm', icon: 'location-outline' as const },
 ];
 
 const SidebarLink = ({ item }: { item: typeof menuItems[0] }) => {
