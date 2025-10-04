@@ -1,33 +1,25 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 
 export default function AdminHomeScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Trang quản trị Admin</Text>
+    <ScrollView>
+      <Text style={styles.title}>Chào mừng đến trang Quản trị</Text>
       <Text style={styles.subtitle}>
-        Nơi quản lý đơn hàng, thực đơn và các cài đặt khác.
+        Sử dụng thanh điều hướng bên trái để quản lý đơn hàng, thực đơn, và các cài đặt khác.
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f3f4f6", // Light gray background
-    padding: 20,
-  },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
+    marginBottom: 16,
+    color: '#1f2937',
   },
   subtitle: {
-    fontSize: 16,
-    color: "gray",
-    textAlign: "center",
+    fontSize: 18,
+    color: "#4b5563",
   },
 });

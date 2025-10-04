@@ -21,7 +21,7 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2
       base64-arraybuffer:
-        specifier: ^1.0.2
+        specifier: 1.0.2
         version: 1.0.2
       expo:
         specifier: ~53.0.0
@@ -30,7 +30,7 @@ importers:
         specifier: ~17.1.7
         version: 17.1.7(expo@53.0.23(@babel/core@7.28.4)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))
       expo-image-picker:
-        specifier: ^17.0.8
+        specifier: 17.0.8
         version: 17.0.8(expo@53.0.23(@babel/core@7.28.4)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))
       expo-linear-gradient:
         specifier: ^15.0.7
