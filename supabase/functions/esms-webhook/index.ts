@@ -7,36 +7,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  console.log("--- eSMS Webhook invoked (TEST MODE) ---");
-
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-
+// Tách logic gửi SMS ra một hàm riêng để xử lý trong nền
+async function sendSmsInBackground(phone, message) {
   try {
-    const { phone, message } = await req.json()
-    console.log(`Received request for phone: ${phone}, message: "${message}"`);
-    if (!phone || !message) {
-      throw new Error("Phone and message are required from the hook.")
-    }
-
+    console.log(`Background task: Processing SMS for ${phone}`);
+    
     const otpMatch = message.match(/\d{6}/);
     if (!otpMatch) {
       throw new Error(`Could not extract OTP from message: "${message}"`);
     }
     const otp = otpMatch[0];
-    console.log(`Extracted OTP: ${otp}`);
 
     const apiKey = Deno.env.get('ESMS_API_KEY')
     const secretKey = Deno.env.get('ESMS_SECRET_KEY')
     const brandname = Deno.env.get('ESMS_BRANDNAME')
 
     if (!apiKey || !secretKey || !brandname) {
-      console.error("CRITICAL: Missing one or more environment secrets (ESMS_API_KEY, ESMS_SECRET_KEY, ESMS_BRANDNAME).");
       throw new Error("Server configuration error: Missing SMS provider secrets.");
     }
-    console.log("Successfully loaded secrets.");
 
     const userPhone = phone.startsWith('+84') ? '0' + phone.substring(3) : phone;
 
@@ -58,9 +46,9 @@ serve(async (req) => {
     };
 
     console.log("TEST MODE: Request Body that WOULD BE sent to eSMS:", JSON.stringify(requestBody, null, 2));
-
+    
     // --- MOCK FOR TESTING ---
-    // Các dòng code gọi API thật đã được tạm ẩn đi để không gửi SMS.
+    // Trong thực tế, bạn sẽ bỏ comment các dòng dưới đây để gửi SMS thật.
     // const esmsUrl = 'https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/'
     // const esmsResponse = await fetch(esmsUrl, {
     //   method: 'POST',
@@ -68,21 +56,40 @@ serve(async (req) => {
     //   body: JSON.stringify(requestBody),
     // })
     // const esmsResult = await esmsResponse.json()
-    // console.log("Response from eSMS:", JSON.stringify(esmsResult, null, 2));
     // if (esmsResult.CodeResult != 100) {
     //   console.error("eSMS API Error:", esmsResult)
-    //   throw new Error(`Failed to send OTP. Error: ${esmsResult.ErrorMessage || 'Unknown error'}`)
+    // } else {
+    //   console.log("Background task: SMS sent successfully via eSMS.");
     // }
     // --- END MOCK ---
 
-    console.log("--- eSMS Webhook finished successfully (TEST MODE) ---");
-    return new Response(JSON.stringify({ message: "Simulated success" }), {
+  } catch (error) {
+    console.error("--- Background SMS task failed with error ---", error.message);
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    const { phone, message } = await req.json()
+    console.log(`Webhook received for ${phone}. Acknowledging immediately.`);
+
+    // Gọi hàm xử lý nền mà không cần chờ (fire and forget)
+    // Điều này cho phép chúng ta trả về phản hồi 200 ngay lập tức.
+    sendSmsInBackground(phone, message);
+
+    // Trả về phản hồi thành công ngay lập tức cho Supabase
+    return new Response(JSON.stringify({ message: "Webhook accepted for processing." }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    console.error("--- eSMS Webhook failed with error (TEST MODE) ---", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Lỗi này chỉ xảy ra nếu payload từ Supabase bị lỗi, không phải lỗi từ eSMS
+    console.error("--- eSMS Webhook failed to parse request ---", error.message);
+    return new Response(JSON.stringify({ error: "Invalid request payload" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
