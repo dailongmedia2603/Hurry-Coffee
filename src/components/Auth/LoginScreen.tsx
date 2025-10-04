@@ -24,23 +24,16 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMessage('');
     const formattedPhone = formatPhoneNumber(phone);
-
-    // Theo yêu cầu của bạn, giao diện sẽ chuyển sang màn hình nhập OTP ngay lập tức
-    // để xác nhận rằng yêu cầu đã được gửi đi.
-    setOtpSent(true);
-
     const { error } = await supabase.auth.signInWithOtp({
       phone: formattedPhone,
     });
 
-    // Nếu có lỗi từ Supabase (ví dụ: webhook bị lỗi),
-    // giao diện sẽ quay lại và hiển thị thông báo lỗi.
     if (error) {
       console.error("Lỗi chi tiết khi gửi OTP:", JSON.stringify(error, null, 2));
       setErrorMessage("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại.");
-      setOtpSent(false); // Quay lại màn hình nhập số điện thoại
+    } else {
+      setOtpSent(true);
     }
-    
     setLoading(false);
   }
 

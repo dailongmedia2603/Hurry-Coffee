@@ -12,10 +12,6 @@ async function sendSmsInBackground(phone, message) {
   try {
     console.log(`Background task: Processing SMS for ${phone}`);
     
-    if (typeof message !== 'string') {
-      throw new Error(`Invalid message format: expected a string but got ${typeof message}`);
-    }
-
     const otpMatch = message.match(/\d{6}/);
     if (!otpMatch) {
       throw new Error(`Could not extract OTP from message: "${message}"`);
@@ -78,19 +74,7 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json()
-    // Sửa lỗi: Lấy `phone` từ `record` và `message` từ `record.data`
-    const phone = payload.record?.phone;
-    const message = payload.record?.data?.message;
-
-    if (!phone || !message) {
-      console.error("Webhook received with missing phone or message in payload:", payload);
-      return new Response(JSON.stringify({ error: "Missing phone or message in payload" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
+    const { phone, message } = await req.json()
     console.log(`Webhook received for ${phone}. Acknowledging immediately.`);
 
     // Gọi hàm xử lý nền mà không cần chờ (fire and forget)
@@ -103,7 +87,7 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    // Lỗi này chỉ xảy ra nếu payload từ Supabase bị lỗi, không phải từ eSMS
+    // Lỗi này chỉ xảy ra nếu payload từ Supabase bị lỗi, không phải lỗi từ eSMS
     console.error("--- eSMS Webhook failed to parse request ---", error.message);
     return new Response(JSON.stringify({ error: "Invalid request payload" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
