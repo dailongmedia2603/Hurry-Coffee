@@ -5,6 +5,7 @@ import { useCart } from '@/src/context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import ConfirmationModal, { ConfirmationDetails } from '@/src/components/ConfirmationModal';
+import * as SecureStore from 'expo-secure-store';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -12,6 +13,8 @@ const formatPrice = (price: number) => {
     currency: "VND",
   }).format(price);
 };
+
+const ANONYMOUS_ORDERS_KEY = 'anonymous_order_ids';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -42,6 +45,14 @@ export default function CheckoutScreen() {
         .single();
 
       if (orderError) throw orderError;
+
+      // If the user is anonymous, save the order ID to secure store
+      if (!user) {
+        const existingIds = await SecureStore.getItemAsync(ANONYMOUS_ORDERS_KEY);
+        const ids = existingIds ? JSON.parse(existingIds) : [];
+        ids.push(newOrder.id);
+        await SecureStore.setItemAsync(ANONYMOUS_ORDERS_KEY, JSON.stringify(ids));
+      }
 
       const orderItems = items.map(item => ({
         order_id: newOrder.id,

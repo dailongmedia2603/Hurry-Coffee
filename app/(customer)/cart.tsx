@@ -5,8 +5,10 @@ import OrderCard from '@/src/components/OrderCard';
 import { Order } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
 import { useFocusEffect } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
 
-// This is a temporary type extension until we create a proper view in Supabase
+const ANONYMOUS_ORDERS_KEY = 'anonymous_order_ids';
+
 type OrderWithDetails = Order & {
     restaurant_name: string;
     restaurant_image_url: string;
@@ -21,25 +23,34 @@ export default function MyOrdersScreen() {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setOrders([]);
-                return;
+            let query = supabase.from('orders').select(`*, order_items(count)`);
+
+            if (user) {
+                query = query.eq('user_id', user.id);
+            } else {
+                const anonymousOrderIdsJSON = await SecureStore.getItemAsync(ANONYMOUS_ORDERS_KEY);
+                if (anonymousOrderIdsJSON) {
+                    const anonymousOrderIds = JSON.parse(anonymousOrderIdsJSON);
+                    if (anonymousOrderIds.length > 0) {
+                        query = query.in('id', anonymousOrderIds);
+                    } else {
+                        setOrders([]);
+                        setLoading(false);
+                        return;
+                    }
+                } else {
+                    setOrders([]);
+                    setLoading(false);
+                    return;
+                }
             }
 
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items(count)
-                `)
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+            const { data, error } = await query.order('created_at', { ascending: false });
 
             if (error) throw error;
 
             const ordersWithDetails = data.map(order => ({
                 ...order,
-                // These are mock details for now. In a real app, you'd join tables or fetch this info.
                 restaurant_name: 'Nhà hàng Hurry Coffee',
                 restaurant_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto.format&fit=crop',
                 items_count: order.order_items[0]?.count || 0,
