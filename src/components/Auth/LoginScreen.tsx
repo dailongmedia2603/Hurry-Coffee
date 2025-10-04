@@ -77,7 +77,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
+        source={require('@/assets/images/logohurry.png')}
         style={styles.logo}
       />
       <Text style={styles.title}>Đăng nhập</Text>
