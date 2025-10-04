@@ -22,12 +22,14 @@ serve(async (req) => {
     const brandname = Deno.env.get('ESMS_BRANDNAME')
     const content = `Ma xac thuc cua ban la: ${otp}`
     
-    // eSMS expects phone number format like 84... without the +
     const sanitizedPhone = phone.startsWith('+84') ? phone.substring(1) : phone;
 
+    // --- ĐÂY LÀ NƠI URL CỦA ESMS ĐƯỢC SỬ DỤNG ---
     const esmsUrl = `http://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_get?ApiKey=${apiKey}&SecretKey=${secretKey}&Content=${encodeURIComponent(content)}&Phone=${sanitizedPhone}&SmsType=2&Brandname=${brandname}`
 
     const esmsResponse = await fetch(esmsUrl)
+    // ---------------------------------------------
+
     const esmsResult = await esmsResponse.json()
 
     if (esmsResult.CodeResult != 100) {
@@ -35,13 +37,11 @@ serve(async (req) => {
       throw new Error(`Failed to send OTP via eSMS. Error: ${esmsResult.ErrorMessage}`)
     }
 
-    // Return an empty object for success, as required by Supabase hooks
     return new Response(JSON.stringify({}), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    // Return the error in the format required by Supabase hooks
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
