@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useCart } from '@/src/context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
+import ConfirmationModal, { ConfirmationDetails } from '@/src/components/ConfirmationModal';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -17,8 +18,9 @@ export default function CheckoutScreen() {
   const { items, totalPrice, totalItems, addItem, decreaseItem, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isModalVisible, setModalVisible] = useState(false);
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async (details: ConfirmationDetails) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -28,16 +30,23 @@ export default function CheckoutScreen() {
         return;
       }
 
-      // 1. Create an order
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
-        .insert({ user_id: user.id, total: totalPrice, notes: notes })
+        .insert({ 
+            user_id: user.id, 
+            total: totalPrice, 
+            notes: notes,
+            order_type: details.orderType,
+            delivery_address: details.orderType === 'delivery' ? details.address : null,
+            customer_name: details.name,
+            customer_phone: details.phone,
+            is_phone_verified: details.isPhoneVerified,
+        })
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // 2. Create order items
       const orderItems = items.map(item => ({
         order_id: newOrder.id,
         product_id: item.product.id,
@@ -49,7 +58,7 @@ export default function CheckoutScreen() {
 
       if (itemsError) throw itemsError;
 
-      // 3. Clear cart and navigate
+      setModalVisible(false);
       clearCart();
       router.replace('/(customer)/cart');
       Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
@@ -124,11 +133,17 @@ export default function CheckoutScreen() {
                 <Text style={styles.totalLabel}>Tổng cộng ({totalItems} món)</Text>
                 <Text style={styles.totalPrice}>{formatPrice(totalPrice)}</Text>
             </View>
-            <TouchableOpacity style={styles.checkoutButton} onPress={handlePlaceOrder} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.checkoutButtonText}>Xác nhận Đơn hàng</Text>}
+            <TouchableOpacity style={styles.checkoutButton} onPress={() => setModalVisible(true)} disabled={loading}>
+                <Text style={styles.checkoutButtonText}>Xác nhận Đơn hàng</Text>
             </TouchableOpacity>
         </View>
       )}
+      <ConfirmationModal 
+        visible={isModalVisible}
+        onClose={() => setModalVisible(false)}
+        onConfirm={handlePlaceOrder}
+        loading={loading}
+      />
     </SafeAreaView>
   );
 }
