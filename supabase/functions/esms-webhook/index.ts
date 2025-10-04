@@ -12,6 +12,10 @@ async function sendSmsInBackground(phone, message) {
   try {
     console.log(`Background task: Processing SMS for ${phone}`);
     
+    if (typeof message !== 'string') {
+      throw new Error(`Invalid message format: expected a string but got ${typeof message}`);
+    }
+
     const otpMatch = message.match(/\d{6}/);
     if (!otpMatch) {
       throw new Error(`Could not extract OTP from message: "${message}"`);
@@ -74,7 +78,18 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, message } = await req.json()
+    const payload = await req.json()
+    // Dữ liệu phone và message thực tế nằm trong payload từ Supabase Auth hook
+    const { phone, message } = payload.record?.data ?? {};
+
+    if (!phone || !message) {
+      console.error("Webhook received with missing phone or message in payload:", payload);
+      return new Response(JSON.stringify({ error: "Missing phone or message in payload" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
     console.log(`Webhook received for ${phone}. Acknowledging immediately.`);
 
     // Gọi hàm xử lý nền mà không cần chờ (fire and forget)
