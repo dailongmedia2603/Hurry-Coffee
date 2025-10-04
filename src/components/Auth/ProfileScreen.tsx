@@ -25,7 +25,10 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContentContainer}
+      >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Hồ sơ</Text>
         </View>
@@ -64,6 +67,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: "#FAFAFA",
+  },
+  scrollContentContainer: {
+    paddingBottom: 120,
   },
   header: {
     alignItems: "center",
