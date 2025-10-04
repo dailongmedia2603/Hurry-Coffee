@@ -16,12 +16,23 @@ import { Product } from "@/types";
 import { useRouter } from "expo-router";
 import { useCart } from "@/src/context/CartContext";
 import ProductOptionsModal from "@/src/components/ProductOptionsModal";
+import CategoryChip from "@/src/components/CategoryChip";
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
   }).format(price);
+};
+
+const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
+  "Cà phê": "cafe-outline",
+  "Đồ ăn": "fast-food-outline",
+  "Trà": "leaf-outline",
+  Rice: "restaurant-outline",
+  Snacks: "ice-cream-outline",
+  Drinks: "beer-outline",
+  default: "fast-food-outline",
 };
 
 const MenuItem = ({
@@ -84,7 +95,7 @@ const MenuItem = ({
 
 export default function DiscoverScreen() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -98,10 +109,15 @@ export default function DiscoverScreen() {
       const { data: categoryData, error: categoryError } = await supabase.rpc(
         "get_distinct_categories"
       );
-      if (categoryError) console.error("Error fetching categories:", categoryError);
-      else if (categoryData) {
-        const fetchedCategories = categoryData.map((c: { category: string }) => c.category);
-        setCategories(["All Menu", ...fetchedCategories]);
+      if (categoryError) {
+        console.error("Error fetching categories:", categoryError);
+      } else if (categoryData) {
+        const fetchedCategories = categoryData.map((c: { category: string }) => ({
+          name: c.category,
+          icon: categoryIcons[c.category] || categoryIcons.default,
+        }));
+        setCategories([{ name: "All Menu", icon: "grid-outline" }, ...fetchedCategories]);
+        setActiveCategory("All Menu");
       }
 
       const { data: productData, error: productError } = await supabase.from("products").select("*");
@@ -142,19 +158,15 @@ export default function DiscoverScreen() {
 
   const renderCategories = () => (
     <View style={styles.categoriesContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[styles.categoryChip, activeCategory === category ? styles.categoryChipActive : styles.categoryChipInactive]}
-            onPress={() => setActiveCategory(category)}
-          >
-            <Text style={[styles.categoryChipText, activeCategory === category ? styles.categoryChipTextActive : styles.categoryChipTextInactive]}>
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {categories.slice(0, 4).map((cat) => ( // Giới hạn 4 danh mục để vừa vặn
+        <CategoryChip
+          key={cat.name}
+          label={cat.name}
+          icon={cat.icon}
+          isActive={activeCategory === cat.name}
+          onPress={() => setActiveCategory(cat.name)}
+        />
+      ))}
     </View>
   );
 
@@ -177,7 +189,6 @@ export default function DiscoverScreen() {
 
         {renderCategories()}
         <View style={styles.menuContainer}>
-          <Text style={styles.menuTitle}>Thực đơn</Text>
           {loading ? <ActivityIndicator size="large" color="#73509c" /> : (
             filteredProducts.map((product) => (
               <MenuItem
@@ -222,15 +233,13 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
   detailsContainer: { marginBottom: 16, marginHorizontal: 16, marginTop: 16 },
   restaurantName: { color: "#161616", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
-  categoriesContainer: { marginBottom: 16 },
-  categoryChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, borderWidth: 1 },
-  categoryChipActive: { backgroundColor: "#FF6C44", borderColor: "#FF6C44" },
-  categoryChipInactive: { backgroundColor: "#FFFFFF", borderColor: "#E0E0E0" },
-  categoryChipText: { fontSize: 14, fontWeight: "500" },
-  categoryChipTextActive: { color: "#FFFFFF" },
-  categoryChipTextInactive: { color: "#333333" },
+  categoriesContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    marginBottom: 20,
+  },
   menuContainer: { marginHorizontal: 16, paddingBottom: 120 },
-  menuTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 16 },
   menuItemContainer: { flexDirection: "row", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, marginBottom: 12, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
   menuItemImage: { width: 80, height: 80, borderRadius: 8, marginRight: 12 },
   menuItemDetails: { flex: 1, justifyContent: "center", marginRight: 12 },
