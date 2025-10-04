@@ -8,21 +8,19 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log("--- eSMS Webhook invoked ---");
+  console.log("--- eSMS Webhook invoked (TEST MODE) ---");
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Payload từ Supabase chứa `phone` và `message`, không phải `otp`.
     const { phone, message } = await req.json()
     console.log(`Received request for phone: ${phone}, message: "${message}"`);
     if (!phone || !message) {
       throw new Error("Phone and message are required from the hook.")
     }
 
-    // Trích xuất mã OTP 6 chữ số từ chuỗi message.
     const otpMatch = message.match(/\d{6}/);
     if (!otpMatch) {
       throw new Error(`Could not extract OTP from message: "${message}"`);
@@ -40,49 +38,50 @@ serve(async (req) => {
     }
     console.log("Successfully loaded secrets.");
 
-    const esmsUrl = 'https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/'
     const userPhone = phone.startsWith('+84') ? '0' + phone.substring(3) : phone;
 
     const requestBody = {
       ApiKey: apiKey,
       SecretKey: secretKey,
       Phone: userPhone,
-      Channels: ["sms"], // Chỉ tập trung vào kênh SMS cho OTP
+      Channels: ["sms"],
       Data: [
         {
           Content: `${otp} la ma xac minh dang ky ${brandname} cua ban`,
           IsUnicode: "0",
-          SmsType: "2", // Theo mẫu của nhà cung cấp
+          SmsType: "2",
           Brandname: brandname,
           RequestId: crypto.randomUUID(),
-          Sandbox: "0" // Thêm tham số Sandbox theo mẫu
+          Sandbox: "0"
         }
       ]
     };
 
-    console.log("Request Body sent to eSMS:", JSON.stringify(requestBody, null, 2));
+    console.log("TEST MODE: Request Body that WOULD BE sent to eSMS:", JSON.stringify(requestBody, null, 2));
 
-    const esmsResponse = await fetch(esmsUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    })
+    // --- MOCK FOR TESTING ---
+    // Các dòng code gọi API thật đã được tạm ẩn đi để không gửi SMS.
+    // const esmsUrl = 'https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/'
+    // const esmsResponse = await fetch(esmsUrl, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(requestBody),
+    // })
+    // const esmsResult = await esmsResponse.json()
+    // console.log("Response from eSMS:", JSON.stringify(esmsResult, null, 2));
+    // if (esmsResult.CodeResult != 100) {
+    //   console.error("eSMS API Error:", esmsResult)
+    //   throw new Error(`Failed to send OTP. Error: ${esmsResult.ErrorMessage || 'Unknown error'}`)
+    // }
+    // --- END MOCK ---
 
-    const esmsResult = await esmsResponse.json()
-    console.log("Response from eSMS:", JSON.stringify(esmsResult, null, 2));
-
-    if (esmsResult.CodeResult != 100) {
-      console.error("eSMS API Error:", esmsResult)
-      throw new Error(`Failed to send OTP. Error: ${esmsResult.ErrorMessage || 'Unknown error'}`)
-    }
-
-    console.log("--- eSMS Webhook finished successfully ---");
-    return new Response(JSON.stringify({}), {
+    console.log("--- eSMS Webhook finished successfully (TEST MODE) ---");
+    return new Response(JSON.stringify({ message: "Simulated success" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    console.error("--- eSMS Webhook failed with error ---", error.message);
+    console.error("--- eSMS Webhook failed with error (TEST MODE) ---", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
