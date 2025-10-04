@@ -178,13 +178,7 @@ export default function DiscoverScreen() {
             <Ionicons name="arrow-back" size={24} color="#161616" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{"Đặt món"}</Text>
-          <TouchableOpacity>
-            <Ionicons name="search" size={24} color="#161616" />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.detailsContainer}>
-          <Text style={styles.restaurantName}>{"Chọn món để đặt ngay"}</Text>
+          <View style={{ width: 24 }} />
         </View>
 
         {renderCategories()}
@@ -231,13 +225,12 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
   headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
-  detailsContainer: { marginBottom: 16, marginHorizontal: 16, marginTop: 16 },
-  restaurantName: { color: "#161616", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
   categoriesContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 8,
     marginBottom: 20,
+    marginTop: 16,
   },
   menuContainer: { marginHorizontal: 16, paddingBottom: 120 },
   menuItemContainer: { flexDirection: "row", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, marginBottom: 12, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
