@@ -140,6 +140,14 @@ export default function CustomerLayout() {
               tabBarStyle: { display: "none" },
             } as any}
           />
+          <Tabs.Screen
+            name="address"
+            options={{
+              href: null,
+              headerShown: false,
+              tabBarStyle: { display: "none" },
+            } as any}
+          />
         </Tabs>
       </CartProvider>
     </AuthProvider>

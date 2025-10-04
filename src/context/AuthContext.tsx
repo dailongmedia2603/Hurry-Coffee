@@ -13,6 +13,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => void;
+  refetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +31,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchProfile = async (user: User) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116: 0 rows
+      console.error('Error fetching profile:', error);
+    }
+    setProfile(data);
+  };
 
   useEffect(() => {
     const getSession = async () => {
@@ -59,17 +73,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const fetchProfile = async (user: User) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_url')
-      .eq('id', user.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // PGRST116: 0 rows
-      console.error('Error fetching profile:', error);
+  const refetchProfile = async () => {
+    if (user) {
+      await fetchProfile(user);
     }
-    setProfile(data);
   };
 
   const signOut = async () => {
@@ -82,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile,
     loading,
     signOut,
+    refetchProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -28,3 +28,11 @@ export interface Location {
   distance: string;
   opening_hours: string;
 }
+
+export interface UserAddress {
+  id: string;
+  user_id: string;
+  name: string;
+  address: string;
+  created_at: string;
+}
