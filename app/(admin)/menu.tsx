@@ -75,7 +75,7 @@ export default function MenuManagementScreen() {
       <Text style={[styles.tableCell, { flex: 3 }]}>{item.name}</Text>
       <Text style={[styles.tableCell, { flex: 2 }]}>{item.category}</Text>
       <Text style={[styles.tableCell, { flex: 2, textAlign: 'right' }]}>{formatPrice(item.price)}</Text>
-      <View style={[styles.tableCell, styles.actions, { flex: 2 }]}>
+      <View style={[styles.actions, { flex: 2 }]}>
         <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
           <Ionicons name="pencil" size={20} color="#1d4ed8" />
         </TouchableOpacity>
