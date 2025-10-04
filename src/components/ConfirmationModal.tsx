@@ -15,12 +15,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { supabase } from '@/src/integrations/supabase/client';
+import { Location } from '@/types';
+import LocationPickerModal from './LocationPickerModal';
 
 type OrderType = 'delivery' | 'pickup';
 
 export interface ConfirmationDetails {
   orderType: OrderType;
   address: string;
+  locationId: string | null;
   name: string;
   phone: string;
   isPhoneVerified: boolean;
@@ -43,6 +46,8 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -90,13 +95,15 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   };
 
   const handleConfirm = () => {
-    if (!name || !phone || !address) {
+    const isDelivery = orderType === 'delivery';
+    if (!name || !phone || (isDelivery && !address) || (!isDelivery && !selectedLocation)) {
         Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
         return;
     }
     onConfirm({
       orderType,
-      address,
+      address: isDelivery ? address : selectedLocation!.name,
+      locationId: isDelivery ? null : selectedLocation!.id,
       name,
       phone,
       isPhoneVerified,
@@ -144,18 +151,25 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
             <Text style={styles.sectionTitle}>
               {orderType === 'delivery' ? 'Địa chỉ giao hàng' : 'Chọn điểm ghé lấy'}
             </Text>
-            <View style={styles.addressButton}>
-                <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
-                <TextInput 
-                    style={styles.input}
-                    placeholder={orderType === 'delivery' ? 'Nhập địa chỉ của bạn' : 'Chọn một cửa hàng'}
-                    value={address}
-                    onChangeText={setAddress}
-                />
-                <TouchableOpacity>
+            {orderType === 'delivery' ? (
+                <View style={styles.addressButton}>
+                    <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput 
+                        style={styles.input}
+                        placeholder='Nhập địa chỉ của bạn'
+                        value={address}
+                        onChangeText={setAddress}
+                    />
+                </View>
+            ) : (
+                <TouchableOpacity style={styles.addressButton} onPress={() => setLocationPickerVisible(true)}>
+                    <Ionicons name="storefront-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <Text style={[styles.input, !selectedLocation && styles.placeholderText]}>
+                        {selectedLocation ? selectedLocation.name : 'Chọn một cửa hàng'}
+                    </Text>
                     <Ionicons name="chevron-forward" size={20} color="#666" />
                 </TouchableOpacity>
-            </View>
+            )}
 
             <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
             <View style={styles.inputContainer}>
@@ -193,6 +207,13 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <LocationPickerModal
+        visible={isLocationPickerVisible}
+        onClose={() => setLocationPickerVisible(false)}
+        onSelect={(location) => {
+          setSelectedLocation(location);
+        }}
+      />
     </Modal>
   );
 };
@@ -213,6 +234,7 @@ const styles = StyleSheet.create({
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50, marginBottom: 12 },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 16, color: '#333' },
+  placeholderText: { color: '#999' },
   otpButton: { backgroundColor: '#E8E4F2', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8 },
   otpButtonText: { color: '#73509c', fontSize: 14, fontWeight: 'bold' },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: 8 },

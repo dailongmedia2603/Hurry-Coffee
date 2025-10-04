@@ -24,20 +24,16 @@ export default function CheckoutScreen() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert("Lỗi", "Bạn cần đăng nhập để đặt hàng.");
-        setLoading(false);
-        return;
-      }
 
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert({ 
-            user_id: user.id, 
+            user_id: user?.id || null, 
             total: totalPrice, 
             notes: notes,
             order_type: details.orderType,
             delivery_address: details.orderType === 'delivery' ? details.address : null,
+            pickup_location_id: details.orderType === 'pickup' ? details.locationId : null,
             customer_name: details.name,
             customer_phone: details.phone,
             is_phone_verified: details.isPhoneVerified,
