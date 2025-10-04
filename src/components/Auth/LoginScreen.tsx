@@ -15,17 +15,20 @@ export default function LoginScreen() {
         return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: `+84${phone.replace(/^0+/, '')}`, // Vietnamese phone numbers
-    });
+    try {
+      const { error } = await supabase.functions.invoke('send-otp', {
+        body: { phone: phone.replace(/^0+/, '') },
+      });
 
-    if (error) {
-      Alert.alert('Lỗi', error.message);
-    } else {
+      if (error) throw error;
+
       setOtpSent(true);
       Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
+    } catch (error: any) {
+      Alert.alert('Lỗi', error.message || 'Đã có lỗi xảy ra khi gửi OTP.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function verifyOtp() {
@@ -34,16 +37,28 @@ export default function LoginScreen() {
         return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: `+84${phone.replace(/^0+/, '')}`,
-      token: password,
-      type: 'sms',
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-otp', {
+        body: { phone: phone.replace(/^0+/, ''), otp: password },
+      });
 
-    if (error) {
-      Alert.alert('Lỗi', error.message);
+      if (error) throw error;
+
+      if (data.access_token) {
+        // Đăng nhập người dùng vào Supabase client
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: '', // Custom flow không có refresh token
+        });
+        if (sessionError) throw sessionError;
+      } else {
+        throw new Error("Xác thực thất bại, không nhận được token.");
+      }
+    } catch (error: any) {
+      Alert.alert('Lỗi', error.message || 'Đã có lỗi xảy ra khi xác thực OTP.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
