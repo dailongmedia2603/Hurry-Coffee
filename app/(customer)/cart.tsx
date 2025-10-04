@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import OrderCard from '@/src/components/OrderCard';
-import { Order } from '@/types';
+import { Order, Location } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
 import { useFocusEffect } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
@@ -13,6 +13,8 @@ type OrderWithDetails = Order & {
     restaurant_name: string;
     restaurant_image_url: string;
     items_count: number;
+    order_type: 'delivery' | 'pickup';
+    locations: Location | null;
 };
 
 export default function MyOrdersScreen() {
@@ -23,8 +25,12 @@ export default function MyOrdersScreen() {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            // Sử dụng left join (`!left`) để đảm bảo các đơn hàng được trả về ngay cả khi chúng không có order_items
-            let query = supabase.from('orders').select(`*, order_items!left(count)`);
+            let query = supabase.from('orders').select(`
+                *,
+                order_type,
+                order_items!left(count),
+                locations(*)
+            `);
 
             if (user) {
                 query = query.eq('user_id', user.id);
@@ -50,15 +56,25 @@ export default function MyOrdersScreen() {
 
             if (error) throw error;
 
-            const ordersWithDetails = data.map(order => ({
-                ...order,
-                restaurant_name: 'Nhà hàng Hurry Coffee',
-                restaurant_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto.format&fit=crop',
-                // Kết quả của count là một mảng như [{ count: N }], vì vậy chúng ta truy cập nó như thế này.
-                items_count: order.order_items[0]?.count || 0,
-            }));
+            const ordersWithDetails = data.map(order => {
+                const items_count = order.order_items[0]?.count || 0;
+                let restaurant_name = 'Giao tận nơi';
+                let restaurant_image_url = 'local_delivery_icon'; // Khóa đặc biệt cho ảnh cục bộ
 
-            setOrders(ordersWithDetails);
+                if (order.order_type === 'pickup' && order.locations) {
+                    restaurant_name = order.locations.name;
+                    restaurant_image_url = order.locations.image_url;
+                }
+
+                return {
+                    ...order,
+                    restaurant_name,
+                    restaurant_image_url,
+                    items_count,
+                };
+            });
+
+            setOrders(ordersWithDetails as OrderWithDetails[]);
 
         } catch (error) {
             console.error("Error fetching orders:", error);

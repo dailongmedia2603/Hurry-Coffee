@@ -30,9 +30,13 @@ const OrderCard = ({ order }: { order: Order }) => {
     const router = useRouter();
     const statusStyle = getStatusStyle(order.status);
 
+    const imageSource = order.restaurant_image_url === 'local_delivery_icon'
+        ? require('@/assets/images/delivery.png')
+        : { uri: order.restaurant_image_url };
+
     return (
         <TouchableOpacity style={styles.card} onPress={() => router.push(`/(customer)/order/${order.id}`)}>
-            <Image source={{ uri: order.restaurant_image_url }} style={styles.restaurantImage} />
+            <Image source={imageSource} style={styles.restaurantImage} />
             <View style={styles.cardContent}>
                 <View style={styles.header}>
                     <Text style={styles.restaurantName}>{order.restaurant_name}</Text>

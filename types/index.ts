@@ -18,6 +18,8 @@ export interface Order {
   items_count: number;
   restaurant_name: string;
   restaurant_image_url: string;
+  order_type: 'delivery' | 'pickup';
+  locations: Location | null;
 }
 
 export interface Location {
