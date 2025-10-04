@@ -120,7 +120,7 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <TouchableOpacity onPress={handleAvatarChange} disabled={uploading}>
             <Image
-              source={{ uri: profile?.avatar_url || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
+              source={{ uri: profile?.avatar_url || 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png' }}
               style={styles.avatar}
             />
             {uploading ? (
