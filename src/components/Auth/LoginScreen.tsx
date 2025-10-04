@@ -29,7 +29,7 @@ export default function LoginScreen() {
 
     if (error) {
       console.error("Lỗi chi tiết khi gửi OTP:", JSON.stringify(error, null, 2));
-      setErrorMessage(error.message); // Hiển thị lỗi trên giao diện
+      setErrorMessage("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại."); // Hiển thị lỗi thân thiện
     } else {
       setOtpSent(true);
       Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
@@ -53,7 +53,7 @@ export default function LoginScreen() {
 
     if (error) {
       console.error("Lỗi chi tiết khi xác thực OTP:", JSON.stringify(error, null, 2));
-      setErrorMessage(error.message); // Hiển thị lỗi trên giao diện
+      setErrorMessage("Mã OTP không hợp lệ. Vui lòng thử lại."); // Hiển thị lỗi thân thiện
     }
     setLoading(false);
   }
