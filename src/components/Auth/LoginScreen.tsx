@@ -81,7 +81,7 @@ export default function LoginScreen() {
         style={styles.logo}
       />
       <Text style={styles.title}>Đăng nhập</Text>
-      <Text style={styles.subtitle}>Vui lòng đăng nhập để xem hồ sơ và các ưu đãi dành riêng cho bạn.</Text>
+      <Text style={styles.subtitle}>Đăng nhập để đặt nước dễ dàng và nhận ưu đãi</Text>
       
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
@@ -139,9 +139,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 240,
+    height: 240,
     marginBottom: 30,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 28,
