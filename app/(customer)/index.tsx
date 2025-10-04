@@ -70,12 +70,21 @@ export default function CustomerHomeScreen() {
     fetchData();
   }, []);
 
-  const filteredProducts = useMemo(() => {
+  const categoryFilteredProducts = useMemo(() => {
     if (!activeCategory || activeCategory === "More") {
       return products;
     }
     return products.filter((product) => product.category === activeCategory);
   }, [activeCategory, products]);
+
+  const searchedProducts = useMemo(() => {
+    if (!searchQuery) {
+      return [];
+    }
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, products]);
 
   const recommendedProducts = products.slice(0, 10);
 
@@ -129,11 +138,14 @@ export default function CustomerHomeScreen() {
     </View>
   );
 
-  const renderProductSection = (title: string, data: Product[]) => {
-    if (loading) {
+  const renderProductSection = (title: string, data: Product[], isSearchResult = false) => {
+    if (loading && !isSearchResult) {
       return <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} />;
     }
     if (data.length === 0 && !loading) {
+      if (isSearchResult) {
+        return <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>;
+      }
       return null;
     }
     const isRecommendedSection = title === "Món ngon cho bạn";
@@ -141,7 +153,7 @@ export default function CustomerHomeScreen() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
-          {!isRecommendedSection && (
+          {!isRecommendedSection && !isSearchResult && (
             <TouchableOpacity onPress={() => router.push(`/category/${title}`)}>
               <Text style={styles.seeMore}>Tất cả</Text>
             </TouchableOpacity>
@@ -168,9 +180,15 @@ export default function CustomerHomeScreen() {
         {renderHeader()}
         <View style={styles.contentContainer}>
           {renderSearchBar()}
-          {renderCategories()}
-          {renderProductSection("Món ngon cho bạn", recommendedProducts)}
-          {activeCategory && activeCategory !== "More" && renderProductSection(activeCategory, filteredProducts)}
+          {searchQuery ? (
+            renderProductSection("Kết quả tìm kiếm", searchedProducts, true)
+          ) : (
+            <>
+              {renderCategories()}
+              {renderProductSection("Món ngon cho bạn", recommendedProducts)}
+              {activeCategory && activeCategory !== "More" && renderProductSection(activeCategory, categoryFilteredProducts)}
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
