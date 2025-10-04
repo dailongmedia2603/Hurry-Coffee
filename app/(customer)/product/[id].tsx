@@ -22,7 +22,7 @@ export default function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('M');
   const sizes = ['S', 'M', 'L'];
-  const { addItem, totalItems } = useCart();
+  const { addItem } = useCart();
 
   useEffect(() => {
     if (!id) return;
@@ -49,12 +49,6 @@ export default function ProductDetailScreen() {
   const handleAddToCart = () => {
     if (!product) return;
     addItem(product, quantity, selectedSize);
-  };
-  
-  const handleBuyNow = () => {
-    if (!product) return;
-    addItem(product, quantity, selectedSize);
-    router.push('/(customer)/checkout');
   };
 
   if (loading) {
@@ -148,16 +142,8 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
-          <Ionicons name="basket-outline" size={28} color="#333" />
-          {totalItems > 0 && (
-            <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{totalItems}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
-          <Text style={styles.buyNowButtonText}>Buy Now - {formatPrice(totalPrice)}</Text>
+        <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+          <Text style={styles.addToCartButtonText}>Thêm giỏ hàng - {formatPrice(totalPrice)}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -282,8 +268,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
@@ -291,41 +275,14 @@ const styles = StyleSheet.create({
     borderTopColor: '#f0f0f0',
     paddingBottom: 34,
   },
-  cartButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#FF6C44',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cartBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  buyNowButton: {
+  addToCartButton: {
     flex: 1,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#73509c',
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
-    marginLeft: 16,
   },
-  buyNowButtonText: {
+  addToCartButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

@@ -140,7 +140,7 @@ export default function ProfileScreen() {
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-          <Ionicons name="log-out-outline" size={24} color="#D50000" />
+          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
           <Text style={styles.logoutButtonText}>Đăng xuất</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -165,6 +165,6 @@ const styles = StyleSheet.create({
   menuItemContent: { flexDirection: "row", alignItems: "center" },
   menuIcon: { marginRight: 16 },
   menuLabel: { color: "#161616", fontSize: 16 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 16, marginTop: 24, padding: 16, backgroundColor: '#FFEBEE', borderRadius: 12 },
-  logoutButtonText: { color: '#D50000', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 16, marginTop: 24, padding: 16, backgroundColor: '#73509c', borderRadius: 30 },
+  logoutButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
 });
