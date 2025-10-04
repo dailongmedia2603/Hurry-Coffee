@@ -79,8 +79,9 @@ serve(async (req) => {
 
   try {
     const payload = await req.json()
-    // Dữ liệu phone và message thực tế nằm trong payload từ Supabase Auth hook
-    const { phone, message } = payload.record?.data ?? {};
+    // Sửa lỗi: Lấy `phone` từ `record` và `message` từ `record.data`
+    const phone = payload.record?.phone;
+    const message = payload.record?.data?.message;
 
     if (!phone || !message) {
       console.error("Webhook received with missing phone or message in payload:", payload);
@@ -102,7 +103,7 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    // Lỗi này chỉ xảy ra nếu payload từ Supabase bị lỗi, không phải lỗi từ eSMS
+    // Lỗi này chỉ xảy ra nếu payload từ Supabase bị lỗi, không phải từ eSMS
     console.error("--- eSMS Webhook failed to parse request ---", error.message);
     return new Response(JSON.stringify({ error: "Invalid request payload" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
