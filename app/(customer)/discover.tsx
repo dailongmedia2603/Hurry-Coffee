@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/src/integrations/supabase/client";
@@ -102,6 +103,7 @@ export default function DiscoverScreen() {
   const { addItem, decreaseItem, getProductQuantity, totalItems, totalPrice } = useCart();
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -151,14 +153,22 @@ export default function DiscoverScreen() {
     handleCloseModal();
   };
 
-  const filteredProducts = useMemo(() => {
-    if (activeCategory === "All Menu") return products;
-    return products.filter((product) => product.category === activeCategory);
-  }, [activeCategory, products]);
+  const productsToShow = useMemo(() => {
+    let filtered = products;
+    if (activeCategory !== "All Menu") {
+      filtered = filtered.filter((product) => product.category === activeCategory);
+    }
+    if (searchQuery) {
+      filtered = filtered.filter((product) =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return filtered;
+  }, [activeCategory, products, searchQuery]);
 
   const renderCategories = () => (
     <View style={styles.categoriesContainer}>
-      {categories.slice(0, 4).map((cat) => ( // Giới hạn 4 danh mục để vừa vặn
+      {categories.slice(0, 4).map((cat) => (
         <CategoryChip
           key={cat.name}
           label={cat.name}
@@ -181,10 +191,20 @@ export default function DiscoverScreen() {
           <View style={{ width: 24 }} />
         </View>
 
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm món nhanh"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
         {renderCategories()}
         <View style={styles.menuContainer}>
           {loading ? <ActivityIndicator size="large" color="#73509c" /> : (
-            filteredProducts.map((product) => (
+            productsToShow.map((product) => (
               <MenuItem
                 key={product.id}
                 product={product}
@@ -194,6 +214,9 @@ export default function DiscoverScreen() {
                 quantity={getProductQuantity(product.id)}
               />
             ))
+          )}
+          {productsToShow.length === 0 && !loading && (
+            <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>
           )}
         </View>
       </ScrollView>
@@ -225,12 +248,33 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
   headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+  },
   categoriesContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 8,
     marginBottom: 20,
-    marginTop: 16,
   },
   menuContainer: { marginHorizontal: 16, paddingBottom: 120 },
   menuItemContainer: { flexDirection: "row", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, marginBottom: 12, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
@@ -249,4 +293,9 @@ const styles = StyleSheet.create({
   cartBadgeText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
   buyNowButton: { flex: 1, backgroundColor: "#73509c", paddingVertical: 16, borderRadius: 30, alignItems: "center", marginLeft: 16 },
   buyNowButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  placeholderText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666'
+  }
 });
