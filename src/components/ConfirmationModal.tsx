@@ -89,22 +89,32 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mã OTP.');
+    if (!otp || otp.length !== 6) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đủ 6 số của mã OTP.');
       return;
     }
     setOtpLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: `+84${phone.replace(/^0+/, '')}`,
-      token: otp,
-      type: 'sms',
-    });
-    setOtpLoading(false);
-    if (error) {
-      Alert.alert('Lỗi xác thực', error.message);
-    } else {
-      setIsPhoneVerified(true);
-      Alert.alert('Thành công', 'Số điện thoại đã được xác thực và bạn đã đăng nhập.');
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: `+84${phone.replace(/^0+/, '')}`,
+        token: otp,
+        type: 'sms',
+      });
+
+      if (error) {
+        console.error('OTP Verification Error:', error);
+        Alert.alert('Lỗi xác thực', error.message || 'Mã OTP không hợp lệ. Vui lòng thử lại.');
+      } else if (data.session) {
+        setIsPhoneVerified(true);
+        Alert.alert('Thành công', 'Số điện thoại đã được xác thực và bạn đã đăng nhập.');
+      } else {
+        Alert.alert('Lỗi xác thực', 'Không thể xác thực OTP. Vui lòng thử lại.');
+      }
+    } catch (e) {
+      console.error('Unexpected error during OTP verification:', e);
+      Alert.alert('Lỗi hệ thống', 'Đã có lỗi không mong muốn xảy ra.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -196,7 +206,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
             </View>
             <View style={styles.inputContainer}>
               <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} />
+              <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified && !isOtpSent} />
             </View>
 
             {isPhoneVerified ? (
