@@ -8,70 +8,71 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log("--- eSMS Webhook invoked ---");
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Dữ liệu được gửi từ Supabase Auth Hook
     const { phone, otp } = await req.json()
+    console.log(`Received request for phone: ${phone}, otp: ${otp}`);
     if (!phone || !otp) {
-      throw new Error("Số điện thoại và OTP là bắt buộc từ hook.")
+      throw new Error("Phone and OTP are required from the hook.")
     }
 
-    // Lấy các secret đã lưu
     const apiKey = Deno.env.get('ESMS_API_KEY')
     const secretKey = Deno.env.get('ESMS_SECRET_KEY')
     const brandname = Deno.env.get('ESMS_BRANDNAME')
 
-    // API endpoint mới
-    const esmsUrl = 'https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/'
+    if (!apiKey || !secretKey || !brandname) {
+      console.error("CRITICAL: Missing one or more environment secrets (ESMS_API_KEY, ESMS_SECRET_KEY, ESMS_BRANDNAME).");
+      throw new Error("Server configuration error: Missing SMS provider secrets.");
+    }
+    console.log("Successfully loaded secrets.");
 
-    // Chuyển đổi định dạng SĐT từ +84... (Supabase) sang 0... (eSMS yêu cầu)
+    const esmsUrl = 'https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/'
     const userPhone = phone.startsWith('+84') ? '0' + phone.substring(3) : phone;
 
-    // Xây dựng body cho request POST theo đúng cấu trúc bạn cung cấp
     const requestBody = {
       ApiKey: apiKey,
       SecretKey: secretKey,
       Phone: userPhone,
-      Channels: ["sms"], // Chỉ gửi qua kênh SMS cho OTP
+      Channels: ["sms"],
       Data: [
-        // Dữ liệu cho kênh SMS
         {
           Content: `${otp} la ma xac minh cua ban`,
           IsUnicode: "0",
-          SmsType: "2", // Tin nhắn quảng cáo hoặc OTP, thường là type 2
+          SmsType: "2",
           Brandname: brandname,
-          RequestId: crypto.randomUUID(), // Tạo một ID duy nhất cho mỗi request
+          RequestId: crypto.randomUUID(),
         }
       ]
     };
 
-    // Thực hiện gọi API bằng phương thức POST
+    console.log("Request Body sent to eSMS:", JSON.stringify(requestBody, null, 2));
+
     const esmsResponse = await fetch(esmsUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     })
 
     const esmsResult = await esmsResponse.json()
+    console.log("Response from eSMS:", JSON.stringify(esmsResult, null, 2));
 
-    // Kiểm tra kết quả trả về từ eSMS
     if (esmsResult.CodeResult != 100) {
-      console.error("eSMS Error:", esmsResult)
-      throw new Error(`Gửi OTP thất bại. Lỗi: ${esmsResult.ErrorMessage}`)
+      console.error("eSMS API Error:", esmsResult)
+      throw new Error(`Failed to send OTP. Error: ${esmsResult.ErrorMessage}`)
     }
 
-    // Trả về response thành công cho Supabase
+    console.log("--- eSMS Webhook finished successfully ---");
     return new Response(JSON.stringify({}), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    // Trả về response lỗi cho Supabase
+    console.error("--- eSMS Webhook failed with error ---", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
