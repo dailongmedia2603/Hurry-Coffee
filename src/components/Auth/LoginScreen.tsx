@@ -10,8 +10,10 @@ export default function LoginScreen() {
   const [otpSent, setOtpSent] = useState(false);
 
   const formatPhoneNumber = (phoneNumber: string) => {
-    // Xóa số 0 ở đầu và thêm mã quốc gia +84
-    const cleaned = phoneNumber.replace(/^0+/, '');
+    // Xóa mọi ký tự không phải là số, sau đó xử lý
+    // 1. Xóa mã quốc gia +84 hoặc số 0 ở đầu nếu có
+    const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
+    // 2. Trả về số điện thoại với định dạng +84...
     return `+84${cleaned}`;
   };
 
