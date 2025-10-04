@@ -66,12 +66,16 @@ export default function ProfileScreen() {
       base64: true,
     });
 
-    if (result.canceled || !result.assets[0].base64) {
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    const image = result.assets[0];
+    if (!image.base64) {
       return;
     }
 
     setUploading(true);
-    const image = result.assets[0];
     const fileExt = image.uri.split('.').pop();
     const filePath = `${user.id}/${new Date().getTime()}.${fileExt}`;
     const contentType = image.mimeType ?? 'image/jpeg';
