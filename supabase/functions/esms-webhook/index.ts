@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,32 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { phone } = await req.json()
-    if (!phone) {
-      throw new Error("Số điện thoại là bắt buộc.")
+    const { phone, otp } = await req.json()
+    if (!phone || !otp) {
+      throw new Error("Phone number and OTP are required from the hook.")
     }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    const expires_at = new Date(Date.now() + 5 * 60 * 1000).toISOString()
-
-    const { error: dbError } = await supabase.from('phone_otps').upsert({
-      phone: phone,
-      otp: otp,
-      expires_at: expires_at,
-    })
-
-    if (dbError) throw dbError
 
     const apiKey = Deno.env.get('ESMS_API_KEY')
     const secretKey = Deno.env.get('ESMS_SECRET_KEY')
     const brandname = Deno.env.get('ESMS_BRANDNAME')
     const content = `Ma xac thuc cua ban la: ${otp}`
-    const sanitizedPhone = `84${phone.replace(/^0+/, '')}`
+    
+    // eSMS expects phone number format like 84... without the +
+    const sanitizedPhone = phone.startsWith('+84') ? phone.substring(1) : phone;
 
     const esmsUrl = `http://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_get?ApiKey=${apiKey}&SecretKey=${secretKey}&Content=${encodeURIComponent(content)}&Phone=${sanitizedPhone}&SmsType=2&Brandname=${brandname}`
 
@@ -47,14 +32,16 @@ serve(async (req) => {
 
     if (esmsResult.CodeResult != 100) {
       console.error("eSMS Error:", esmsResult)
-      throw new Error(`Gửi OTP thất bại. Lỗi: ${esmsResult.ErrorMessage}`)
+      throw new Error(`Failed to send OTP via eSMS. Error: ${esmsResult.ErrorMessage}`)
     }
 
-    return new Response(JSON.stringify({ success: true, message: "OTP đã được gửi thành công." }), {
+    // Return an empty object for success, as required by Supabase hooks
+    return new Response(JSON.stringify({}), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
+    // Return the error in the format required by Supabase hooks
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

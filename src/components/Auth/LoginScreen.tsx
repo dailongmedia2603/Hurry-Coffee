@@ -5,60 +5,54 @@ import { supabase } from '@/src/integrations/supabase/client';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState(''); // This is the OTP code
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
+  const formatPhoneNumber = (phoneNumber: string) => {
+    // Xóa số 0 ở đầu và thêm mã quốc gia +84
+    const cleaned = phoneNumber.replace(/^0+/, '');
+    return `+84${cleaned}`;
+  };
+
   async function signInWithPhone() {
     if (!phone) {
-        Alert.alert("Vui lòng nhập số điện thoại của bạn.");
-        return;
+      Alert.alert("Vui lòng nhập số điện thoại của bạn.");
+      return;
     }
     setLoading(true);
-    try {
-      const { error } = await supabase.functions.invoke('send-otp', {
-        body: { phone: phone.replace(/^0+/, '') },
-      });
+    const formattedPhone = formatPhoneNumber(phone);
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: formattedPhone,
+    });
 
-      if (error) throw error;
-
+    if (error) {
+      Alert.alert('Lỗi', error.message);
+    } else {
       setOtpSent(true);
       Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
-    } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Đã có lỗi xảy ra khi gửi OTP.');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function verifyOtp() {
-    if (!phone || !password) {
-        Alert.alert("Vui lòng nhập đầy đủ thông tin.");
-        return;
+    if (!phone || !otp) {
+      Alert.alert("Vui lòng nhập đầy đủ thông tin.");
+      return;
     }
     setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-otp', {
-        body: { phone: phone.replace(/^0+/, ''), otp: password },
-      });
+    const formattedPhone = formatPhoneNumber(phone);
+    const { error } = await supabase.auth.verifyOtp({
+      phone: formattedPhone,
+      token: otp,
+      type: 'sms',
+    });
 
-      if (error) throw error;
-
-      if (data.access_token) {
-        // Đăng nhập người dùng vào Supabase client
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: '', // Custom flow không có refresh token
-        });
-        if (sessionError) throw sessionError;
-      } else {
-        throw new Error("Xác thực thất bại, không nhận được token.");
-      }
-    } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Đã có lỗi xảy ra khi xác thực OTP.');
-    } finally {
-      setLoading(false);
+    if (error) {
+      Alert.alert('Lỗi', error.message);
     }
+    // Không cần làm gì thêm, listener onAuthStateChange trong AuthContext sẽ xử lý việc cập nhật session.
+    setLoading(false);
   }
 
   return (
@@ -94,8 +88,8 @@ export default function LoginScreen() {
               style={styles.input}
               placeholder="Mã OTP"
               keyboardType="number-pad"
-              value={password}
-              onChangeText={setPassword}
+              value={otp}
+              onChangeText={setOtp}
             />
           </View>
           <TouchableOpacity style={styles.button} onPress={verifyOtp} disabled={loading}>
