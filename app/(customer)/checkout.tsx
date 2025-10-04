@@ -211,6 +211,5 @@ const styles = StyleSheet.create({
     notesInput: {
       flex: 1,
       fontSize: 16,
-      textAlignVertical: 'top',
     },
 });

@@ -213,7 +213,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     height: 80,
-    textAlignVertical: 'top',
     fontSize: 16,
   },
   footer: {

@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: 'bold' },
   label: { fontSize: 16, fontWeight: '500', color: '#333', marginBottom: 8, marginTop: 12 },
   input: { backgroundColor: '#f3f4f6', borderRadius: 10, padding: 15, fontSize: 16 },
-  textArea: { height: 100, textAlignVertical: 'top' },
+  textArea: { height: 100 },
   saveButton: { backgroundColor: '#1f2937', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 24 },
   saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   imagePicker: { alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
