@@ -165,22 +165,16 @@ export default function DiscoverScreen() {
           <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.push("/(customer)/")}>
             <Ionicons name="arrow-back" size={24} color="#161616" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{"Chi tiết nhà hàng"}</Text>
+          <Text style={styles.headerTitle}>{"Đặt món"}</Text>
           <TouchableOpacity>
             <Ionicons name="search" size={24} color="#161616" />
           </TouchableOpacity>
         </View>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto.format&fit=crop" }} style={styles.restaurantImage} resizeMode="cover" />
-        </View>
+        
         <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}><Ionicons name="bicycle-outline" size={16} color="#656565" style={styles.detailIcon} /><Text style={styles.detailText}>{"Giao hàng nhanh"}</Text></View>
-          <Text style={styles.restaurantName}>{"Nhà hàng ABC"}</Text>
-          <View style={styles.detailRow}>
-            <View style={styles.detailItem}><Ionicons name="location-outline" size={16} color="#7C7C7C" style={styles.detailIcon} /><Text style={styles.subDetailText}>{"Bali, Indonesia"}</Text></View>
-            <View style={styles.detailItem}><Ionicons name="star" size={16} color="#FFC107" style={styles.detailIcon} /><Text style={styles.subDetailText}>{"4.9 (1k+ đánh giá)"}</Text></View>
-          </View>
+          <Text style={styles.restaurantName}>{"Chọn món để đặt ngay"}</Text>
         </View>
+
         {renderCategories()}
         <View style={styles.menuContainer}>
           <Text style={styles.menuTitle}>Thực đơn</Text>
@@ -226,14 +220,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
   headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
-  imageContainer: { backgroundColor: "#F0F0F0", borderRadius: 12, height: 200, marginBottom: 16, marginHorizontal: 16, overflow: "hidden" },
-  restaurantImage: { width: "100%", height: "100%" },
-  detailsContainer: { marginBottom: 16, marginHorizontal: 16 },
-  detailRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  detailItem: { flexDirection: "row", alignItems: "center", marginRight: 15 },
-  detailIcon: { marginRight: 4 },
-  detailText: { color: "#656565", fontSize: 12 },
-  subDetailText: { color: "#7C7C7C", fontSize: 12 },
+  detailsContainer: { marginBottom: 16, marginHorizontal: 16, marginTop: 16 },
   restaurantName: { color: "#161616", fontSize: 20, fontWeight: "bold", marginBottom: 8 },
   categoriesContainer: { marginBottom: 16 },
   categoryChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, borderWidth: 1 },
