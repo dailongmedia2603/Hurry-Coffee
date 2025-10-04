@@ -7,7 +7,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { UserAddress } from '@/types';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const ProfileMenuItem = ({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
@@ -110,17 +109,9 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient
-        colors={['#f5e9d3', '#ffffff']}
-        start={{ x: 1, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        locations={[0, 0.3]}
-        style={styles.gradient}
-      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Hồ sơ</Text>
@@ -158,20 +149,13 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: '100%',
-  },
-  scrollView: { flex: 1, backgroundColor: "transparent" },
+  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
   scrollContentContainer: { paddingBottom: 120 },
-  header: { alignItems: "center", backgroundColor: "transparent", paddingVertical: 20, marginBottom: 10 },
+  header: { alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, marginBottom: 10 },
   headerTitle: { color: "#161616", fontSize: 20, fontWeight: "bold" },
   profileHeader: { alignItems: "center", marginBottom: 32 },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 16, borderWidth: 3, borderColor: '#fff' },
+  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 16 },
   avatarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 50 },
   editIconContainer: { position: 'absolute', bottom: 16, right: 0, backgroundColor: '#73509c', padding: 8, borderRadius: 16, borderWidth: 2, borderColor: '#fff' },
   profileName: { color: "#161616", fontSize: 22, fontWeight: "bold", marginBottom: 4 },
