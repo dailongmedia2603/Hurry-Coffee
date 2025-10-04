@@ -1,9 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Location } from '@/types';
+import * as Linking from 'expo-linking';
 
 const LocationCard = ({ location }: { location: Location }) => {
+    const handleDirections = () => {
+        if (location.google_maps_url) {
+            Linking.openURL(location.google_maps_url);
+        } else {
+            Alert.alert("Không có chỉ đường", "Địa chỉ này chưa có thông tin chỉ đường trên bản đồ.");
+        }
+    };
+
     return (
         <TouchableOpacity style={styles.card}>
             <Image source={{ uri: location.image_url }} style={styles.locationImage} />
@@ -22,7 +31,7 @@ const LocationCard = ({ location }: { location: Location }) => {
                         <Ionicons name="walk-outline" size={16} color="#73509c" />
                         <Text style={styles.distanceText}>{location.distance}</Text>
                     </View>
-                    <TouchableOpacity style={styles.directionsButton}>
+                    <TouchableOpacity style={styles.directionsButton} onPress={handleDirections}>
                         <Text style={styles.directionsButtonText}>Chỉ đường</Text>
                     </TouchableOpacity>
                 </View>

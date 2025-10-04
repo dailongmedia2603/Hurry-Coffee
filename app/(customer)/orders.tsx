@@ -63,9 +63,6 @@ export default function LocationsScreen() {
                         onChangeText={setSearchQuery}
 					/>
 				</View>
-				<TouchableOpacity style={styles.filterButton}>
-					<Ionicons name="map-outline" size={24} color="#333" />
-				</TouchableOpacity>
 			</View>
 			<FlatList
 				data={filteredLocations}
@@ -118,22 +115,11 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		paddingHorizontal: 16,
 		height: 50,
-		marginRight: 12,
 	},
 	searchInput: {
 		color: "#333",
 		fontSize: 14,
 		flex: 1,
-	},
-	filterButton: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		backgroundColor: '#FAFAFA',
-		borderColor: '#DCDCDC',
-		borderWidth: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
 	},
 	listContainer: {
 		paddingHorizontal: 16,
