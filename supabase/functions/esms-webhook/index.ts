@@ -15,11 +15,20 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, otp } = await req.json()
-    console.log(`Received request for phone: ${phone}, otp: ${otp}`);
-    if (!phone || !otp) {
-      throw new Error("Phone and OTP are required from the hook.")
+    // Payload từ Supabase chứa `phone` và `message`, không phải `otp`.
+    const { phone, message } = await req.json()
+    console.log(`Received request for phone: ${phone}, message: "${message}"`);
+    if (!phone || !message) {
+      throw new Error("Phone and message are required from the hook.")
     }
+
+    // Trích xuất mã OTP 6 chữ số từ chuỗi message.
+    const otpMatch = message.match(/\d{6}/);
+    if (!otpMatch) {
+      throw new Error(`Could not extract OTP from message: "${message}"`);
+    }
+    const otp = otpMatch[0];
+    console.log(`Extracted OTP: ${otp}`);
 
     const apiKey = Deno.env.get('ESMS_API_KEY')
     const secretKey = Deno.env.get('ESMS_SECRET_KEY')
