@@ -31,16 +31,16 @@ serve(async (req) => {
     const isCallerAdmin = await isAdmin(userSupabaseClient);
     if (!isCallerAdmin) {
       return new Response(JSON.stringify({ error: 'Permission denied: User is not an admin.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { email, password, full_name } = await req.json();
-    if (!email || !password || !full_name) {
-      return new Response(JSON.stringify({ error: 'Email, password, and full name are required.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const { user_id, full_name, password } = await req.json();
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: 'User ID is required.' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -49,36 +49,34 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: { user }, error: createError } = await adminSupabaseClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-
-    if (createError) throw createError;
-    if (!user) throw new Error("Failed to create user.");
-
-    // The handle_new_user trigger creates the profile row. We update it.
-    const { error: updateError } = await adminSupabaseClient
-      .from('profiles')
-      .update({ role: 'staff', full_name: full_name })
-      .eq('id', user.id);
-
-    if (updateError) {
-      await adminSupabaseClient.auth.admin.deleteUser(user.id);
-      throw updateError;
+    // Update profile (full_name)
+    if (full_name) {
+      const { error: profileError } = await adminSupabaseClient
+        .from('profiles')
+        .update({ full_name })
+        .eq('id', user_id);
+      if (profileError) throw profileError;
     }
 
-    return new Response(JSON.stringify({ message: 'Staff user created successfully.', user }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Update password if provided
+    if (password) {
+      const { error: authError } = await adminSupabaseClient.auth.admin.updateUserById(
+        user_id,
+        { password }
+      );
+      if (authError) throw authError;
+    }
+
+    return new Response(JSON.stringify({ message: 'Staff user updated successfully.' }), {
       status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in create-staff-user function:', error);
+    console.error('Error in update-staff-user function:', error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 })

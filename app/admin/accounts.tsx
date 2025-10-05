@@ -10,14 +10,16 @@ import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
 interface StaffProfile {
   id: string;
   full_name: string | null;
+  email: string | null;
   role: string;
-  locations: { name: string } | null;
+  location_name: string | null;
 }
 
 export default function ManageAccountsScreen() {
   const [staff, setStaff] = useState<StaffProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormModalVisible, setFormModalVisible] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<StaffProfile | null>(null);
   const [isAssignModalVisible, setAssignModalVisible] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -25,10 +27,7 @@ export default function ManageAccountsScreen() {
 
   const fetchStaff = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, locations(name)')
-      .in('role', ['staff', 'admin']);
+    const { data, error } = await supabase.from('staff_details').select('*');
       
     if (error) {
       Alert.alert('Lỗi', 'Không thể tải danh sách tài khoản.');
@@ -39,6 +38,16 @@ export default function ManageAccountsScreen() {
   };
 
   useFocusEffect(useCallback(() => { fetchStaff(); }, []));
+
+  const openAddModal = () => {
+    setSelectedStaff(null);
+    setFormModalVisible(true);
+  };
+
+  const openEditModal = (staffMember: StaffProfile) => {
+    setSelectedStaff(staffMember);
+    setFormModalVisible(true);
+  };
 
   const openAssignModal = (staffId: string) => {
     setSelectedStaffId(staffId);
@@ -66,7 +75,7 @@ export default function ManageAccountsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Tài khoản ({staff.length})</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setFormModalVisible(true)}>
+        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
           <Ionicons name="add" size={24} color="#fff" />
           <Text style={styles.addButtonText}>Thêm nhân viên</Text>
         </TouchableOpacity>
@@ -85,13 +94,16 @@ export default function ManageAccountsScreen() {
                 <Text style={itemRole(item.role)}>{item.role}</Text>
                 <TouchableOpacity style={styles.locationContainer} onPress={() => openAssignModal(item.id)}>
                   <Ionicons name="storefront-outline" size={16} color="#6b7280" />
-                  <Text style={locationText(!!item.locations?.name)}>
-                    {item.locations?.name || 'Chưa gán địa điểm'}
+                  <Text style={locationText(!!item.location_name)}>
+                    {item.location_name || 'Chưa gán địa điểm'}
                   </Text>
                 </TouchableOpacity>
               </View>
               {item.role === 'staff' && (
                 <View style={styles.itemActions}>
+                  <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+                    <Ionicons name="pencil" size={20} color="#3b82f6" />
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
                     <Ionicons name="trash-outline" size={20} color="#ef4444" />
                   </TouchableOpacity>
@@ -110,6 +122,7 @@ export default function ManageAccountsScreen() {
           setFormModalVisible(false);
           fetchStaff();
         }}
+        staffMember={selectedStaff}
       />
       <AssignLocationModal
         visible={isAssignModalVisible}
