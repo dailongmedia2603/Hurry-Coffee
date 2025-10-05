@@ -80,6 +80,16 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Cài đặt",
+          headerTitle: "Cài đặt ứng dụng",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           href: null, // Ẩn tab này khỏi thanh điều hướng

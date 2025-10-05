@@ -12,6 +12,8 @@ import MenuItemCard from "@/src/components/MenuItemCard";
 import CategoryChip from "@/src/components/CategoryChip";
 
 const SOFT_TIMEOUT_MS = 8000;
+const PROMO_IMAGE_KEY = 'promo_image_url';
+const DEFAULT_PROMO_IMAGE = "https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png";
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function CustomerHomeScreen() {
   const [categories, setCategories] = useState<ProductCategory[]>([
     { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
   ]);
+  const [promoImageUrl, setPromoImageUrl] = useState<string>(DEFAULT_PROMO_IMAGE);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Tất cả");
@@ -29,6 +32,17 @@ export default function CustomerHomeScreen() {
 
     const timeout = (ms: number) =>
       new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), ms));
+
+    const fetchPromoImage = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', PROMO_IMAGE_KEY)
+        .single();
+      if (mountedRef.current && data?.value) {
+        setPromoImageUrl(data.value);
+      }
+    };
 
     const fetchProducts = async () => {
       const { data, error } = await supabase
@@ -53,15 +67,14 @@ export default function CustomerHomeScreen() {
 
     const load = async () => {
       setLoading(true);
+      fetchPromoImage(); // Bắt đầu tải ảnh quảng cáo, không cần đợi
 
       try {
-        // chạy song song + soft-timeout để không block UI
         const result = await Promise.race([
           (async () => {
             const list = await fetchProducts();
             if (mountedRef.current) setProducts(list);
 
-            // Lấy danh mục “best effort” nhưng KHÔNG block UI
             const names = [...new Set(list.map((p) => p.category).filter(Boolean))] as string[];
             if (names.length > 0) {
               fetchCategoriesByNames(names)
@@ -74,19 +87,8 @@ export default function CustomerHomeScreen() {
                 })
                 .catch((e) => {
                   console.error("fetch categories failed:", e);
-                  if (!mountedRef.current) return;
-                  setCategories([
-                    { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
-                  ]);
                 });
-            } else {
-              if (mountedRef.current) {
-                setCategories([
-                  { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
-                ]);
-              }
             }
-
             return "ok";
           })(),
           timeout(SOFT_TIMEOUT_MS),
@@ -97,12 +99,6 @@ export default function CustomerHomeScreen() {
         }
       } catch (e) {
         console.error("Error fetching home screen data:", e);
-        if (mountedRef.current) {
-          setProducts([]);
-          setCategories([
-            { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
-          ]);
-        }
       } finally {
         if (mountedRef.current) setLoading(false);
       }
@@ -142,10 +138,7 @@ export default function CustomerHomeScreen() {
         <Ionicons name="notifications-outline" size={28} color="#fff" />
       </View>
       <Image
-        source={{
-          uri:
-            "https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png",
-        }}
+        source={{ uri: promoImageUrl }}
         style={styles.promoImage}
         resizeMode="cover"
       />
@@ -294,6 +287,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignSelf: 'center',
     marginTop: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   contentContainer: {
     backgroundColor: "#F5F5F5",
