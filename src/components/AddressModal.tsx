@@ -66,11 +66,27 @@ const AddressModal = ({ visible, onClose, onSave, address: existingAddress }: Ad
         .eq('id', existingAddress.id);
       error = updateError;
     } else {
-      // Insert
-      const { error: insertError } = await supabase
+      // Insert and then set as default
+      const { data: newAddress, error: insertError } = await supabase
         .from('user_addresses')
-        .insert(addressData);
+        .insert(addressData)
+        .select()
+        .single();
+      
       error = insertError;
+
+      if (!error && newAddress) {
+        // Set the newly created address as default
+        const { error: rpcError } = await supabase.rpc('set_default_address', {
+          p_user_id: user.id,
+          p_address_id: newAddress.id,
+        });
+
+        if (rpcError) {
+          // Log the error but don't block the user flow
+          console.error("Failed to set new address as default:", rpcError);
+        }
+      }
     }
 
     setLoading(false);

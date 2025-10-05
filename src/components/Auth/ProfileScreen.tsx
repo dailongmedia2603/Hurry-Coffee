@@ -36,6 +36,7 @@ export default function ProfileScreen() {
         .from('user_addresses')
         .select('*')
         .eq('user_id', user.id)
+        .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -105,7 +106,8 @@ export default function ProfileScreen() {
     }
   };
 
-  const displayName = addresses[0]?.name || profile?.full_name || 'Tên người dùng';
+  const defaultAddress = addresses.find(addr => addr.is_default);
+  const displayName = defaultAddress?.name || profile?.full_name || 'Tên người dùng';
 
   return (
     <SafeAreaView style={styles.safeArea}>
