@@ -36,7 +36,7 @@ serve(async (req) => {
       });
     }
 
-    const { user_id, full_name, password } = await req.json();
+    const { user_id, full_name, password, role } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'User ID is required.' }), {
         status: 400,
@@ -49,11 +49,14 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Update profile (full_name)
-    if (full_name) {
+    const profileUpdate: { full_name?: string; role?: string } = {};
+    if (full_name) profileUpdate.full_name = full_name;
+    if (role) profileUpdate.role = role;
+
+    if (Object.keys(profileUpdate).length > 0) {
       const { error: profileError } = await adminSupabaseClient
         .from('profiles')
-        .update({ full_name })
+        .update(profileUpdate)
         .eq('id', user_id);
       if (profileError) throw profileError;
     }

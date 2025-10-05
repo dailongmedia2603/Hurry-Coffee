@@ -36,7 +36,7 @@ serve(async (req) => {
       });
     }
 
-    const { email, password, full_name } = await req.json();
+    const { email, password, full_name, role } = await req.json();
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: 'Email, password, and full name are required.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -61,7 +61,7 @@ serve(async (req) => {
     // The handle_new_user trigger creates the profile row. We update it.
     const { error: updateError } = await adminSupabaseClient
       .from('profiles')
-      .update({ role: 'staff', full_name: full_name })
+      .update({ role: role || 'staff', full_name: full_name })
       .eq('id', user.id);
 
     if (updateError) {

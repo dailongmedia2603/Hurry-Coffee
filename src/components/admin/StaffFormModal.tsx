@@ -22,6 +22,7 @@ const StaffFormModal = ({ visible, onClose, onSave, staffMember }: StaffFormModa
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'staff' | 'admin'>('staff');
   const [loading, setLoading] = useState(false);
   const isEditing = !!staffMember;
 
@@ -30,11 +31,13 @@ const StaffFormModal = ({ visible, onClose, onSave, staffMember }: StaffFormModa
       if (isEditing) {
         setFullName(staffMember.full_name || '');
         setEmail(staffMember.email || '');
+        setRole(staffMember.role === 'admin' ? 'admin' : 'staff');
         setPassword('');
       } else {
         setFullName('');
         setEmail('');
         setPassword('');
+        setRole('staff');
       }
     }
   }, [staffMember, visible]);
@@ -62,12 +65,13 @@ const StaffFormModal = ({ visible, onClose, onSave, staffMember }: StaffFormModa
             user_id: staffMember.id,
             full_name: fullName,
             password: password || undefined,
+            role: role,
           },
         });
         error = updateError;
       } else {
         const { error: createError } = await supabase.functions.invoke('create-staff-user', {
-          body: { email, password, full_name: fullName },
+          body: { email, password, full_name: fullName, role: role },
         });
         error = createError;
       }
@@ -101,6 +105,21 @@ const StaffFormModal = ({ visible, onClose, onSave, staffMember }: StaffFormModa
             <TextInput style={[styles.input, isEditing && styles.disabledInput]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!isEditing} />
             <Text style={styles.label}>Mật khẩu</Text>
             <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry placeholder={isEditing ? "Để trống nếu không đổi" : "Ít nhất 6 ký tự"} />
+            <Text style={styles.label}>Quyền</Text>
+            <View style={styles.roleSelector}>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'staff' && styles.roleButtonActive]}
+                onPress={() => setRole('staff')}
+              >
+                <Text style={[styles.roleButtonText, role === 'staff' && styles.roleButtonTextActive]}>Nhân viên</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleButton, role === 'admin' && styles.roleButtonActive]}
+                onPress={() => setRole('admin')}
+              >
+                <Text style={[styles.roleButtonText, role === 'admin' && styles.roleButtonTextActive]}>Admin</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Lưu</Text>}
@@ -122,6 +141,11 @@ const styles = StyleSheet.create({
   disabledInput: { backgroundColor: '#e5e7eb', color: '#6b7280' },
   saveButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  roleSelector: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 8, padding: 4 },
+  roleButton: { flex: 1, paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
+  roleButtonActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
+  roleButtonText: { fontSize: 14, fontWeight: '500', color: '#6b7280' },
+  roleButtonTextActive: { color: '#73509c' },
 });
 
 export default StaffFormModal;
