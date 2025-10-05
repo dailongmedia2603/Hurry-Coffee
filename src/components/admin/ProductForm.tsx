@@ -4,14 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Product } from '@/types';
-
-type ProductFormProps = {
-  visible: boolean;
-  onClose: () => void;
-  onSave: () => void;
-  product: Product | null;
-};
+import { Product, ProductCategory } from '@/types';
+import CategoryPickerModal from './CategoryPickerModal';
 
 const formatCurrency = (value: string) => {
   if (!value) return '';
@@ -22,6 +16,13 @@ const formatCurrency = (value: string) => {
 
 const parseCurrency = (value: string) => {
   return value.replace(/[^\d]/g, '');
+};
+
+type ProductFormProps = {
+  visible: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  product: Product | null;
 };
 
 const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: ProductFormProps) => {
@@ -36,8 +37,20 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const [allCategories, setAllCategories] = useState<ProductCategory[]>([]);
+  const [isCategoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
   useEffect(() => {
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      const { data } = await supabase.from('product_categories').select('*').order('name');
+      if (data) setAllCategories(data);
+      setCategoriesLoading(false);
+    };
+
     if (visible) {
+      fetchCategories();
       if (existingProduct) {
         setName(existingProduct.name);
         setDescription(existingProduct.description || '');
@@ -74,7 +87,7 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
 
     if (!result.canceled) {
       setSelectedImage(result.assets[0]);
-      setImageUrl(result.assets[0].uri); // For local preview
+      setImageUrl(result.assets[0].uri);
     }
   };
 
@@ -159,7 +172,16 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
               keyboardType="numeric" 
             />
             <Text style={styles.label}>Phân loại</Text>
-            <TextInput style={styles.input} value={category} onChangeText={setCategory} />
+            <TouchableOpacity style={styles.pickerButton} onPress={() => setCategoryPickerVisible(true)}>
+              <Text style={[styles.pickerButtonText, !category && styles.placeholderText]}>
+                {category || 'Chọn một phân loại'}
+              </Text>
+              {categoriesLoading ? (
+                <ActivityIndicator size="small" />
+              ) : (
+                <Ionicons name="chevron-down" size={20} color="#6b7280" />
+              )}
+            </TouchableOpacity>
             
             <Text style={styles.label}>Hình ảnh</Text>
             <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
@@ -180,6 +202,15 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <CategoryPickerModal
+        visible={isCategoryPickerVisible}
+        onClose={() => setCategoryPickerVisible(false)}
+        categories={allCategories}
+        onSelect={(selectedCategory) => {
+          setCategory(selectedCategory);
+          setCategoryPickerVisible(false);
+        }}
+      />
     </Modal>
   );
 };
@@ -194,27 +225,13 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#f3f4f6', borderRadius: 8, padding: 12, fontSize: 16 },
   saveButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  imagePicker: {
-    width: '100%',
-    height: 150,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 4,
-    overflow: 'hidden',
-  },
-  imagePreview: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    alignItems: 'center',
-  },
-  imagePlaceholderText: {
-    marginTop: 8,
-    color: '#6b7280',
-  },
+  imagePicker: { width: '100%', height: 150, borderRadius: 8, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginTop: 4, overflow: 'hidden' },
+  imagePreview: { width: '100%', height: '100%' },
+  imagePlaceholder: { alignItems: 'center' },
+  imagePlaceholderText: { marginTop: 8, color: '#6b7280' },
+  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 8, padding: 12, height: 50 },
+  pickerButtonText: { fontSize: 16, color: '#111827' },
+  placeholderText: { color: '#9ca3af' },
 });
 
 export default ProductForm;

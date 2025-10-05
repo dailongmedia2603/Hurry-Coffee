@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Product } from '@/types';
 import ProductForm from '@/src/components/admin/ProductForm';
 import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
+import CategoryManagerModal from '@/src/components/admin/CategoryManagerModal';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 
@@ -16,6 +17,7 @@ export default function ManageProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -60,11 +62,16 @@ export default function ManageProductsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh sách sản phẩm ({products.length})</Text>
-        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-          <Ionicons name="add" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Thêm mới</Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Sản phẩm ({products.length})</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.manageButton} onPress={() => setCategoryModalVisible(true)}>
+            <Ionicons name="options-outline" size={20} color="#73509c" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+            <Ionicons name="add" size={24} color="#fff" />
+            <Text style={styles.addButtonText}>Thêm mới</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -112,6 +119,11 @@ export default function ManageProductsScreen() {
         title="Xóa sản phẩm"
         message="Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác."
       />
+      
+      <CategoryManagerModal
+        visible={isCategoryModalVisible}
+        onClose={() => setCategoryModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -119,7 +131,15 @@ export default function ManageProductsScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  headerTitle: { fontSize: 18, fontWeight: '600' },
+  headerTitle: { fontSize: 18, fontWeight: '600', flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  manageButton: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    marginRight: 10,
+  },
   addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#73509c', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginLeft: 4 },
   loader: { marginTop: 20 },

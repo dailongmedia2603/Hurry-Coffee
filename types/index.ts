@@ -40,3 +40,9 @@ export interface UserAddress {
   address: string;
   created_at: string;
 }
+
+export interface ProductCategory {
+  id: string;
+  name: string;
+  created_at: string;
+}
