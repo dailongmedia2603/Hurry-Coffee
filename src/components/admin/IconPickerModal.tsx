@@ -12,6 +12,11 @@ const ICONS: (keyof typeof Ionicons.glyphMap)[] = [
   'fast-food-outline', 'cafe-outline', 'leaf-outline', 'beer-outline',
   'ice-cream-outline', 'restaurant-outline', 'pizza-outline', 'nutrition-outline',
   'wine-outline', 'fish-outline', 'egg-outline', 'bonfire-outline',
+  'pint-outline', 'storefront-outline', 'bag-handle-outline', 'gift-outline',
+  'flame-outline', 'snow-outline', 'water-outline', 'star-outline',
+  'heart-outline', 'thumbs-up-outline', 'rocket-outline', 'partly-sunny-outline',
+  'moon-outline', 'time-outline', 'cash-outline', 'card-outline',
+  'receipt-outline', 'cube-outline', 'layers-outline', 'happy-outline',
   'barcode-outline', 'basket-outline', 'cart-outline', 'pricetag-outline',
 ];
 
