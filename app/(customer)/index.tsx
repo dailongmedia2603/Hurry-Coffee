@@ -23,6 +23,7 @@ const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
   Rice: "restaurant-outline",
   Snacks: "ice-cream-outline",
   Drinks: "beer-outline",
+  All: "grid-outline",
   default: "fast-food-outline",
 };
 
@@ -32,7 +33,7 @@ export default function CustomerHomeScreen() {
   const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,15 +43,13 @@ export default function CustomerHomeScreen() {
       
       if (categoryError) {
         console.error("Error fetching categories:", categoryError);
-      } else if (categoryData) {
-        const fetchedCategories = categoryData.map((c: { category: string }) => ({
+      } else {
+        const fetchedCategories = categoryData ? categoryData.map((c: { category: string }) => ({
           name: c.category,
           icon: categoryIcons[c.category] || categoryIcons.default,
-        }));
-        setCategories([...fetchedCategories, { name: "More", icon: "ellipsis-horizontal-circle-outline" }]);
-        if (fetchedCategories.length > 0) {
-          setActiveCategory(fetchedCategories[0].name);
-        }
+        })) : [];
+        setCategories([{ name: "All", icon: "grid-outline" }, ...fetchedCategories]);
+        setActiveCategory("All");
       }
 
       const { data: productData, error: productError } = await supabase
@@ -71,7 +70,7 @@ export default function CustomerHomeScreen() {
   }, []);
 
   const categoryFilteredProducts = useMemo(() => {
-    if (!activeCategory || activeCategory === "More") {
+    if (!activeCategory || activeCategory === "All") {
       return products;
     }
     return products.filter((product) => product.category === activeCategory);
@@ -125,7 +124,11 @@ export default function CustomerHomeScreen() {
   );
 
   const renderCategories = () => (
-    <View style={styles.categoriesContainer}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.categoriesContainer}
+    >
       {categories.map((cat) => (
         <CategoryChip
           key={cat.name}
@@ -135,7 +138,7 @@ export default function CustomerHomeScreen() {
           onPress={() => setActiveCategory(cat.name)}
         />
       ))}
-    </View>
+    </ScrollView>
   );
 
   const renderProductSection = (title: string, data: Product[], isSearchResult = false) => {
@@ -186,7 +189,7 @@ export default function CustomerHomeScreen() {
             <>
               {renderCategories()}
               {renderProductSection("Món ngon cho bạn", recommendedProducts)}
-              {activeCategory && activeCategory !== "More" && renderProductSection(activeCategory, categoryFilteredProducts)}
+              {activeCategory && activeCategory !== "All" && renderProductSection(activeCategory, categoryFilteredProducts)}
             </>
           )}
         </View>
@@ -269,7 +272,6 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     paddingHorizontal: 8,
     marginBottom: 20,
   },

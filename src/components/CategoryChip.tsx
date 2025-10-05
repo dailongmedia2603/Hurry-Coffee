@@ -35,7 +35,6 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 16,
     marginHorizontal: 8,
-    flex: 1,
   },
   chipActive: {
     backgroundColor: "#73509c",
