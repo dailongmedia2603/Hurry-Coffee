@@ -9,7 +9,6 @@ import {
   FlatList,
   TextInput,
   Image,
-  ImageBackground,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,6 +33,7 @@ export default function CustomerHomeScreen() {
     const fetchData = async () => {
       setLoading(true);
 
+      // Fetch promo image URL
       const { data: settingsData } = await supabase
         .from('app_settings')
         .select('value')
@@ -106,28 +106,27 @@ export default function CustomerHomeScreen() {
   const recommendedProducts = products.slice(0, 10);
 
   const renderHeader = () => (
-    <ImageBackground
-      source={{ uri: promoImageUrl || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
-      style={styles.headerImageBackground}
-      resizeMode="cover"
+    <LinearGradient
+      colors={["#402c75", "#73509c"]}
+      style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}
     >
-      <LinearGradient
-        colors={["rgba(64, 44, 117, 0.8)", "rgba(115, 80, 156, 0.8)"]}
-        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
-      >
-        <View style={styles.topBar}>
-          <View>
-            <Text style={styles.locationLabel}>Location</Text>
-            <View style={styles.locationDetails}>
-              <Ionicons name="location-sharp" size={16} color="#fff" />
-              <Text style={styles.locationText}>Bali, Indonesia</Text>
-              <Ionicons name="chevron-down" size={16} color="#fff" />
-            </View>
+      <View style={styles.topBar}>
+        <View>
+          <Text style={styles.locationLabel}>Location</Text>
+          <View style={styles.locationDetails}>
+            <Ionicons name="location-sharp" size={16} color="#fff" />
+            <Text style={styles.locationText}>Bali, Indonesia</Text>
+            <Ionicons name="chevron-down" size={16} color="#fff" />
           </View>
-          <Ionicons name="notifications-outline" size={28} color="#fff" />
         </View>
-      </LinearGradient>
-    </ImageBackground>
+        <Ionicons name="notifications-outline" size={28} color="#fff" />
+      </View>
+      <Image
+        source={{ uri: promoImageUrl || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
+        style={styles.promoImage}
+        resizeMode="cover"
+      />
+    </LinearGradient>
   );
 
   const renderSearchBar = () => (
@@ -244,15 +243,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: "#F5F5F5",
   },
-  headerImageBackground: {
-    height: 220,
-  },
-  headerGradient: {
-    height: '100%',
-    paddingHorizontal: 16,
+  headerContainer: {
     paddingBottom: 60,
+    paddingHorizontal: 16,
   },
   topBar: {
     flexDirection: "row",
@@ -288,7 +283,7 @@ const styles = StyleSheet.create({
     marginTop: -40,
     paddingTop: 20,
     paddingBottom: 100,
-    minHeight: '100%',
+    flex: 1,
   },
   searchContainer: {
     flexDirection: "row",
