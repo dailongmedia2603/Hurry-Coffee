@@ -31,18 +31,7 @@ export default function CustomerHomeScreen() {
     const fetchData = async () => {
       setLoading(true);
 
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('product_categories')
-        .select('*')
-        .order('name');
-      
-      if (categoryError) {
-        console.error("Error fetching categories:", categoryError);
-      } else {
-        setCategories([{ id: 'all', name: "Tất cả", icon_name: "cafe-outline", created_at: '' }, ...categoryData]);
-        setActiveCategory("Tất cả");
-      }
-
+      // 1. Fetch all products
       const { data: productData, error: productError } = await supabase
         .from("products")
         .select("*")
@@ -50,10 +39,40 @@ export default function CustomerHomeScreen() {
 
       if (productError) {
         console.error("Error fetching products:", productError);
-      } else if (productData) {
-        setProducts(productData);
+        setLoading(false);
+        return;
       }
       
+      const allProducts = productData || [];
+      setProducts(allProducts);
+
+      // 2. Determine which categories have products
+      const categoriesWithProducts = [...new Set(allProducts.map(p => p.category).filter(Boolean))] as string[];
+
+      // 3. Fetch only those categories from the database
+      if (categoriesWithProducts.length > 0) {
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('product_categories')
+          .select('*')
+          .in('name', categoriesWithProducts)
+          .order('name');
+        
+        if (categoryError) {
+          console.error("Error fetching categories:", categoryError);
+          setCategories([{ id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }]);
+        } else {
+          // 4. Set up the categories list for the UI with a unique icon for "Tất cả"
+          setCategories([
+            { id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }, 
+            ...(categoryData || [])
+          ]);
+        }
+      } else {
+        // Handle case with no products/categories
+        setCategories([{ id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }]);
+      }
+
+      setActiveCategory("Tất cả");
       setLoading(false);
     };
 
@@ -184,14 +203,18 @@ export default function CustomerHomeScreen() {
                   {renderProductSection("Món ngon cho bạn", recommendedProducts)}
                   {categories
                     .filter((cat) => cat.name !== "Tất cả")
-                    .map((cat) => (
-                      <View key={cat.id}>
-                        {renderProductSection(
-                          cat.name,
-                          products.filter((p) => p.category === cat.name)
-                        )}
-                      </View>
-                    ))}
+                    .map((cat) => {
+                      const categoryProducts = products.filter((p) => p.category === cat.name);
+                      if (categoryProducts.length === 0) return null;
+                      return (
+                        <View key={cat.id}>
+                          {renderProductSection(
+                            cat.name,
+                            categoryProducts
+                          )}
+                        </View>
+                      )
+                    })}
                 </>
               ) : (
                 renderProductSection(activeCategory, categoryFilteredProducts)
