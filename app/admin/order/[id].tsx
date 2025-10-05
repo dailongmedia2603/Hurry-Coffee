@@ -87,6 +87,8 @@ export default function AdminOrderDetailScreen() {
         const getNextStatus = (): OrderStatus | null => {
             switch (order.status) {
                 case 'Đang xử lý':
+                    return 'Đang làm';
+                case 'Đang làm':
                     return order.order_type === 'pickup' ? 'Sẵn sàng' : 'Đang giao';
                 case 'Sẵn sàng':
                 case 'Đang giao':
@@ -99,10 +101,13 @@ export default function AdminOrderDetailScreen() {
         const getButtonText = (): string => {
             switch (order.status) {
                 case 'Đang xử lý':
+                    return 'Bắt đầu làm';
+                case 'Đang làm':
                     return order.order_type === 'pickup' ? 'Đã làm xong' : 'Bắt đầu giao';
                 case 'Sẵn sàng':
+                    return 'Hoàn thành (Khách đã lấy)';
                 case 'Đang giao':
-                    return 'Hoàn thành';
+                    return 'Hoàn thành (Đã giao)';
                 default:
                     return '';
             }
@@ -146,7 +151,6 @@ export default function AdminOrderDetailScreen() {
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <OrderStatusTracker status={order.status} orderType={order.order_type} />
-                {/* ... (Rest of the JSX copied from customer order detail screen) ... */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
                     {order.order_items.map((item, index) => (

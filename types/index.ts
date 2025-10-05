@@ -9,7 +9,7 @@ export interface Product {
   created_at: string;
 }
 
-export type OrderStatus = 'Đang xử lý' | 'Đang giao' | 'Sẵn sàng' | 'Hoàn thành' | 'Đã hủy';
+export type OrderStatus = 'Đang xử lý' | 'Đang làm' | 'Đang giao' | 'Sẵn sàng' | 'Hoàn thành' | 'Đã hủy';
 
 export interface Order {
   id: string;

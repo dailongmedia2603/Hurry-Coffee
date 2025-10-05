@@ -24,14 +24,15 @@ const StatusStep = ({ icon, label, isCompleted, isActive }: StatusStepProps) => 
 
 const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderType: 'delivery' | 'pickup' }) => {
   const statuses: OrderStatus[] = orderType === 'delivery'
-    ? ['Đang xử lý', 'Đang giao', 'Hoàn thành']
-    : ['Đang xử lý', 'Sẵn sàng', 'Hoàn thành'];
+    ? ['Đang xử lý', 'Đang làm', 'Đang giao', 'Hoàn thành']
+    : ['Đang xử lý', 'Đang làm', 'Sẵn sàng', 'Hoàn thành'];
   
   const currentIndex = statuses.indexOf(status);
 
   const getIconForStatus = (s: OrderStatus): keyof typeof Ionicons.glyphMap => {
     switch (s) {
       case 'Đang xử lý': return 'receipt-outline';
+      case 'Đang làm': return 'flame-outline';
       case 'Đang giao': return 'bicycle-outline';
       case 'Sẵn sàng': return 'bag-handle-outline';
       case 'Hoàn thành': return 'checkmark-done-circle-outline';
