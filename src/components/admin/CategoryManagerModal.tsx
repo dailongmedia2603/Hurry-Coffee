@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { ProductCategory } from '@/types';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 type CategoryManagerModalProps = {
   visible: boolean;
@@ -18,6 +19,9 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -50,21 +54,20 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
   };
 
   const handleDeleteCategory = (id: string) => {
-    Alert.alert('Xác nhận xóa', 'Bạn có chắc muốn xóa phân loại này?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await supabase.from('product_categories').delete().eq('id', id);
-          if (error) {
-            Alert.alert('Lỗi', 'Không thể xóa phân loại. Có thể vẫn còn sản phẩm thuộc phân loại này.');
-          } else {
-            await fetchCategories();
-          }
-        },
-      },
-    ]);
+    setItemToDelete(id);
+    setConfirmModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    const { error } = await supabase.from('product_categories').delete().eq('id', itemToDelete);
+    if (error) {
+      Alert.alert('Lỗi', 'Không thể xóa phân loại. Có thể vẫn còn sản phẩm thuộc phân loại này.');
+    } else {
+      await fetchCategories();
+    }
+    setConfirmModalVisible(false);
+    setItemToDelete(null);
   };
 
   const handleStartEdit = (category: ProductCategory) => {
@@ -170,6 +173,16 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
           )}
         </View>
       </View>
+      <ConfirmDeleteModal
+        visible={isConfirmModalVisible}
+        onClose={() => {
+          setConfirmModalVisible(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Xóa phân loại"
+        message="Bạn có chắc chắn muốn xóa phân loại này? Hành động này không thể hoàn tác."
+      />
     </Modal>
   );
 };
