@@ -1,10 +1,10 @@
 import React from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function StaffProfileScreen() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
 
   if (!user || !profile) {
     return (
@@ -25,11 +25,6 @@ export default function StaffProfileScreen() {
             <Text style={styles.roleText}>{profile.role === 'staff' ? 'Nhân viên' : 'Admin'}</Text>
           </View>
         </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.logoutButtonText}>Đăng xuất</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -40,7 +35,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    justifyContent: 'space-between',
   },
   profileHeader: { 
     alignItems: "center", 
@@ -71,20 +65,5 @@ const styles = StyleSheet.create({
     color: '#73509c',
     fontWeight: 'bold',
     fontSize: 14,
-  },
-  logoutButton: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    margin: 16, 
-    padding: 16, 
-    backgroundColor: '#ef4444', 
-    borderRadius: 30 
-  },
-  logoutButtonText: { 
-    color: '#FFFFFF', 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    marginLeft: 8 
   },
 });

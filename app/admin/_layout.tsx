@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Redirect } from "expo-router";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { View, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
@@ -51,87 +51,66 @@ export default function AdminLayout() {
         ),
       }}
     >
-      {isStaff ? (
-        <>
-          <Tabs.Screen
-            name="orders"
-            options={{
-              title: "Đơn hàng",
-              headerTitle: "Đơn hàng của khách",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="receipt-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              title: "Hồ sơ",
-              headerTitle: "Hồ sơ nhân viên",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="person-circle-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          {/* Ẩn các tab khác cho nhân viên */}
-          <Tabs.Screen name="products" options={{ href: null }} />
-          <Tabs.Screen name="locations" options={{ href: null }} />
-          <Tabs.Screen name="accounts" options={{ href: null }} />
-          <Tabs.Screen name="settings" options={{ href: null }} />
-        </>
-      ) : (
-        <>
-          <Tabs.Screen
-            name="products"
-            options={{
-              title: "Sản phẩm",
-              headerTitle: "Quản lý Sản phẩm",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="fast-food-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="locations"
-            options={{
-              title: "Địa điểm",
-              headerTitle: "Quản lý Địa điểm",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="location-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="accounts"
-            options={{
-              title: "Tài khoản",
-              headerTitle: "Quản lý Tài khoản",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="people-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="settings"
-            options={{
-              title: "Cài đặt",
-              headerTitle: "Cài đặt ứng dụng",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="settings-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          {/* Ẩn các tab của nhân viên cho admin */}
-          <Tabs.Screen name="orders" options={{ href: null }} />
-          <Tabs.Screen name="profile" options={{ href: null }} />
-        </>
-      )}
+      {/* Staff Tabs */}
       <Tabs.Screen
-        name="index"
+        name="orders"
         options={{
-          href: null,
+          title: "Đơn hàng",
+          headerTitle: "Đơn hàng của khách",
+          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
+          href: isStaff ? '/admin/orders' : null,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Hồ sơ",
+          headerTitle: "Hồ sơ nhân viên",
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />,
+          href: isStaff ? '/admin/profile' : null,
+        }}
+      />
+
+      {/* Admin Tabs */}
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: "Sản phẩm",
+          headerTitle: "Quản lý Sản phẩm",
+          tabBarIcon: ({ color, size }) => <Ionicons name="fast-food-outline" color={color} size={size} />,
+          href: !isStaff ? '/admin/products' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="locations"
+        options={{
+          title: "Địa điểm",
+          headerTitle: "Quản lý Địa điểm",
+          tabBarIcon: ({ color, size }) => <Ionicons name="location-outline" color={color} size={size} />,
+          href: !isStaff ? '/admin/locations' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="accounts"
+        options={{
+          title: "Tài khoản",
+          headerTitle: "Quản lý Tài khoản",
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" color={color} size={size} />,
+          href: !isStaff ? '/admin/accounts' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Cài đặt",
+          headerTitle: "Cài đặt ứng dụng",
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} />,
+          href: !isStaff ? '/admin/settings' : null,
+        }}
+      />
+
+      {/* Hidden index */}
+      <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
   );
 }
