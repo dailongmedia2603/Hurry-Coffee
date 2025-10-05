@@ -28,42 +28,47 @@ export default function ManageOrdersScreen() {
   const { profile } = useAuth();
 
   const fetchOrders = useCallback(async () => {
-    if (!profile) return;
-
-    setLoading(true);
-    let query = supabase
-      .from('orders')
-      .select(`*, order_items ( count )`);
-
-    if (profile.role === 'staff') {
-      if (profile.location_id) {
-        query = query
-          .eq('order_type', 'pickup')
-          .eq('pickup_location_id', profile.location_id);
-      } else {
-        // Nhân viên không được gán địa điểm sẽ không thấy đơn hàng nào
-        setOrders([]);
+    if (!profile) {
         setLoading(false);
         return;
-      }
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    setLoading(true);
+    let responseData: any[] | null = null;
+    let responseError: any = null;
 
-    if (error) {
-      Alert.alert('Lỗi', 'Không thể tải danh sách đơn hàng.');
-      setOrders([]);
+    if (profile.role === 'staff') {
+        const { data, error } = await supabase.rpc('get_staff_orders');
+        responseData = data;
+        responseError = error;
+    } else { // Admin role
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*, order_items(count)')
+            .order('created_at', { ascending: false });
+        
+        if (data) {
+            responseData = data.map(o => ({
+                ...o,
+                items_count: o.order_items[0]?.count || 0,
+            }));
+        }
+        responseError = error;
+    }
+
+    if (responseError) {
+        console.error("Error fetching orders:", responseError);
+        Alert.alert('Lỗi', 'Không thể tải danh sách đơn hàng.');
+        setOrders([]);
     } else {
-      const formattedData = data.map(o => ({
-        ...o,
-        items_count: o.order_items[0]?.count || 0,
-      })) as OrderWithItemCount[];
-      setOrders(formattedData);
+        setOrders((responseData as OrderWithItemCount[]) || []);
     }
     setLoading(false);
   }, [profile]);
 
-  useFocusEffect(useCallback(() => { fetchOrders(); }, [fetchOrders]));
+  useFocusEffect(useCallback(() => {
+      fetchOrders();
+  }, [fetchOrders]));
 
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
