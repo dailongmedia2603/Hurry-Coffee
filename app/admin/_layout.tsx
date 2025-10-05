@@ -65,6 +65,16 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="accounts"
+        options={{
+          title: "Tài khoản",
+          headerTitle: "Quản lý Tài khoản",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           href: null, // Ẩn tab này khỏi thanh điều hướng
