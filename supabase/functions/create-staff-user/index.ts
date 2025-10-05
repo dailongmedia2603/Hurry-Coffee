@@ -49,25 +49,22 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Gửi thông tin `full_name` và `role` vào user_metadata
+    // Trigger `handle_new_user` sẽ đọc từ đây để tạo profile
     const { data: { user }, error: createError } = await adminSupabaseClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
+      user_metadata: {
+        full_name: full_name,
+        role: role || 'staff'
+      }
     });
 
     if (createError) throw createError;
     if (!user) throw new Error("Failed to create user.");
 
-    // The handle_new_user trigger creates the profile row. We update it.
-    const { error: updateError } = await adminSupabaseClient
-      .from('profiles')
-      .update({ role: role || 'staff', full_name: full_name })
-      .eq('id', user.id);
-
-    if (updateError) {
-      await adminSupabaseClient.auth.admin.deleteUser(user.id);
-      throw updateError;
-    }
+    // Không cần bước update profile ở đây nữa, trigger đã xử lý tất cả.
 
     return new Response(JSON.stringify({ message: 'Staff user created successfully.', user }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
