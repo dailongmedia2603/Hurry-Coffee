@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import LoginScreen from "@/src/components/Auth/LoginScreen";
+import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
@@ -20,7 +20,7 @@ export default function AdminLayout() {
   }
 
   if (!session) {
-    return <LoginScreen />;
+    return <AdminLoginScreen />;
   }
 
   return (
