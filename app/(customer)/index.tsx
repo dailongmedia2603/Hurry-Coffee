@@ -1,15 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  SafeAreaView,
-  View,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  FlatList,
-  TextInput,
-  Image,
+  SafeAreaView, View, ScrollView, Text, TouchableOpacity,
+  StyleSheet, ActivityIndicator, FlatList, TextInput, Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,83 +11,125 @@ import { Product, ProductCategory } from "@/types";
 import MenuItemCard from "@/src/components/MenuItemCard";
 import CategoryChip from "@/src/components/CategoryChip";
 
+const SOFT_TIMEOUT_MS = 8000;
+
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([
+    { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
+  ]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Tất cả");
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    mountedRef.current = true;
+
+    const timeout = (ms: number) =>
+      new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), ms));
+
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data ?? []) as Product[];
+    };
+
+    const fetchCategoriesByNames = async (names: string[]) => {
+      if (names.length === 0) return [];
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("*")
+        .in("name", names)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as ProductCategory[];
+    };
+
+    const load = async () => {
       setLoading(true);
+
       try {
-        const { data: productData, error: productError } = await supabase
-          .from("products")
-          .select("*")
-          .order("created_at", { ascending: false });
+        // chạy song song + soft-timeout để không block UI
+        const result = await Promise.race([
+          (async () => {
+            const list = await fetchProducts();
+            if (mountedRef.current) setProducts(list);
 
-        if (productError) throw productError;
-        
-        const allProducts = productData || [];
-        setProducts(allProducts);
+            // Lấy danh mục “best effort” nhưng KHÔNG block UI
+            const names = [...new Set(list.map((p) => p.category).filter(Boolean))] as string[];
+            if (names.length > 0) {
+              fetchCategoriesByNames(names)
+                .then((cats) => {
+                  if (!mountedRef.current) return;
+                  setCategories([
+                    { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
+                    ...cats,
+                  ]);
+                })
+                .catch((e) => {
+                  console.error("fetch categories failed:", e);
+                  if (!mountedRef.current) return;
+                  setCategories([
+                    { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
+                  ]);
+                });
+            } else {
+              if (mountedRef.current) {
+                setCategories([
+                  { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
+                ]);
+              }
+            }
 
-        const categoriesWithProducts = [...new Set(allProducts.map(p => p.category).filter(Boolean))] as string[];
+            return "ok";
+          })(),
+          timeout(SOFT_TIMEOUT_MS),
+        ]);
 
-        if (categoriesWithProducts.length > 0) {
-          const { data: categoryData, error: categoryError } = await supabase
-            .from('product_categories')
-            .select('*')
-            .in('name', categoriesWithProducts)
-            .order('name');
-          
-          if (categoryError) throw categoryError;
-
-          setCategories([
-            { id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }, 
-            ...(categoryData || [])
-          ]);
-        } else {
-          setCategories([{ id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }]);
+        if (result === "timeout") {
+          console.warn("[home] soft-timeout reached; rendering without full data");
         }
-
-        setActiveCategory("Tất cả");
-      } catch (error) {
-        console.error("Error fetching home screen data:", error);
-        // Có lỗi xảy ra, nhưng vẫn đảm bảo UI không bị kẹt
-        setCategories([{ id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }]);
+      } catch (e) {
+        console.error("Error fetching home screen data:", e);
+        if (mountedRef.current) {
+          setProducts([]);
+          setCategories([
+            { id: "all", name: "Tất cả", icon_name: "grid-outline", created_at: "" },
+          ]);
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     };
 
-    fetchData();
+    load();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const categoryFilteredProducts = useMemo(() => {
-    if (!activeCategory || activeCategory === "Tất cả") {
-      return products;
-    }
-    return products.filter((product) => product.category === activeCategory);
+    if (!activeCategory || activeCategory === "Tất cả") return products;
+    return products.filter((p) => p.category === activeCategory);
   }, [activeCategory, products]);
 
   const searchedProducts = useMemo(() => {
-    if (!searchQuery) {
-      return [];
-    }
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    if (!searchQuery) return [];
+    const q = searchQuery.toLowerCase();
+    return products.filter((p) => p.name.toLowerCase().includes(q));
   }, [searchQuery, products]);
 
-  const recommendedProducts = products.slice(0, 10);
+  const recommendedProducts = useMemo(() => products.slice(0, 10), [products]);
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={["#402c75", "#73509c"]}
-      style={styles.headerContainer}
-    >
+    <LinearGradient colors={["#402c75", "#73509c"]} style={styles.headerContainer}>
       <View style={styles.topBar}>
         <View>
           <Text style={styles.locationLabel}>Location</Text>
@@ -108,7 +142,10 @@ export default function CustomerHomeScreen() {
         <Ionicons name="notifications-outline" size={28} color="#fff" />
       </View>
       <Image
-        source={{ uri: 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
+        source={{
+          uri:
+            "https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png",
+        }}
         style={styles.promoImage}
         resizeMode="cover"
       />
@@ -137,7 +174,7 @@ export default function CustomerHomeScreen() {
         <CategoryChip
           key={cat.id}
           label={cat.name}
-          icon={cat.icon_name as any || 'fast-food-outline'}
+          icon={(cat.icon_name as any) || "fast-food-outline"}
           isActive={activeCategory === cat.name}
           onPress={() => setActiveCategory(cat.name)}
         />
@@ -145,14 +182,16 @@ export default function CustomerHomeScreen() {
     </ScrollView>
   );
 
-  const renderProductSection = (title: string, data: Product[], isSearchResult = false) => {
+  const renderProductSection = (
+    title: string,
+    data: Product[],
+    isSearchResult = false
+  ) => {
     if (loading && !isSearchResult) {
       return <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} />;
     }
     if (data.length === 0 && !loading) {
-      if (isSearchResult) {
-        return <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>;
-      }
+      if (isSearchResult) return <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>;
       return null;
     }
     const isRecommendedSection = title === "Món ngon cho bạn";
@@ -161,7 +200,7 @@ export default function CustomerHomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
           {!isRecommendedSection && !isSearchResult && (
-            <TouchableOpacity onPress={() => router.push(`/(customer)/category/${title}`)}>
+            <TouchableOpacity onPress={() => router.push(`/(customer)/category/${encodeURIComponent(title)}`)}>
               <Text style={styles.seeMore}>Tất cả</Text>
             </TouchableOpacity>
           )}
@@ -169,7 +208,7 @@ export default function CustomerHomeScreen() {
         <FlatList
           data={data}
           renderItem={({ item }) => <MenuItemCard product={item} />}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => String((item as any).id)}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16 }}
@@ -180,10 +219,7 @@ export default function CustomerHomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderHeader()}
         <View style={styles.contentContainer}>
           {renderSearchBar()}
@@ -202,12 +238,9 @@ export default function CustomerHomeScreen() {
                       if (categoryProducts.length === 0) return null;
                       return (
                         <View key={cat.id}>
-                          {renderProductSection(
-                            cat.name,
-                            categoryProducts
-                          )}
+                          {renderProductSection(cat.name, categoryProducts)}
                         </View>
-                      )
+                      );
                     })}
                 </>
               ) : (
