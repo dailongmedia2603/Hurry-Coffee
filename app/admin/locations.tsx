@@ -1,16 +1,19 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Location } from '@/types';
 import LocationForm from '@/src/components/admin/LocationForm';
+import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
 
 export default function ManageLocationsScreen() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalVisible, setModalVisible] = useState(false);
+  const [isFormModalVisible, setFormModalVisible] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const fetchLocations = async () => {
     setLoading(true);
@@ -27,34 +30,29 @@ export default function ManageLocationsScreen() {
 
   const openAddModal = () => {
     setSelectedLocation(null);
-    setModalVisible(true);
+    setFormModalVisible(true);
   };
 
   const openEditModal = (location: Location) => {
     setSelectedLocation(location);
-    setModalVisible(true);
+    setFormModalVisible(true);
   };
 
   const handleDelete = (id: string) => {
-    const performDelete = async () => {
-      const { error } = await supabase.from('locations').delete().eq('id', id);
-      if (error) {
-        Alert.alert('Lỗi', 'Không thể xóa địa điểm.');
-      } else {
-        fetchLocations();
-      }
-    };
+    setItemToDelete(id);
+    setConfirmModalVisible(true);
+  };
 
-    if (Platform.OS === 'web') {
-      if (window.confirm("Bạn có chắc chắn muốn xóa địa điểm này?")) {
-        performDelete();
-      }
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    const { error } = await supabase.from('locations').delete().eq('id', itemToDelete);
+    if (error) {
+      Alert.alert('Lỗi', 'Không thể xóa địa điểm.');
     } else {
-      Alert.alert("Xác nhận xóa", "Bạn có chắc chắn muốn xóa địa điểm này?", [
-        { text: "Hủy", style: "cancel" },
-        { text: "Xóa", style: "destructive", onPress: performDelete },
-      ]);
+      fetchLocations();
     }
+    setConfirmModalVisible(false);
+    setItemToDelete(null);
   };
 
   return (
@@ -95,10 +93,21 @@ export default function ManageLocationsScreen() {
       )}
 
       <LocationForm
-        visible={isModalVisible}
-        onClose={() => setModalVisible(false)}
+        visible={isFormModalVisible}
+        onClose={() => setFormModalVisible(false)}
         onSave={fetchLocations}
         location={selectedLocation}
+      />
+
+      <ConfirmDeleteModal
+        visible={isConfirmModalVisible}
+        onClose={() => {
+          setConfirmModalVisible(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Xóa địa điểm"
+        message="Bạn có chắc chắn muốn xóa địa điểm này? Hành động này không thể hoàn tác."
       />
     </SafeAreaView>
   );
