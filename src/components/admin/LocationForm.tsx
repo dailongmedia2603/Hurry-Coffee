@@ -70,45 +70,56 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
     }
 
     setLoading(true);
-    let finalImageUrl = existingLocation?.image_url || '';
+    
+    try {
+      let finalImageUrl = existingLocation?.image_url || '';
 
-    if (selectedImage && selectedImage.base64) {
-      setUploading(true);
-      const fileExt = selectedImage.uri.split('.').pop();
-      const filePath = `public/${Date.now()}.${fileExt}`;
-      const contentType = selectedImage.mimeType ?? 'image/jpeg';
+      if (selectedImage) {
+        if (!selectedImage.base64) {
+          throw new Error("Không tìm thấy dữ liệu base64 của ảnh.");
+        }
 
-      try {
-        const { error: uploadError } = await supabase.storage
+        setUploading(true);
+        const fileExt = selectedImage.mimeType?.split('/')[1] || 'jpg';
+        const filePath = `public/${Date.now()}.${fileExt}`;
+        const contentType = selectedImage.mimeType ?? 'image/jpeg';
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('location-images')
-          .upload(filePath, decode(selectedImage.base64), { contentType, upsert: true });
+          .upload(filePath, decode(selectedImage.base64), { contentType, upsert: false });
+
+        setUploading(false);
 
         if (uploadError) throw uploadError;
+        if (!uploadData?.path) throw new Error("Tải ảnh lên thất bại, không nhận được đường dẫn file.");
 
-        const { data: { publicUrl } } = supabase.storage.from('location-images').getPublicUrl(filePath);
-        finalImageUrl = publicUrl;
-      } catch (error: any) {
-        Alert.alert('Lỗi tải ảnh', error.message);
-        setLoading(false);
-        setUploading(false);
-        return;
+        const { data: urlData } = supabase.storage.from('location-images').getPublicUrl(uploadData.path);
+        finalImageUrl = urlData.publicUrl;
       }
-      setUploading(false);
-    }
 
-    const locationData = { name, address, image_url: finalImageUrl, opening_hours: openingHours, google_maps_url: googleMapsUrl };
+      const locationData = { 
+        name, 
+        address, 
+        image_url: finalImageUrl, 
+        opening_hours: openingHours, 
+        google_maps_url: googleMapsUrl 
+      };
 
-    const { error } = existingLocation
-      ? await supabase.from('locations').update(locationData).eq('id', existingLocation.id)
-      : await supabase.from('locations').insert(locationData);
+      const { error } = existingLocation
+        ? await supabase.from('locations').update(locationData).eq('id', existingLocation.id)
+        : await supabase.from('locations').insert(locationData);
 
-    setLoading(false);
+      if (error) throw error;
 
-    if (error) {
-      Alert.alert('Lỗi', 'Không thể lưu địa điểm.');
-    } else {
       onSave();
       onClose();
+
+    } catch (error: any) {
+      console.error("Save location error:", error);
+      Alert.alert('Lỗi', error.message || 'Không thể lưu địa điểm.');
+    } finally {
+      setLoading(false);
+      setUploading(false);
     }
   };
 
