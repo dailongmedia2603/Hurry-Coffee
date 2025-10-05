@@ -22,21 +22,26 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Function invoked. Creating user Supabase client.");
     const userSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
+    console.log("Checking if caller is admin.");
     const isCallerAdmin = await isAdmin(userSupabaseClient);
     if (!isCallerAdmin) {
+      console.warn("Permission denied: Caller is not an admin.");
       return new Response(JSON.stringify({ error: 'Permission denied: User is not an admin.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
       });
     }
+    console.log("Caller is admin. Proceeding.");
 
     const { email, password, full_name, role } = await req.json();
+    console.log(`Payload received: email=${email}, full_name=${full_name}, role=${role}`);
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: 'Email, password, and full name are required.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -49,31 +54,40 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Bước 1: Tạo người dùng trong hệ thống xác thực.
+    console.log("Step 1: Creating user in auth.users...");
     const { data: { user }, error: createError } = await adminSupabaseClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
+      user_metadata: { created_by_admin: true } // Đánh dấu người dùng này do admin tạo
     });
 
-    if (createError) throw createError;
-    if (!user) throw new Error("Failed to create user in authentication system.");
+    if (createError) {
+      console.error("Error creating auth user:", createError);
+      throw createError;
+    }
+    if (!user) {
+      throw new Error("Failed to create user in authentication system (user object is null).");
+    }
+    console.log(`Auth user created successfully with ID: ${user.id}`);
 
-    // Bước 2: Cập nhật hồ sơ đã được trigger 'handle_new_user' tự động tạo.
-    // Trigger sẽ tạo một hồ sơ cơ bản, và chúng ta cập nhật nó với vai trò và tên đầy đủ.
+    console.log("Step 2: Inserting profile into public.profiles...");
     const { error: profileError } = await adminSupabaseClient
       .from('profiles')
-      .update({
+      .insert({
+        id: user.id,
         full_name: full_name,
         role: role || 'staff'
-      })
-      .eq('id', user.id);
+      });
 
-    // Bước 3: Nếu cập nhật hồ sơ thất bại, xóa người dùng để dọn dẹp.
     if (profileError) {
+      console.error("Error inserting profile:", profileError);
+      console.log(`Attempting to clean up auth user with ID: ${user.id}`);
       await adminSupabaseClient.auth.admin.deleteUser(user.id);
+      console.log("Cleanup successful.");
       throw profileError;
     }
+    console.log("Profile inserted successfully.");
 
     return new Response(JSON.stringify({ message: 'Staff user created successfully.', user }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -81,7 +95,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in create-staff-user function:', error);
+    console.error('Unhandled error in create-staff-user function:', error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
