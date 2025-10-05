@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { SafeAreaView, View, ScrollView, Image, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
@@ -25,30 +25,32 @@ export default function ProfileScreen() {
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [addressLoading, setAddressLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      if (!user) {
-        setAddressLoading(false);
-        return;
-      }
-      setAddressLoading(true);
-      const { data, error } = await supabase
-        .from('user_addresses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('is_default', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching addresses for profile:', error);
-      } else {
-        setAddresses(data || []);
-      }
+  const fetchAddresses = useCallback(async () => {
+    if (!user) {
       setAddressLoading(false);
-    };
+      return;
+    }
+    setAddressLoading(true);
+    const { data, error } = await supabase
+      .from('user_addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
 
-    fetchAddresses();
+    if (error) {
+      console.error('Error fetching addresses for profile:', error);
+    } else {
+      setAddresses(data || []);
+    }
+    setAddressLoading(false);
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [fetchAddresses])
+  );
 
   const handleAvatarChange = async () => {
     if (!user) return;
