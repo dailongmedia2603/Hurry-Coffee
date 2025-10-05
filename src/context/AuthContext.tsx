@@ -46,25 +46,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    setLoading(true);
+    const initializeSession = async () => {
+      try {
+        // Cố gắng lấy session từ cache
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        if (error) throw error;
 
-    // Explicitly fetch the session on initial load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        // Fetch profile only if there is a user
-        fetchProfile(currentUser).finally(() => {
-          setLoading(false);
-        });
-      } else {
-        // No user, stop loading
+        setSession(initialSession);
+        const currentUser = initialSession?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await fetchProfile(currentUser);
+        }
+      } catch (e) {
+        // Nếu có lỗi (ví dụ session hỏng), đặt lại trạng thái
+        console.error("Failed to initialize session:", e);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        // Quan trọng: Luôn luôn kết thúc loading dù thành công hay thất bại
         setLoading(false);
       }
-    });
+    };
 
-    // Set up a listener for subsequent auth state changes
+    initializeSession();
+
+    // Thiết lập listener cho các thay đổi trạng thái đăng nhập sau này
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       const currentUser = session?.user ?? null;
