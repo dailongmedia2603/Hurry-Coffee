@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/src/integrations/supabase/client";
-import { Product } from "@/types";
+import { Product, ProductCategory } from "@/types";
 import { useRouter } from "expo-router";
 import { useCart } from "@/src/context/CartContext";
 import ProductOptionsModal from "@/src/components/ProductOptionsModal";
@@ -24,16 +24,6 @@ const formatPrice = (price: number) => {
     style: "currency",
     currency: "VND",
   }).format(price);
-};
-
-const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
-  "Cà phê": "cafe-outline",
-  "Đồ ăn": "fast-food-outline",
-  "Trà": "leaf-outline",
-  Rice: "restaurant-outline",
-  Snacks: "ice-cream-outline",
-  Drinks: "beer-outline",
-  default: "fast-food-outline",
 };
 
 const MenuItem = ({
@@ -96,7 +86,7 @@ const MenuItem = ({
 
 export default function DiscoverScreen() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -108,17 +98,15 @@ export default function DiscoverScreen() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const { data: categoryData, error: categoryError } = await supabase.rpc(
-        "get_distinct_categories"
-      );
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('product_categories')
+        .select('*')
+        .order('name');
+
       if (categoryError) {
         console.error("Error fetching categories:", categoryError);
       } else if (categoryData) {
-        const fetchedCategories = categoryData.map((c: { category: string }) => ({
-          name: c.category,
-          icon: categoryIcons[c.category] || categoryIcons.default,
-        }));
-        setCategories([{ name: "All Menu", icon: "grid-outline" }, ...fetchedCategories]);
+        setCategories([{ id: 'all', name: "All Menu", icon_name: "grid-outline", created_at: '' }, ...categoryData]);
         setActiveCategory("All Menu");
       }
 
@@ -170,9 +158,9 @@ export default function DiscoverScreen() {
     <View style={styles.categoriesContainer}>
       {categories.slice(0, 4).map((cat) => (
         <CategoryChip
-          key={cat.name}
+          key={cat.id}
           label={cat.name}
-          icon={cat.icon}
+          icon={cat.icon_name as any || 'fast-food-outline'}
           isActive={activeCategory === cat.name}
           onPress={() => setActiveCategory(cat.name)}
         />

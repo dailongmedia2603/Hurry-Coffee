@@ -15,22 +15,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "@/src/integrations/supabase/client";
-import { Product } from "@/types";
+import { Product, ProductCategory } from "@/types";
 import MenuItemCard from "@/src/components/MenuItemCard";
 import CategoryChip from "@/src/components/CategoryChip";
-
-const categoryIcons: { [key: string]: keyof typeof Ionicons.glyphMap } = {
-  Rice: "restaurant-outline",
-  Snacks: "ice-cream-outline",
-  Drinks: "beer-outline",
-  All: "grid-outline",
-  default: "fast-food-outline",
-};
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ name: string; icon: keyof typeof Ionicons.glyphMap }[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -39,16 +31,15 @@ export default function CustomerHomeScreen() {
     const fetchData = async () => {
       setLoading(true);
 
-      const { data: categoryData, error: categoryError } = await supabase.rpc('get_distinct_categories');
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('product_categories')
+        .select('*')
+        .order('name');
       
       if (categoryError) {
         console.error("Error fetching categories:", categoryError);
       } else {
-        const fetchedCategories = categoryData ? categoryData.map((c: { category: string }) => ({
-          name: c.category,
-          icon: categoryIcons[c.category] || categoryIcons.default,
-        })) : [];
-        setCategories([{ name: "All", icon: "grid-outline" }, ...fetchedCategories]);
+        setCategories([{ id: 'all', name: "All", icon_name: "grid-outline", created_at: '' }, ...categoryData]);
         setActiveCategory("All");
       }
 
@@ -131,9 +122,9 @@ export default function CustomerHomeScreen() {
     >
       {categories.map((cat) => (
         <CategoryChip
-          key={cat.name}
+          key={cat.id}
           label={cat.name}
-          icon={cat.icon}
+          icon={cat.icon_name as any || 'fast-food-outline'}
           isActive={activeCategory === cat.name}
           onPress={() => setActiveCategory(cat.name)}
         />
@@ -157,7 +148,7 @@ export default function CustomerHomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{title}</Text>
           {!isRecommendedSection && !isSearchResult && (
-            <TouchableOpacity onPress={() => router.push(`/category/${title}`)}>
+            <TouchableOpacity onPress={() => router.push(`/(customer)/category/${title}`)}>
               <Text style={styles.seeMore}>Tất cả</Text>
             </TouchableOpacity>
           )}

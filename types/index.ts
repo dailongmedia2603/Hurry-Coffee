@@ -44,5 +44,6 @@ export interface UserAddress {
 export interface ProductCategory {
   id: string;
   name: string;
+  icon_name: string | null;
   created_at: string;
 }
