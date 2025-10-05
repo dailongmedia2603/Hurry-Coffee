@@ -28,6 +28,7 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [formattedPrice, setFormattedPrice] = useState('');
+  const [formattedOriginalPrice, setFormattedOriginalPrice] = useState('');
   const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -41,12 +42,14 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
         setName(existingProduct.name);
         setDescription(existingProduct.description || '');
         setFormattedPrice(formatCurrency(existingProduct.price.toString()));
+        setFormattedOriginalPrice(existingProduct.original_price ? formatCurrency(existingProduct.original_price.toString()) : '');
         setCategory(existingProduct.category || '');
         setImageUrl(existingProduct.image_url || '');
       } else {
         setName('');
         setDescription('');
         setFormattedPrice('');
+        setFormattedOriginalPrice('');
         setCategory('');
         setImageUrl('');
       }
@@ -112,6 +115,7 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
       name,
       description,
       price: parseFloat(parseCurrency(formattedPrice)),
+      original_price: formattedOriginalPrice ? parseFloat(parseCurrency(formattedOriginalPrice)) : null,
       category,
       image_url: finalImageUrl,
     };
@@ -146,6 +150,14 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
             <TextInput style={styles.input} value={description} onChangeText={setDescription} multiline />
             <Text style={styles.label}>Giá (VND)</Text>
             <TextInput style={styles.input} value={formattedPrice} onChangeText={(text) => setFormattedPrice(formatCurrency(text))} keyboardType="numeric" />
+            <Text style={styles.label}>Giá gốc (VND) - Tùy chọn</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nhập giá gốc để hiển thị giảm giá"
+              value={formattedOriginalPrice} 
+              onChangeText={(text) => setFormattedOriginalPrice(formatCurrency(text))} 
+              keyboardType="numeric" 
+            />
             <Text style={styles.label}>Phân loại</Text>
             <TextInput style={styles.input} value={category} onChangeText={setCategory} />
             

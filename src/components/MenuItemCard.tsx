@@ -13,7 +13,6 @@ const formatPrice = (price: number) => {
 
 const MenuItemCard = ({ product, style }: { product: Product, style?: ViewStyle }) => {
   const router = useRouter();
-  const oldPrice = product.price * 1.5; // Dummy old price
 
   const handlePress = () => {
     router.push(`/(customer)/product/${product.id}`);
@@ -33,7 +32,9 @@ const MenuItemCard = ({ product, style }: { product: Product, style?: ViewStyle 
       </View>
       <View style={styles.priceContainer}>
         <Text style={styles.price}>{formatPrice(product.price)}</Text>
-        <Text style={styles.oldPrice}>{formatPrice(oldPrice)}</Text>
+        {product.original_price && product.original_price > product.price ? (
+          <Text style={styles.oldPrice}>{formatPrice(product.original_price)}</Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
