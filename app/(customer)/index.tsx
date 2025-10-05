@@ -114,7 +114,7 @@ export default function CustomerHomeScreen() {
     >
       <View style={styles.topBar}>
         <View style={styles.userInfoContainer}>
-          <Ionicons name="person-circle-outline" size={40} color="#fff" style={{ marginRight: 12 }} />
+          <Ionicons name="person-circle-outline" size={32} color="#fff" style={{ marginRight: 8 }} />
           <View>
             {user && profile ? (
               <>
@@ -267,12 +267,12 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   userPhone: {
     color: '#E0E0E0',
-    fontSize: 14,
+    fontSize: 12,
   },
   promoImage: {
     width: '100%',
