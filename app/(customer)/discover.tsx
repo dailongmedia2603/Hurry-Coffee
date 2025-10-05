@@ -172,7 +172,15 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack?.()) {
+                router.back();
+              } else {
+                router.replace('/(customer)');
+              }
+            }}
+          >
             <Ionicons name="arrow-back" size={24} color="#161616" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{"Đặt món"}</Text>
