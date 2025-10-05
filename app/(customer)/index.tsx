@@ -25,7 +25,7 @@ export default function CustomerHomeScreen() {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState("Tất cả");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,8 +39,8 @@ export default function CustomerHomeScreen() {
       if (categoryError) {
         console.error("Error fetching categories:", categoryError);
       } else {
-        setCategories([{ id: 'all', name: "All", icon_name: "grid-outline", created_at: '' }, ...categoryData]);
-        setActiveCategory("All");
+        setCategories([{ id: 'all', name: "Tất cả", icon_name: "cafe-outline", created_at: '' }, ...categoryData]);
+        setActiveCategory("Tất cả");
       }
 
       const { data: productData, error: productError } = await supabase
@@ -61,7 +61,7 @@ export default function CustomerHomeScreen() {
   }, []);
 
   const categoryFilteredProducts = useMemo(() => {
-    if (!activeCategory || activeCategory === "All") {
+    if (!activeCategory || activeCategory === "Tất cả") {
       return products;
     }
     return products.filter((product) => product.category === activeCategory);
@@ -179,8 +179,23 @@ export default function CustomerHomeScreen() {
           ) : (
             <>
               {renderCategories()}
-              {renderProductSection("Món ngon cho bạn", recommendedProducts)}
-              {activeCategory && activeCategory !== "All" && renderProductSection(activeCategory, categoryFilteredProducts)}
+              {activeCategory === "Tất cả" ? (
+                <>
+                  {renderProductSection("Món ngon cho bạn", recommendedProducts)}
+                  {categories
+                    .filter((cat) => cat.name !== "Tất cả")
+                    .map((cat) => (
+                      <View key={cat.id}>
+                        {renderProductSection(
+                          cat.name,
+                          products.filter((p) => p.category === cat.name)
+                        )}
+                      </View>
+                    ))}
+                </>
+              ) : (
+                renderProductSection(activeCategory, categoryFilteredProducts)
+              )}
             </>
           )}
         </View>
