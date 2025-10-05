@@ -46,11 +46,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
     const initializeSession = async () => {
       try {
-        // Cố gắng lấy session từ cache
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         if (error) throw error;
+        if (!isMounted) return;
 
         setSession(initialSession);
         const currentUser = initialSession?.user ?? null;
@@ -60,32 +63,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           await fetchProfile(currentUser);
         }
       } catch (e) {
-        // Nếu có lỗi (ví dụ session hỏng), đặt lại trạng thái
         console.error("Failed to initialize session:", e);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
-        // Quan trọng: Luôn luôn kết thúc loading dù thành công hay thất bại
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeSession();
 
-    // Thiết lập listener cho các thay đổi trạng thái đăng nhập sau này
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfile(currentUser);
-      } else {
-        setProfile(null);
+      if (isMounted) {
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchProfile(currentUser);
+        } else {
+          setProfile(null);
+        }
       }
     });
 
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
