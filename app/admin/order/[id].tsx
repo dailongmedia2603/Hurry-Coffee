@@ -117,7 +117,7 @@ export default function AdminOrderDetailScreen() {
         if (!nextStatus) return null;
 
         return (
-            <View style={styles.footer}>
+            <View style={styles.actionContainer}>
                 <TouchableOpacity 
                     style={styles.actionButton} 
                     onPress={() => handleUpdateStatus(nextStatus)}
@@ -151,6 +151,7 @@ export default function AdminOrderDetailScreen() {
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <OrderStatusTracker status={order.status} orderType={order.order_type} />
+                {renderActionButtons()}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
                     {order.order_items.map((item, index) => (
@@ -182,7 +183,6 @@ export default function AdminOrderDetailScreen() {
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
             </ScrollView>
-            {renderActionButtons()}
         </SafeAreaView>
     );
 }
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
     backButton: { padding: 4 },
     headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', marginHorizontal: 8 },
-    scrollContainer: { paddingBottom: 120 },
+    scrollContainer: { paddingBottom: 40 },
     card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
     cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
     itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -206,17 +206,24 @@ const styles = StyleSheet.create({
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500', flex: 1, textAlign: 'right' },
     separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
-    footer: { 
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#fff', 
-        borderTopWidth: 1, 
-        borderTopColor: '#E0E0E0', 
-        padding: 16, 
-        paddingBottom: 34 
+    actionContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
     },
-    actionButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center' },
-    actionButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    actionButton: { 
+        backgroundColor: '#73509c', 
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    actionButtonText: { 
+        color: '#fff', 
+        fontSize: 16, 
+        fontWeight: 'bold' 
+    },
 });
