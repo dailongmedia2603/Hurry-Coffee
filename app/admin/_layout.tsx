@@ -111,7 +111,14 @@ export default function AdminLayout() {
 
       {/* Hidden screens */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="order/[id]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen
+        name="order/[id]"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' },
+          headerTitle: "Chi tiết đơn hàng",
+        }}
+      />
     </Tabs>
   );
 }
