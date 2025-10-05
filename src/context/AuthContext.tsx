@@ -70,8 +70,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentUser = initialSession?.user ?? null;
         setUser(currentUser);
 
-        // ĐỪNG await profile để không block UI
-        if (currentUser) fetchProfile(currentUser);
+        // Đợi lấy profile xong để đảm bảo có thông tin role trước khi điều hướng
+        if (currentUser) {
+            await fetchProfile(currentUser);
+        }
       } catch (e) {
         console.error('Failed to initialize session:', e);
         if (mountedRef.current) {
@@ -80,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
         }
       } finally {
-        // Quan trọng: luôn thả loading về false ngay sau khi kiểm tra session xong
+        // Quan trọng: luôn thả loading về false sau khi đã lấy xong session và profile
         if (mountedRef.current) setLoading(false);
       }
     })();
