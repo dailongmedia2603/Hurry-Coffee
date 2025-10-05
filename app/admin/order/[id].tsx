@@ -206,7 +206,17 @@ const styles = StyleSheet.create({
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500', flex: 1, textAlign: 'right' },
     separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
-    footer: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E0E0E0', padding: 16, paddingBottom: 34 },
+    footer: { 
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff', 
+        borderTopWidth: 1, 
+        borderTopColor: '#E0E0E0', 
+        padding: 16, 
+        paddingBottom: 34 
+    },
     actionButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center' },
     actionButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
