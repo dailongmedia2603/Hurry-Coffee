@@ -59,17 +59,17 @@ serve(async (req) => {
     if (createError) throw createError;
     if (!user) throw new Error("Failed to create user in authentication system.");
 
-    // Bước 2: Trực tiếp tạo hồ sơ trong bảng public.profiles.
-    // Bước này chạy với quyền cao nhất, bỏ qua RLS và đảm bảo thành công.
+    // Bước 2: Cập nhật hồ sơ đã được trigger 'handle_new_user' tự động tạo.
+    // Trigger sẽ tạo một hồ sơ cơ bản, và chúng ta cập nhật nó với vai trò và tên đầy đủ.
     const { error: profileError } = await adminSupabaseClient
       .from('profiles')
-      .insert({
-        id: user.id,
+      .update({
         full_name: full_name,
         role: role || 'staff'
-      });
+      })
+      .eq('id', user.id);
 
-    // Bước 3: Nếu tạo hồ sơ thất bại, xóa người dùng vừa tạo để dọn dẹp.
+    // Bước 3: Nếu cập nhật hồ sơ thất bại, xóa người dùng để dọn dẹp.
     if (profileError) {
       await adminSupabaseClient.auth.admin.deleteUser(user.id);
       throw profileError;
