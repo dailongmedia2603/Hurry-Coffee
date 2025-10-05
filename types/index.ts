@@ -28,7 +28,6 @@ export interface Location {
   name: string;
   address: string;
   image_url: string;
-  distance: string;
   opening_hours: string;
   google_maps_url: string | null;
 }

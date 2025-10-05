@@ -27,10 +27,6 @@ const LocationCard = ({ location }: { location: Location }) => {
                     <Text style={styles.infoText}>Mở cửa: {location.opening_hours}</Text>
                 </View>
                 <View style={styles.footer}>
-                    <View style={styles.distanceContainer}>
-                        <Ionicons name="walk-outline" size={16} color="#73509c" />
-                        <Text style={styles.distanceText}>{location.distance}</Text>
-                    </View>
                     <TouchableOpacity style={styles.directionsButton} onPress={handleDirections}>
                         <Text style={styles.directionsButtonText}>Chỉ đường</Text>
                     </TouchableOpacity>
@@ -79,22 +75,12 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
         marginTop: 12,
         borderTopWidth: 1,
         borderTopColor: '#F0F0F0',
         paddingTop: 12,
-    },
-    distanceContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    distanceText: {
-        fontSize: 14,
-        color: '#73509c',
-        fontWeight: '500',
-        marginLeft: 4,
     },
     directionsButton: {
         backgroundColor: '#73509c',

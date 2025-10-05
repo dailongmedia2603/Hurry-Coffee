@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Location } from '@/types';
 
@@ -16,27 +18,50 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
   const [address, setAddress] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [openingHours, setOpeningHours] = useState('');
-  const [distance, setDistance] = useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (existingLocation) {
-      setName(existingLocation.name);
-      setAddress(existingLocation.address);
-      setImageUrl(existingLocation.image_url || '');
-      setOpeningHours(existingLocation.opening_hours || '');
-      setDistance(existingLocation.distance || '');
-      setGoogleMapsUrl(existingLocation.google_maps_url || '');
-    } else {
-      setName('');
-      setAddress('');
-      setImageUrl('');
-      setOpeningHours('');
-      setDistance('');
-      setGoogleMapsUrl('');
+    if (visible) {
+      if (existingLocation) {
+        setName(existingLocation.name);
+        setAddress(existingLocation.address);
+        setImageUrl(existingLocation.image_url || '');
+        setOpeningHours(existingLocation.opening_hours || '');
+        setGoogleMapsUrl(existingLocation.google_maps_url || '');
+      } else {
+        setName('');
+        setAddress('');
+        setImageUrl('');
+        setOpeningHours('');
+        setGoogleMapsUrl('');
+      }
+      setSelectedImage(null);
     }
   }, [existingLocation, visible]);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0]);
+      setImageUrl(result.assets[0].uri);
+    }
+  };
 
   const handleSave = async () => {
     if (!name || !address) {
@@ -45,7 +70,33 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
     }
 
     setLoading(true);
-    const locationData = { name, address, image_url: imageUrl, opening_hours: openingHours, distance, google_maps_url: googleMapsUrl };
+    let finalImageUrl = existingLocation?.image_url || '';
+
+    if (selectedImage && selectedImage.base64) {
+      setUploading(true);
+      const fileExt = selectedImage.uri.split('.').pop();
+      const filePath = `public/${Date.now()}.${fileExt}`;
+      const contentType = selectedImage.mimeType ?? 'image/jpeg';
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('location-images')
+          .upload(filePath, decode(selectedImage.base64), { contentType, upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage.from('location-images').getPublicUrl(filePath);
+        finalImageUrl = publicUrl;
+      } catch (error: any) {
+        Alert.alert('Lỗi tải ảnh', error.message);
+        setLoading(false);
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
+    const locationData = { name, address, image_url: finalImageUrl, opening_hours: openingHours, google_maps_url: googleMapsUrl };
 
     const { error } = existingLocation
       ? await supabase.from('locations').update(locationData).eq('id', existingLocation.id)
@@ -75,12 +126,20 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
             <TextInput style={styles.input} value={name} onChangeText={setName} />
             <Text style={styles.label}>Địa chỉ</Text>
             <TextInput style={styles.input} value={address} onChangeText={setAddress} />
-            <Text style={styles.label}>URL Hình ảnh</Text>
-            <TextInput style={styles.input} value={imageUrl} onChangeText={setImageUrl} />
+            <Text style={styles.label}>Hình ảnh</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Ionicons name="camera-outline" size={40} color="#9ca3af" />
+                  <Text style={styles.imagePlaceholderText}>Chọn ảnh</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {uploading && <ActivityIndicator style={{ marginTop: 10 }} color="#73509c" />}
             <Text style={styles.label}>Giờ mở cửa</Text>
             <TextInput style={styles.input} value={openingHours} onChangeText={setOpeningHours} />
-            <Text style={styles.label}>Khoảng cách</Text>
-            <TextInput style={styles.input} value={distance} onChangeText={setDistance} />
             <Text style={styles.label}>URL Google Maps</Text>
             <TextInput style={styles.input} value={googleMapsUrl} onChangeText={setGoogleMapsUrl} />
           </ScrollView>
@@ -103,6 +162,10 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#f3f4f6', borderRadius: 8, padding: 12, fontSize: 16 },
   saveButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  imagePicker: { width: '100%', height: 150, borderRadius: 8, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginTop: 4, overflow: 'hidden' },
+  imagePreview: { width: '100%', height: '100%' },
+  imagePlaceholder: { alignItems: 'center' },
+  imagePlaceholderText: { marginTop: 8, color: '#6b7280' },
 });
 
 export default LocationForm;
