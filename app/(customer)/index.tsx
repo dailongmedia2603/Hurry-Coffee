@@ -26,11 +26,23 @@ export default function CustomerHomeScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Tất cả");
+  const [promoImageUrl, setPromoImageUrl] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+
+      // Fetch promo image URL
+      const { data: settingsData } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'promo_image_url')
+        .single();
+      
+      if (settingsData?.value) {
+        setPromoImageUrl(settingsData.value);
+      }
 
       const { data: productData, error: productError } = await supabase
         .from("products")
@@ -110,7 +122,7 @@ export default function CustomerHomeScreen() {
         <Ionicons name="notifications-outline" size={28} color="#fff" />
       </View>
       <Image
-        source={{ uri: 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
+        source={{ uri: promoImageUrl || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
         style={styles.promoImage}
         resizeMode="cover"
       />
