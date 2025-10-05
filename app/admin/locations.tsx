@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
@@ -36,17 +36,25 @@ export default function ManageLocationsScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Xác nhận xóa", "Bạn có chắc chắn muốn xóa địa điểm này?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xóa", style: "destructive",
-        onPress: async () => {
-          const { error } = await supabase.from('locations').delete().eq('id', id);
-          if (error) Alert.alert('Lỗi', 'Không thể xóa địa điểm.');
-          else fetchLocations();
-        },
-      },
-    ]);
+    const performDelete = async () => {
+      const { error } = await supabase.from('locations').delete().eq('id', id);
+      if (error) {
+        Alert.alert('Lỗi', 'Không thể xóa địa điểm.');
+      } else {
+        fetchLocations();
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm("Bạn có chắc chắn muốn xóa địa điểm này?")) {
+        performDelete();
+      }
+    } else {
+      Alert.alert("Xác nhận xóa", "Bạn có chắc chắn muốn xóa địa điểm này?", [
+        { text: "Hủy", style: "cancel" },
+        { text: "Xóa", style: "destructive", onPress: performDelete },
+      ]);
+    }
   };
 
   return (
