@@ -5,6 +5,7 @@ import { Session, User } from '@supabase/supabase-js';
 interface Profile {
   full_name: string | null;
   avatar_url: string | null;
+  role: string | null;
 }
 
 interface AuthContextType {
@@ -42,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, avatar_url')
+          .select('full_name, avatar_url, role')
           .eq('id', u.id)
           .single();
 
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // gọi version nhẹ, không ảnh hưởng cờ loading
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url')
+        .select('full_name, avatar_url, role')
         .eq('id', user.id)
         .single();
 

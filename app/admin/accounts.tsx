@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import StaffFormModal from '@/src/components/admin/StaffFormModal';
 import AssignLocationModal from '@/src/components/admin/AssignLocationModal';
 import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
+import { useAuth } from '@/src/context/AuthContext';
 
 interface StaffProfile {
   id: string;
@@ -24,6 +25,7 @@ export default function ManageAccountsScreen() {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { user, profile } = useAuth();
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -31,8 +33,16 @@ export default function ManageAccountsScreen() {
       
     if (error) {
       Alert.alert('Lỗi', 'Không thể tải danh sách tài khoản.');
+      setStaff([]);
     } else {
-      setStaff(data as any || []);
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const allStaff = data as any || [];
+      if (currentUser) {
+        const filteredStaff = allStaff.filter((s: StaffProfile) => s.id !== currentUser.id);
+        setStaff(filteredStaff);
+      } else {
+        setStaff(allStaff);
+      }
     }
     setLoading(false);
   };
@@ -74,7 +84,7 @@ export default function ManageAccountsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tài khoản ({staff.length})</Text>
+        <Text style={styles.headerTitle}>Tài khoản ({staff.length + (profile ? 1 : 0)})</Text>
         <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
           <Ionicons name="add" size={24} color="#fff" />
           <Text style={styles.addButtonText}>Thêm nhân viên</Text>
@@ -87,12 +97,32 @@ export default function ManageAccountsScreen() {
         <FlatList
           data={staff}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={
+            <>
+              {profile && (
+                <View style={styles.currentUserSection}>
+                  <Text style={styles.sectionTitle}>Đang đăng nhập với</Text>
+                  <View style={styles.itemCard}>
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{profile.full_name || 'Admin'}</Text>
+                      <Text style={itemRole(profile.role || 'admin')}>{profile.role || 'admin'}</Text>
+                      <View style={styles.infoRow}>
+                        <Ionicons name="mail-outline" size={16} color="#6b7280" />
+                        <Text style={styles.emailText}>{user?.email}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+              {staff.length > 0 && <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>Các tài khoản khác</Text>}
+            </>
+          }
           renderItem={({ item }) => (
             <View style={styles.itemCard}>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.full_name || 'Chưa có tên'}</Text>
                 <Text style={itemRole(item.role)}>{item.role}</Text>
-                <TouchableOpacity style={styles.locationContainer} onPress={() => openAssignModal(item.id)}>
+                <TouchableOpacity style={styles.infoRow} onPress={() => openAssignModal(item.id)}>
                   <Ionicons name="storefront-outline" size={16} color="#6b7280" />
                   <Text style={locationText(!!item.location_name)}>
                     {item.location_name || 'Chưa gán địa điểm'}
@@ -170,12 +200,27 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600' },
   addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#73509c', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginLeft: 4 },
-  loader: { marginTop: 20 },
-  listContainer: { padding: 16 },
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContainer: { paddingHorizontal: 16, paddingBottom: 16 },
   itemCard: { flexDirection: 'row', backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, alignItems: 'center' },
   itemInfo: { flex: 1 },
   itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  locationContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 4, alignSelf: 'flex-start' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, alignSelf: 'flex-start' },
   itemActions: { flexDirection: 'row' },
   actionButton: { padding: 8, marginLeft: 8 },
+  currentUserSection: {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4b5563',
+    marginBottom: 12,
+  },
+  emailText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#6b7280',
+  },
 });
