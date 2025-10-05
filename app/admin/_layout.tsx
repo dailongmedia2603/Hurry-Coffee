@@ -1,33 +1,121 @@
 import React from "react";
-import { Stack } from "expo-router";
-import AdminLayout from "@/src/components/admin/AdminLayout";
-import { Platform } from "react-native";
+import { Stack, Link, usePathname } from "expo-router";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function AdminRootLayout() {
-  // On native, Admin pages will use a standard stack navigator.
-  // On web, they will be wrapped in the custom AdminLayout with a sidebar.
-  const LayoutComponent = Platform.OS === 'web' ? AdminLayout : React.Fragment;
+const menuItems = [
+  { href: '/admin', label: 'Tổng quan', icon: 'home-outline' as const },
+  { href: '/admin/orders', label: 'Đơn hàng', icon: 'receipt-outline' as const },
+  { href: '/admin/menu', label: 'Thực đơn', icon: 'fast-food-outline' as const },
+  { href: '/admin/locations', label: 'Địa điểm', icon: 'location-outline' as const },
+];
+
+const SidebarLink = ({ item }: { item: typeof menuItems[0] }) => {
+  const pathname = usePathname();
+  const isActive = pathname === item.href;
 
   return (
-    <LayoutComponent>
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: "#1f2937",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-          // Hide header on web because the layout provides navigation
-          headerShown: Platform.OS !== 'web',
-        }}
-      >
-        <Stack.Screen name="index" options={{ title: "Tổng quan" }} />
-        <Stack.Screen name="orders" options={{ title: "Quản lý Đơn hàng" }} />
-        <Stack.Screen name="menu" options={{ title: "Quản lý Thực đơn" }} />
-        <Stack.Screen name="locations" options={{ title: "Quản lý Địa điểm" }} />
-      </Stack>
-    </LayoutComponent>
+    <Link href={item.href} asChild>
+      <TouchableOpacity style={[styles.sidebarLink, isActive && styles.sidebarLinkActive]}>
+        <Ionicons name={item.icon} size={22} color={isActive ? '#fff' : '#a1a1aa'} />
+        <Text style={[styles.sidebarLinkText, isActive && styles.sidebarLinkTextActive]}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    </Link>
+  );
+};
+
+export default function AdminRootLayout() {
+  // On web, render a custom layout with a sidebar.
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.sidebar}>
+          <View style={styles.sidebarHeader}>
+            <Text style={styles.sidebarTitle}>Hurry Admin</Text>
+          </View>
+          <ScrollView>
+            {menuItems.map((item) => (
+              <SidebarLink key={item.href} item={item} />
+            ))}
+          </ScrollView>
+        </View>
+        <View style={styles.content}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="orders" />
+            <Stack.Screen name="menu" />
+            <Stack.Screen name="locations" />
+          </Stack>
+        </View>
+      </View>
+    );
+  }
+
+  // On native, use a standard stack navigator.
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#1f2937",
+        },
+        headerTintColor: "#ffffff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}
+    >
+      <Stack.Screen name="index" options={{ title: "Tổng quan" }} />
+      <Stack.Screen name="orders" options={{ title: "Quản lý Đơn hàng" }} />
+      <Stack.Screen name="menu" options={{ title: "Quản lý Thực đơn" }} />
+      <Stack.Screen name="locations" options={{ title: "Quản lý Địa điểm" }} />
+    </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+  },
+  sidebar: {
+    width: 250,
+    backgroundColor: '#1f2937',
+    padding: 16,
+  },
+  sidebarHeader: {
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  sidebarTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  sidebarLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  sidebarLinkActive: {
+    backgroundColor: '#4b5563',
+  },
+  sidebarLinkText: {
+    fontSize: 16,
+    color: '#d1d5db',
+    marginLeft: 12,
+  },
+  sidebarLinkTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+    padding: 32,
+  },
+});
