@@ -18,9 +18,11 @@ import { Product, ProductCategory } from "@/types";
 import MenuItemCard from "@/src/components/MenuItemCard";
 import CategoryChip from "@/src/components/CategoryChip";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
+  const { user, profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,12 +113,17 @@ export default function CustomerHomeScreen() {
       style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}
     >
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.locationLabel}>Location</Text>
-          <View style={styles.locationDetails}>
-            <Ionicons name="location-sharp" size={16} color="#fff" />
-            <Text style={styles.locationText}>Bali, Indonesia</Text>
-            <Ionicons name="chevron-down" size={16} color="#fff" />
+        <View style={styles.userInfoContainer}>
+          <Ionicons name="person-circle-outline" size={40} color="#fff" style={{ marginRight: 12 }} />
+          <View>
+            {user && profile ? (
+              <>
+                <Text style={styles.userName}>{profile.full_name || 'Người dùng'}</Text>
+                <Text style={styles.userPhone}>{user.phone}</Text>
+              </>
+            ) : (
+              <Text style={styles.userName}>Chưa đăng nhập</Text>
+            )}
           </View>
         </View>
         <Ionicons name="notifications-outline" size={28} color="#fff" />
@@ -254,20 +261,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  locationLabel: {
-    color: "#FAFAFA",
-    fontSize: 12,
-    marginBottom: 4,
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  locationDetails: {
-    flexDirection: "row",
-    alignItems: "center",
+  userName: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  locationText: {
-    color: "#FAFAFA",
+  userPhone: {
+    color: '#E0E0E0',
     fontSize: 14,
-    fontWeight: "bold",
-    marginHorizontal: 4,
   },
   promoImage: {
     width: '100%',
