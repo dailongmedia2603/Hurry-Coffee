@@ -2,14 +2,14 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
 
 export default function AdminLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, signOut } = useAuth();
 
   if (loading) {
     return (
@@ -42,6 +42,11 @@ export default function AdminLayout() {
         tabBarLabelStyle: {
           fontWeight: "500",
         },
+        headerRight: () => (
+          <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
+            <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+          </TouchableOpacity>
+        ),
       }}
     >
       <Tabs.Screen
