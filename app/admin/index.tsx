@@ -13,11 +13,19 @@ export default function AdminRootIndex() {
     );
   }
 
+  // Điều hướng dựa trên vai trò của người dùng
+  // Nếu là admin, chuyển đến trang quản lý sản phẩm.
+  if (profile?.role === 'admin') {
+    return <Redirect href="/admin/products" />;
+  }
+  
+  // Nếu là nhân viên, chuyển đến trang quản lý đơn hàng.
   if (profile?.role === 'staff') {
     return <Redirect href="/admin/orders" />;
   }
 
-  // Mặc định chuyển hướng đến trang quản lý sản phẩm cho admin
+  // Mặc định: Nếu không có vai trò hoặc vai trò khác,
+  // chuyển đến trang sản phẩm như một biện pháp an toàn cho admin.
   return <Redirect href="/admin/products" />;
 }
 
