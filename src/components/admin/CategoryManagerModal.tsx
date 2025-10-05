@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { ProductCategory } from '@/types';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
 
 type CategoryManagerModalProps = {
   visible: boolean;
@@ -27,7 +35,7 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
     setLoading(true);
     const { data, error } = await supabase.from('product_categories').select('*').order('name', { ascending: true });
     if (error) {
-      Alert.alert('Lỗi', 'Không thể tải danh sách phân loại.');
+      showAlert('Lỗi', 'Không thể tải danh sách phân loại.');
     } else {
       setCategories(data || []);
     }
@@ -45,7 +53,7 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
     setIsAdding(true);
     const { error } = await supabase.from('product_categories').insert({ name: newCategoryName.trim() });
     if (error) {
-      Alert.alert('Lỗi', 'Không thể thêm phân loại mới. Có thể tên đã tồn tại.');
+      showAlert('Lỗi', 'Không thể thêm phân loại mới. Có thể tên đã tồn tại.');
     } else {
       setNewCategoryName('');
       await fetchCategories();
@@ -62,7 +70,7 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
     if (!itemToDelete) return;
     const { error } = await supabase.from('product_categories').delete().eq('id', itemToDelete);
     if (error) {
-      Alert.alert('Lỗi', 'Không thể xóa phân loại. Có thể vẫn còn sản phẩm thuộc phân loại này.');
+      showAlert('Lỗi', 'Không thể xóa phân loại. Có thể vẫn còn sản phẩm thuộc phân loại này.');
     } else {
       await fetchCategories();
     }
@@ -91,7 +99,7 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
     
     if (error) {
       console.error("Update category error:", error);
-      Alert.alert('Lỗi', 'Không thể cập nhật phân loại. Tên có thể đã tồn tại.');
+      showAlert('Lỗi', 'Không thể cập nhật phân loại. Tên có thể đã tồn tại.');
     } else {
       handleCancelEdit();
       await fetchCategories();
