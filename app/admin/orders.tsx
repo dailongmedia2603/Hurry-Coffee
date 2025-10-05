@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
+import { useAuth } from '@/src/context/AuthContext';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -24,19 +25,34 @@ export default function ManageOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { profile } = useAuth();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    if (!profile) return;
+
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
-      .select(`
-        *,
-        order_items ( count )
-      `)
-      .order('created_at', { ascending: false });
+      .select(`*, order_items ( count )`);
+
+    if (profile.role === 'staff') {
+      if (profile.location_id) {
+        query = query
+          .eq('order_type', 'pickup')
+          .eq('pickup_location_id', profile.location_id);
+      } else {
+        // Nhân viên không được gán địa điểm sẽ không thấy đơn hàng nào
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       Alert.alert('Lỗi', 'Không thể tải danh sách đơn hàng.');
+      setOrders([]);
     } else {
       const formattedData = data.map(o => ({
         ...o,
@@ -45,9 +61,9 @@ export default function ManageOrdersScreen() {
       setOrders(formattedData);
     }
     setLoading(false);
-  };
+  }, [profile]);
 
-  useFocusEffect(useCallback(() => { fetchOrders(); }, []));
+  useFocusEffect(useCallback(() => { fetchOrders(); }, [fetchOrders]));
 
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
@@ -79,6 +95,10 @@ export default function ManageOrdersScreen() {
     <SafeAreaView style={styles.safeArea}>
       {loading ? (
         <ActivityIndicator size="large" color="#73509c" style={styles.loader} />
+      ) : orders.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Không có đơn hàng nào.</Text>
+        </View>
       ) : (
         <FlatList
           data={orders}
@@ -107,4 +127,13 @@ const styles = StyleSheet.create({
   itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 12, marginTop: 8 },
   itemDate: { fontSize: 12, color: '#6b7280' },
   itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#16a34a' },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
 });
