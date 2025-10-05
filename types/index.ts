@@ -38,6 +38,7 @@ export interface UserAddress {
   name: string;
   address: string;
   created_at: string;
+  is_default?: boolean;
 }
 
 export interface ProductCategory {

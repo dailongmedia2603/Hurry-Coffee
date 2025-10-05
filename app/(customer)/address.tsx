@@ -24,6 +24,7 @@ export default function AddressScreen() {
       .from('user_addresses')
       .select('*')
       .eq('user_id', user.id)
+      .order('is_default', { ascending: false }) // Sắp xếp địa chỉ mặc định lên đầu
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -40,6 +41,23 @@ export default function AddressScreen() {
       fetchAddresses();
     }, [])
   );
+
+  const handleSetDefault = async (addressId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.rpc('set_default_address', {
+      p_user_id: user.id,
+      p_address_id: addressId,
+    });
+
+    if (error) {
+      console.error('Error setting default address:', error);
+      Alert.alert('Lỗi', 'Không thể đặt địa chỉ làm mặc định.');
+    } else {
+      fetchAddresses(); // Tải lại danh sách để cập nhật UI
+    }
+  };
 
   const openAddModal = () => {
     setSelectedAddress(null);
@@ -99,19 +117,29 @@ export default function AddressScreen() {
           data={addresses}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.addressCard}>
-              <View style={styles.addressInfo}>
+            <View style={[styles.addressCard, item.is_default && styles.defaultCard]}>
+              <View style={styles.cardHeader}>
                 <Text style={styles.addressName}>{item.name}</Text>
-                <Text style={styles.addressText}>{item.address}</Text>
+                <View style={styles.addressActions}>
+                  <TouchableOpacity onPress={() => openEditModal(item)}>
+                    <Ionicons name="pencil" size={22} color="#333" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ marginLeft: 16 }}>
+                    <Ionicons name="trash-outline" size={22} color="#D50000" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.addressActions}>
-                <TouchableOpacity onPress={() => openEditModal(item)}>
-                  <Ionicons name="pencil" size={22} color="#333" />
+              <Text style={styles.addressText}>{item.address}</Text>
+              {item.is_default ? (
+                <View style={styles.defaultBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                  <Text style={styles.defaultBadgeText}>Địa chỉ mặc định</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.setDefaultButton} onPress={() => handleSetDefault(item.id)}>
+                  <Text style={styles.setDefaultButtonText}>Đặt làm mặc định</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ marginLeft: 16 }}>
-                  <Ionicons name="trash-outline" size={22} color="#D50000" />
-                </TouchableOpacity>
-              </View>
+              )}
             </View>
           )}
           contentContainerStyle={styles.listContainer}
@@ -141,9 +169,14 @@ const styles = StyleSheet.create({
   addAddressButton: { backgroundColor: '#73509c', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 20 },
   addAddressButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   listContainer: { padding: 16 },
-  addressCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  addressInfo: { flex: 1 },
-  addressName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  addressText: { fontSize: 14, color: '#666' },
+  addressCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16 },
+  defaultCard: { borderColor: '#16a34a', borderWidth: 1.5 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  addressName: { fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 8 },
+  addressText: { fontSize: 14, color: '#666', marginBottom: 12 },
   addressActions: { flexDirection: 'row' },
+  setDefaultButton: { backgroundColor: '#f3f4f6', paddingVertical: 8, borderRadius: 20, alignItems: 'center', marginTop: 8 },
+  setDefaultButtonText: { color: '#374151', fontWeight: '500' },
+  defaultBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20, alignSelf: 'flex-start', marginTop: 8 },
+  defaultBadgeText: { color: '#16a34a', fontWeight: 'bold', marginLeft: 6 },
 });

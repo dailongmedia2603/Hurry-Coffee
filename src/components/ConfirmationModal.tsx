@@ -63,13 +63,14 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
         .from('user_addresses')
         .select('*')
         .eq('user_id', userId)
+        .order('is_default', { ascending: false }) // Ưu tiên địa chỉ mặc định
         .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching user addresses:', error);
       } else if (data && data.length > 0) {
         setUserAddresses(data);
-        setSelectedAddress(data[0]);
+        setSelectedAddress(data[0]); // Tự động chọn địa chỉ đầu tiên (mặc định)
       } else {
         setUserAddresses([]);
         setSelectedAddress(null);
