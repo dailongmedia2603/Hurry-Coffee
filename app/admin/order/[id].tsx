@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
@@ -35,56 +35,101 @@ const InfoRow = ({ label, value, valueStyle }: { label: string, value: string, v
   </View>
 );
 
-export default function OrderDetailScreen() {
+export default function AdminOrderDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
 
-    useEffect(() => {
+    const fetchOrderDetails = useCallback(async () => {
         if (!id) return;
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`*, order_items (quantity, price, products (*)), locations (*)`)
+            .eq('id', id)
+            .single();
 
-        const fetchOrderDetails = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (
-                        quantity,
-                        price,
-                        products (*)
-                    ),
-                    locations (*)
-                `)
-                .eq('id', id)
-                .single();
-
-            if (error) {
-                console.error('Error fetching order details:', error);
-            } else {
-                setOrder(data as any);
-            }
-            setLoading(false);
-        };
-
-        fetchOrderDetails();
+        if (error) {
+            console.error('Error fetching order details:', error);
+            setOrder(null);
+        } else {
+            setOrder(data as any);
+        }
+        setLoading(false);
     }, [id]);
 
-    if (loading) {
+    useFocusEffect(
+        useCallback(() => {
+            fetchOrderDetails();
+        }, [fetchOrderDetails])
+    );
+
+    const handleUpdateStatus = async (newStatus: OrderStatus) => {
+        setUpdating(true);
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', id);
+        
+        if (error) {
+            Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
+        } else {
+            await fetchOrderDetails();
+        }
+        setUpdating(false);
+    };
+
+    const renderActionButtons = () => {
+        if (!order) return null;
+
+        const getNextStatus = (): OrderStatus | null => {
+            switch (order.status) {
+                case 'Đang xử lý':
+                    return order.order_type === 'pickup' ? 'Sẵn sàng' : 'Đang giao';
+                case 'Sẵn sàng':
+                case 'Đang giao':
+                    return 'Hoàn thành';
+                default:
+                    return null;
+            }
+        };
+
+        const getButtonText = (): string => {
+            switch (order.status) {
+                case 'Đang xử lý':
+                    return order.order_type === 'pickup' ? 'Đã làm xong' : 'Bắt đầu giao';
+                case 'Sẵn sàng':
+                case 'Đang giao':
+                    return 'Hoàn thành';
+                default:
+                    return '';
+            }
+        };
+
+        const nextStatus = getNextStatus();
+        if (!nextStatus) return null;
+
         return (
-            <SafeAreaView style={styles.centered}>
-                <ActivityIndicator size="large" color="#73509c" />
-            </SafeAreaView>
+            <View style={styles.footer}>
+                <TouchableOpacity 
+                    style={styles.actionButton} 
+                    onPress={() => handleUpdateStatus(nextStatus)}
+                    disabled={updating}
+                >
+                    {updating ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionButtonText}>{getButtonText()}</Text>}
+                </TouchableOpacity>
+            </View>
         );
+    };
+
+    if (loading) {
+        return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color="#73509c" /></SafeAreaView>;
     }
 
     if (!order) {
-        return (
-            <SafeAreaView style={styles.centered}>
-                <Text>Không tìm thấy đơn hàng.</Text>
-            </SafeAreaView>
-        );
+        return <SafeAreaView style={styles.centered}><Text>Không tìm thấy đơn hàng.</Text></SafeAreaView>;
     }
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -101,23 +146,17 @@ export default function OrderDetailScreen() {
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <OrderStatusTracker status={order.status} orderType={order.order_type} />
-
+                {/* ... (Rest of the JSX copied from customer order detail screen) ... */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
                     {order.order_items.map((item, index) => (
                         <View key={index} style={styles.itemContainer}>
-                            <Image 
-                                source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} 
-                                style={styles.itemImage} 
-                            />
-                            <View style={styles.itemDetails}>
-                                <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
-                            </View>
+                            <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+                            <View style={styles.itemDetails}><Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text></View>
                             <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
                         </View>
                     ))}
                 </View>
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Chi phí</Text>
                     <InfoRow label="Tạm tính" value={formatPrice(subtotal)} />
@@ -125,28 +164,13 @@ export default function OrderDetailScreen() {
                     <View style={styles.separator} />
                     <InfoRow label="Tổng cộng" value={formatPrice(order.total)} valueStyle={styles.totalPrice} />
                 </View>
-
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Thông tin giao hàng</Text>
-                    <View style={styles.addressContainer}>
-                        <Ionicons name="storefront-outline" size={24} color="#73509c" />
-                        <View style={styles.addressTextContainer}>
-                            <Text style={styles.addressLabel}>Nhà hàng</Text>
-                            <Text style={styles.addressValue}>Nhà hàng Hurry Coffee</Text>
-                        </View>
-                    </View>
-                    <View style={styles.addressSeparator} />
-                    <View style={styles.addressContainer}>
-                        <Ionicons name={order.order_type === 'delivery' ? "home-outline" : "bag-handle-outline"} size={24} color="#73509c" />
-                        <View style={styles.addressTextContainer}>
-                            <Text style={styles.addressLabel}>{order.order_type === 'delivery' ? 'Giao đến' : 'Nhận tại'}</Text>
-                            <Text style={styles.addressValue}>
-                                {order.order_type === 'delivery' ? order.delivery_address : order.locations?.name}
-                            </Text>
-                        </View>
-                    </View>
+                    <Text style={styles.cardTitle}>Thông tin</Text>
+                    <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
+                    <InfoRow label="Số điện thoại" value={order.customer_phone || 'Không có'} />
+                    <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
+                    <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
                 </View>
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
                     <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
@@ -154,6 +178,7 @@ export default function OrderDetailScreen() {
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
             </ScrollView>
+            {renderActionButtons()}
         </SafeAreaView>
     );
 }
@@ -164,7 +189,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
     backButton: { padding: 4 },
     headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', marginHorizontal: 8 },
-    scrollContainer: { paddingBottom: 40, backgroundColor: '#FAFAFA' },
+    scrollContainer: { paddingBottom: 120 },
     card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
     cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
     itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -174,12 +199,10 @@ const styles = StyleSheet.create({
     itemPrice: { fontSize: 16, fontWeight: 'bold' },
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },
-    infoValue: { fontSize: 16, color: '#333', fontWeight: '500' },
+    infoValue: { fontSize: 16, color: '#333', fontWeight: '500', flex: 1, textAlign: 'right' },
     separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
-    addressContainer: { flexDirection: 'row', alignItems: 'center' },
-    addressTextContainer: { marginLeft: 12, flex: 1 },
-    addressLabel: { fontSize: 14, color: '#666' },
-    addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
-    addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
+    footer: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E0E0E0', padding: 16, paddingBottom: 34 },
+    actionButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center' },
+    actionButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

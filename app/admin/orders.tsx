@@ -12,6 +12,7 @@ const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
 const getStatusStyle = (status: OrderStatus) => {
   switch (status) {
     case 'Đang giao': return { color: '#2979FF', backgroundColor: '#E3F2FD', text: 'Đang giao' };
+    case 'Sẵn sàng': return { color: '#FF9100', backgroundColor: '#FFF3E0', text: 'Sẵn sàng' };
     case 'Hoàn thành': return { color: '#00C853', backgroundColor: '#E8F5E9', text: 'Hoàn thành' };
     case 'Đang xử lý': return { color: '#FF9100', backgroundColor: '#FFF3E0', text: 'Đang xử lý' };
     case 'Đã hủy': return { color: '#D50000', backgroundColor: '#FFEBEE', text: 'Đã hủy' };
@@ -73,7 +74,7 @@ export default function ManageOrdersScreen() {
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
     return (
-      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/(customer)/order/${item.id}`)}>
+      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/admin/order/${item.id}`)}>
         <View style={styles.itemHeader}>
           <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
