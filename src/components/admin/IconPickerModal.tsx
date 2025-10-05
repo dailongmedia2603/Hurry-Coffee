@@ -8,16 +8,27 @@ type IconPickerModalProps = {
   onSelectIcon: (iconName: keyof typeof Ionicons.glyphMap) => void;
 };
 
+// Expanded list of icons, grouped by category for easier maintenance
 const ICONS: (keyof typeof Ionicons.glyphMap)[] = [
-  'fast-food-outline', 'cafe-outline', 'leaf-outline', 'beer-outline',
-  'ice-cream-outline', 'restaurant-outline', 'pizza-outline', 'nutrition-outline',
-  'wine-outline', 'fish-outline', 'egg-outline', 'bonfire-outline',
-  'pint-outline', 'storefront-outline', 'bag-handle-outline', 'gift-outline',
-  'flame-outline', 'snow-outline', 'water-outline', 'star-outline',
-  'heart-outline', 'thumbs-up-outline', 'rocket-outline', 'partly-sunny-outline',
-  'moon-outline', 'time-outline', 'cash-outline', 'card-outline',
-  'receipt-outline', 'cube-outline', 'layers-outline', 'happy-outline',
-  'barcode-outline', 'basket-outline', 'cart-outline', 'pricetag-outline',
+  // Food & Drink
+  'fast-food-outline', 'cafe-outline', 'beer-outline', 'wine-outline', 'pint-outline', 
+  'ice-cream-outline', 'restaurant-outline', 'pizza-outline', 'nutrition-outline', 
+  'fish-outline', 'egg-outline', 'leaf-outline', 'water-outline', 'flask-outline',
+
+  // Nature & Elements
+  'bonfire-outline', 'flame-outline', 'snow-outline', 'partly-sunny-outline', 'moon-outline', 
+  'star-outline', 'sparkles-outline', 'flower-outline', 'rose-outline',
+
+  // Shopping & Business
+  'storefront-outline', 'cart-outline', 'basket-outline', 'bag-handle-outline', 'pricetag-outline', 
+  'receipt-outline', 'card-outline', 'cash-outline', 'wallet-outline', 'gift-outline', 
+  'business-outline', 'trending-up-outline', 'stats-chart-outline',
+
+  // General & UI
+  'grid-outline', 'apps-outline', 'list-outline', 'options-outline', 'keypad-outline', 
+  'home-outline', 'location-outline', 'map-outline', 'flag-outline', 'medal-outline', 
+  'trophy-outline', 'ribbon-outline', 'heart-outline', 'thumbs-up-outline', 'happy-outline', 
+  'rocket-outline', 'time-outline', 'cube-outline', 'layers-outline', 'barcode-outline',
 ];
 
 const IconPickerModal = ({ visible, onClose, onSelectIcon }: IconPickerModalProps) => {
@@ -50,7 +61,7 @@ const IconPickerModal = ({ visible, onClose, onSelectIcon }: IconPickerModalProp
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
-  modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '50%' },
+  modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '70%' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   gridContainer: { alignItems: 'center' },
