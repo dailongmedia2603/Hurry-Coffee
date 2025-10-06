@@ -1,13 +1,29 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform } from "react-native";
+import { Platform, View, ActivityIndicator, StyleSheet } from "react-native";
 import { CartProvider } from "@/src/context/CartContext";
+import { useAuth } from "@/src/context/AuthContext";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#666";
 
 export default function CustomerLayout() {
+  const { profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#73509c" />
+      </View>
+    );
+  }
+
+  if (profile && (profile.role === 'admin' || profile.role === 'staff')) {
+    // Nếu admin hoặc nhân viên vô tình vào trang khách hàng, chuyển hướng họ về trang chính.
+    return <Redirect href="/" />;
+  }
+
   return (
     <CartProvider>
       <Tabs
@@ -150,3 +166,12 @@ export default function CustomerLayout() {
     </CartProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+});
