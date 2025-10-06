@@ -91,17 +91,22 @@ export default function AdminOrderDetailScreen() {
     }, [id]);
 
     const handleUpdateStatus = async (newStatus: OrderStatus) => {
+        if (!order) return;
         setUpdating(true);
+
         const { error } = await supabase
             .from('orders')
             .update({ status: newStatus })
             .eq('id', id);
         
+        setUpdating(false);
+
         if (error) {
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
+        } else {
+            // Cập nhật giao diện ngay lập tức sau khi thành công
+            setOrder({ ...order, status: newStatus });
         }
-        // Giao diện sẽ tự cập nhật nhờ real-time subscription
-        setUpdating(false);
     };
 
     const renderActionButtons = () => {
