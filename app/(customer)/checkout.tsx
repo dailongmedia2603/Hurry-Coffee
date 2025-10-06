@@ -28,8 +28,6 @@ export default function CheckoutScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Cần .select() để lấy ID của đơn hàng mới cho các mặt hàng.
-      // Thử không dùng .single() để xem có giải quyết được vấn đề đọc lại không.
       const { data: newOrderData, error: orderError } = await supabase
         .from('orders')
         .insert({ 
@@ -43,17 +41,18 @@ export default function CheckoutScreen() {
             customer_phone: details.phone,
             is_phone_verified: details.isPhoneVerified,
         })
-        .select(); // Đã bỏ .single()
+        .select()
+        .single();
 
       if (orderError) throw orderError;
-      if (!newOrderData || newOrderData.length === 0) throw new Error("Không nhận được dữ liệu đơn hàng sau khi tạo.");
+      if (!newOrderData) throw new Error("Không nhận được dữ liệu đơn hàng sau khi tạo.");
 
-      const newOrder = newOrderData[0]; // Sử dụng item đầu tiên từ mảng trả về
+      const newOrder = newOrderData;
 
       // Nếu người dùng ẩn danh, lưu ID đơn hàng vào secure store
       if (!user) {
-        const existingIds = await SecureStore.getItemAsync(ANONYMOUS_ORDERS_KEY);
-        const ids = existingIds ? JSON.parse(existingIds) : [];
+        const existingIdsJSON = await SecureStore.getItemAsync(ANONYMOUS_ORDERS_KEY);
+        const ids = existingIdsJSON ? JSON.parse(existingIdsJSON) : [];
         ids.push(newOrder.id);
         await SecureStore.setItemAsync(ANONYMOUS_ORDERS_KEY, JSON.stringify(ids));
       }
