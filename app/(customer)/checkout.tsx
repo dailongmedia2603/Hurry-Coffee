@@ -5,7 +5,7 @@ import { useCart } from '@/src/context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import ConfirmationModal, { ConfirmationDetails } from '@/src/components/ConfirmationModal';
-import * as SecureStore from 'expo-secure-store';
+import { getAnonymousId } from '@/src/utils/anonymousId';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -13,8 +13,6 @@ const formatPrice = (price: number) => {
     currency: "VND",
   }).format(price);
 };
-
-const ANONYMOUS_ORDERS_KEY = 'anonymous_order_ids';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -27,11 +25,16 @@ export default function CheckoutScreen() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      let anonymousId: string | null = null;
+      if (!user) {
+        anonymousId = await getAnonymousId();
+      }
 
       const { data: newOrderData, error: orderError } = await supabase
         .from('orders')
         .insert({ 
             user_id: user?.id || null, 
+            anonymous_device_id: anonymousId,
             total: totalPrice, 
             notes: notes,
             order_type: details.orderType,
@@ -48,14 +51,6 @@ export default function CheckoutScreen() {
       if (!newOrderData) throw new Error("Không nhận được dữ liệu đơn hàng sau khi tạo.");
 
       const newOrder = newOrderData;
-
-      // Nếu người dùng ẩn danh, lưu ID đơn hàng vào secure store
-      if (!user) {
-        const existingIdsJSON = await SecureStore.getItemAsync(ANONYMOUS_ORDERS_KEY);
-        const ids = existingIdsJSON ? JSON.parse(existingIdsJSON) : [];
-        ids.push(newOrder.id);
-        await SecureStore.setItemAsync(ANONYMOUS_ORDERS_KEY, JSON.stringify(ids));
-      }
 
       const orderItems = items.map(item => ({
         order_id: newOrder.id,

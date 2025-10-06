@@ -7,7 +7,7 @@ import { supabase } from "@/src/integrations/supabase/client";
 import { useFocusEffect } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 
-const ANONYMOUS_ORDERS_KEY = 'anonymous_order_ids';
+const ANONYMOUS_ID_KEY = 'anonymous_device_id';
 
 type OrderWithDetails = Order & {
     restaurant_name: string;
@@ -35,16 +35,9 @@ export default function MyOrdersScreen() {
             if (user) {
                 query = query.eq('user_id', user.id);
             } else {
-                const anonymousOrderIdsJSON = await SecureStore.getItemAsync(ANONYMOUS_ORDERS_KEY);
-                if (anonymousOrderIdsJSON) {
-                    const anonymousOrderIds = JSON.parse(anonymousOrderIdsJSON);
-                    if (anonymousOrderIds.length > 0) {
-                        query = query.in('id', anonymousOrderIds);
-                    } else {
-                        setOrders([]);
-                        setLoading(false);
-                        return;
-                    }
+                const anonymousId = await SecureStore.getItemAsync(ANONYMOUS_ID_KEY);
+                if (anonymousId) {
+                    query = query.eq('anonymous_device_id', anonymousId);
                 } else {
                     setOrders([]);
                     setLoading(false);
