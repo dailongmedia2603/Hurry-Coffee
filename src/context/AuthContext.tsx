@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useRef, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback, useMemo } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -13,7 +13,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  loading: boolean;             // chỉ phản ánh trạng thái KHỞI TẠO AUTH
+  loading: boolean;
   signOut: () => void;
   refetchProfile: () => Promise<void>;
 }
@@ -30,123 +30,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true); // chỉ dùng cho bước getSession khởi tạo
-  const mountedRef = useRef(true);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    mountedRef.current = true;
-
-    const fetchProfile = async (u: User) => {
-      try {
-        // Chặn gọi khi không có token (tránh treo khi auto-refresh)
-        const { data: sess } = await supabase.auth.getSession();
-        if (!sess.session?.access_token) return;
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, avatar_url, role, location_id')
-          .eq('id', u.id)
-          .single();
-
-        // PGRST116 = no rows; không coi là lỗi nghiêm trọng
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching profile:', error);
-        }
-        if (mountedRef.current) setProfile(data ?? null);
-      } catch (e) {
-        console.error('fetchProfile failed:', e);
-      }
-    };
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-
-        const initialSession = data.session ?? null;
-        if (!mountedRef.current) return;
-
-        setSession(initialSession);
-        const currentUser = initialSession?.user ?? null;
-        setUser(currentUser);
-
-        // Đợi lấy profile xong để đảm bảo có thông tin role trước khi điều hướng
-        if (currentUser) {
-            await fetchProfile(currentUser);
-        }
-      } catch (e) {
-        console.error('Failed to initialize session:', e);
-        if (mountedRef.current) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-        }
-      } finally {
-        // Quan trọng: luôn thả loading về false sau khi đã lấy xong session và profile
-        if (mountedRef.current) setLoading(false);
-      }
-    })();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mountedRef.current) return;
-
-      setSession(nextSession);
-      const nextUser = nextSession?.user ?? null;
-      setUser(nextUser);
-
-      // Không block listener bằng await
-      if (nextUser) {
-        // Fetch profile “best effort”, không ảnh hưởng UI
-        Promise.resolve().then(() => fetchProfile(nextUser));
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => {
-      mountedRef.current = false;
-      // phòng khi subscription undefined trong một số môi trường
-      try {
-        listener?.subscription?.unsubscribe();
-      } catch (e) {
-        // ignore
-      }
-    };
-  }, []);
-
-  const refetchProfile = async () => {
-    if (!user) return;
+  const fetchProfile = useCallback(async (u: User | null) => {
+    if (!u) {
+      setProfile(null);
+      return;
+    }
     try {
-      // gọi version nhẹ, không ảnh hưởng cờ loading
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name, avatar_url, role, location_id')
-        .eq('id', user.id)
+        .eq('id', u.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error refetching profile:', error);
+        console.error('Error fetching profile:', error);
       }
-      if (mountedRef.current) setProfile(data ?? null);
+      setProfile(data ?? null);
     } catch (e) {
-      console.error('refetchProfile failed:', e);
-    }
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    // chủ động dọn state để UI thoát ngay, không chờ listener
-    if (mountedRef.current) {
-      setSession(null);
-      setUser(null);
+      console.error('fetchProfile failed:', e);
       setProfile(null);
     }
-  };
+  }, []);
 
-  // Tránh re-render không cần thiết vì value object thay đổi mỗi render
+  useEffect(() => {
+    setLoading(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      await fetchProfile(currentUser);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
+  const refetchProfile = useCallback(async () => {
+    await fetchProfile(user);
+  }, [user, fetchProfile]);
+
   const value = useMemo(
     () => ({ session, user, profile, loading, signOut, refetchProfile }),
-    [session, user, profile, loading]
+    [session, user, profile, loading, signOut, refetchProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
