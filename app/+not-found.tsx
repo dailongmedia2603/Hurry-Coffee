@@ -18,7 +18,7 @@ export default function NotFoundScreen() {
       return <Redirect href="/admin" />;
     }
     if (profile.role === 'staff') {
-      return <Redirect href="/(staff)/orders" />;
+      return <Redirect href="/staff/orders" />;
     }
   }
 

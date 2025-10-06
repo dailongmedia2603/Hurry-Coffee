@@ -26,7 +26,7 @@ export default function RootIndex() {
       return <Redirect href="/admin" />;
     }
     if (profile.role === 'staff') {
-      return <Redirect href="/(staff)" />;
+      return <Redirect href="/staff" />;
     }
   }
 
