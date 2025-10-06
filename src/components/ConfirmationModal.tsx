@@ -49,10 +49,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(!!user);
-  const [otpLoading, setOtpLoading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
@@ -83,15 +80,11 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
         const userPhone = user.phone ? user.phone.replace(/^\+84/, '0') : '';
         setPhone(userPhone);
         setIsPhoneVerified(true);
-        setIsOtpSent(false);
-        setOtp('');
         fetchAddresses(user.id);
       } else {
         setName('');
         setPhone('');
         setIsPhoneVerified(false);
-        setIsOtpSent(false);
-        setOtp('');
         setUserAddresses([]);
         setSelectedAddress(null);
       }
@@ -107,54 +100,6 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
     }
   }, [selectedAddress, userAddresses, profile, user]);
 
-  const handleSendOtp = async () => {
-    if (!phone) {
-      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại.');
-      return;
-    }
-    setOtpLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: `+84${phone.replace(/^0+/, '')}`,
-    });
-    setOtpLoading(false);
-    if (error) {
-      Alert.alert('Lỗi gửi OTP', error.message);
-    } else {
-      setIsOtpSent(true);
-      Alert.alert('Thành công', 'Mã OTP đã được gửi đến số điện thoại của bạn.');
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đủ 6 số của mã OTP.');
-      return;
-    }
-    setOtpLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: `+84${phone.replace(/^0+/, '')}`,
-        token: otp,
-        type: 'sms',
-      });
-
-      if (error) {
-        console.error('OTP Verification Error:', error);
-        Alert.alert('Lỗi xác thực', error.message || 'Mã OTP không hợp lệ. Vui lòng thử lại.');
-      } else if (data.session) {
-        setIsPhoneVerified(true);
-        Alert.alert('Thành công', 'Số điện thoại đã được xác thực và bạn đã đăng nhập.');
-      } else {
-        Alert.alert('Lỗi xác thực', 'Không thể xác thực OTP. Vui lòng thử lại.');
-      }
-    } catch (e) {
-      console.error('Unexpected error during OTP verification:', e);
-      Alert.alert('Lỗi hệ thống', 'Đã có lỗi không mong muốn xảy ra.');
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
   const handleConfirm = () => {
     const isDelivery = orderType === 'delivery';
     const finalAddress = selectedAddress ? selectedAddress.address : customAddress;
@@ -163,10 +108,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
         Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ thông tin.');
         return;
     }
-    if (!isPhoneVerified) {
-        Alert.alert('Thiếu xác thực', 'Vui lòng xác thực số điện thoại của bạn để tiếp tục.');
-        return;
-    }
+    
     onConfirm({
       orderType,
       address: isDelivery ? finalAddress : selectedLocation!.name,
@@ -274,28 +216,14 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
             </View>
             <View style={styles.inputContainer}>
               <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified && !isOtpSent} />
+              <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!user} />
             </View>
 
-            {isPhoneVerified ? (
+            {isPhoneVerified && (
                 <View style={styles.verifiedBadge}>
                     <Ionicons name="checkmark-circle" size={20} color="#00C853" />
                     <Text style={styles.verifiedText}>Số điện thoại đã được xác thực</Text>
                 </View>
-            ) : !isOtpSent ? (
-              <TouchableOpacity style={styles.otpButton} onPress={handleSendOtp} disabled={otpLoading}>
-                {otpLoading ? <ActivityIndicator color="#73509c" /> : <Text style={styles.otpButtonText}>Gửi mã OTP xác thực</Text>}
-              </TouchableOpacity>
-            ) : (
-              <View>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="keypad-outline" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput style={styles.input} placeholder="Nhập mã OTP" keyboardType="number-pad" value={otp} onChangeText={setOtp} />
-                </View>
-                <TouchableOpacity style={styles.otpButton} onPress={handleVerifyOtp} disabled={otpLoading}>
-                  {otpLoading ? <ActivityIndicator color="#73509c" /> : <Text style={styles.otpButtonText}>Xác thực OTP</Text>}
-                </TouchableOpacity>
-              </View>
             )}
           </ScrollView>
           <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
