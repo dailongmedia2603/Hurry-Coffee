@@ -22,32 +22,21 @@ const getStatusStyle = (status: OrderStatus) => {
 
 type OrderWithItemCount = Order & { items_count: number };
 
-export default function ManageOrdersScreen() {
+export default function StaffOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-        .from('orders')
-        .select('*, order_items(count)')
-        .order('created_at', { ascending: false });
-    
-    let responseData: any[] | null = null;
-    if (data) {
-        responseData = data.map(o => ({
-            ...o,
-            items_count: o.order_items[0]?.count || 0,
-        }));
-    }
+    const { data, error } = await supabase.rpc('get_staff_orders');
 
     if (error) {
-        console.error("Error fetching orders:", error);
+        console.error("Error fetching staff orders:", error);
         Alert.alert('Lỗi', 'Không thể tải danh sách đơn hàng.');
         setOrders([]);
     } else {
-        setOrders((responseData as OrderWithItemCount[]) || []);
+        setOrders((data as OrderWithItemCount[]) || []);
     }
     setLoading(false);
   }, []);
@@ -59,7 +48,7 @@ export default function ManageOrdersScreen() {
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
     return (
-      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/admin/order/${item.id}`)}>
+      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/(staff)/order/${item.id}`)}>
         <View style={styles.itemHeader}>
           <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
