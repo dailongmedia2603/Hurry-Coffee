@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
@@ -42,29 +42,53 @@ export default function AdminOrderDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
 
-    const fetchOrderDetails = useCallback(async () => {
+    useEffect(() => {
         if (!id) return;
-        setLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`*, order_items (quantity, price, products (*)), locations (*)`)
-            .eq('id', id)
-            .single();
 
-        if (error) {
-            console.error('Error fetching order details:', error);
-            setOrder(null);
-        } else {
-            setOrder(data as any);
-        }
-        setLoading(false);
+        const fetchOrderDetails = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`*, order_items (quantity, price, products (*)), locations (*)`)
+                .eq('id', id)
+                .single();
+
+            if (error) {
+                console.error('Error fetching order details:', error);
+                setOrder(null);
+            } else {
+                setOrder(data as any);
+            }
+            setLoading(false);
+        };
+
+        fetchOrderDetails();
+
+        const channel = supabase
+            .channel(`admin-order-${id}`)
+            .on<OrderDetails>(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'orders',
+                    filter: `id=eq.${id}`,
+                },
+                (payload) => {
+                    setOrder((currentOrder) => {
+                        if (currentOrder) {
+                            return { ...currentOrder, ...payload.new };
+                        }
+                        return null;
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [id]);
-
-    useFocusEffect(
-        useCallback(() => {
-            fetchOrderDetails();
-        }, [fetchOrderDetails])
-    );
 
     const handleUpdateStatus = async (newStatus: OrderStatus) => {
         setUpdating(true);
@@ -75,9 +99,8 @@ export default function AdminOrderDetailScreen() {
         
         if (error) {
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
-        } else {
-            await fetchOrderDetails();
         }
+        // Giao diện sẽ tự cập nhật nhờ real-time subscription
         setUpdating(false);
     };
 
