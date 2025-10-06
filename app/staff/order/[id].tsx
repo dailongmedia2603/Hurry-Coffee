@@ -99,10 +99,15 @@ export default function StaffOrderDetailScreen() {
             .update({ status: newStatus })
             .eq('id', id);
         
-        setUpdating(false);
-
         if (error) {
+            setUpdating(false);
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
+        } else {
+            // Cập nhật trạng thái cục bộ ngay lập tức để cải thiện trải nghiệm người dùng
+            setOrder(currentOrder => 
+                currentOrder ? { ...currentOrder, status: newStatus } : null
+            );
+            setUpdating(false);
         }
     };
 
