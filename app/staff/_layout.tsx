@@ -32,7 +32,7 @@ export default function StaffLayout() {
   }
 
   if (profile.role !== 'staff') {
-    return <Redirect href={profile.role === 'admin' ? '/admin' : '/'} />;
+    return <Redirect href={profile.role === 'admin' ? '/admin' : '/(customer)'} />;
   }
 
   return (
