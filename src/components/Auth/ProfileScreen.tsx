@@ -140,7 +140,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.menuContainer}>
-          <ProfileMenuItem icon="location-outline" label="Địa chỉ nhận nước" onPress={() => router.push('/(customer)/address')} />
+          <ProfileMenuItem icon="location-outline" label="Địa chỉ nhận nước" onPress={() => router.push('/address')} />
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>

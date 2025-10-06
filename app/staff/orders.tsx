@@ -48,7 +48,7 @@ export default function StaffOrdersScreen() {
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
     return (
-      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/(staff)/order/${item.id}`)}>
+      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/staff/order/${item.id}`)}>
         <View style={styles.itemHeader}>
           <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>

@@ -39,7 +39,7 @@ const OrderCard = ({ order }: { order: Order }) => {
         : { uri: order.restaurant_image_url };
 
     return (
-        <TouchableOpacity style={styles.card} onPress={() => router.push(`/(customer)/order/${order.id}`)}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push(`/order/${order.id}`)}>
             <Image source={imageSource} style={styles.restaurantImage} />
             <View style={styles.cardContent}>
                 <View style={styles.header}>

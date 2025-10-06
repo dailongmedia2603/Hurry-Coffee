@@ -43,7 +43,7 @@ const MenuItem = ({
   return (
     <TouchableOpacity
       style={styles.menuItemContainer}
-      onPress={() => router.push(`/(customer)/product/${product.id}`)}
+      onPress={() => router.push(`/product/${product.id}`)}
     >
       <Image
         source={{ uri: product.image_url || "https://via.placeholder.com/100" }}
@@ -217,13 +217,13 @@ export default function DiscoverScreen() {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-          <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/(customer)/checkout")}>
+          <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/checkout")}>
               <Ionicons name="cart-outline" size={28} color="#333" />
               {totalItems > 0 && (
                 <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>
               )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/(customer)/checkout")}>
+          <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/checkout")}>
               <Text style={styles.buyNowButtonText}>
                 {totalItems > 0 ? `Xem giỏ hàng - ${formatPrice(totalPrice)}` : 'Xem giỏ hàng'}
               </Text>

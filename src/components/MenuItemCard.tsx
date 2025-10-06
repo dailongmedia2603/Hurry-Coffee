@@ -15,7 +15,7 @@ const MenuItemCard = ({ product, style }: { product: Product, style?: ViewStyle 
   const router = useRouter();
 
   const handlePress = () => {
-    router.push(`/(customer)/product/${product.id}`);
+    router.push(`/product/${product.id}`);
   };
 
   return (
