@@ -96,7 +96,6 @@ export default function AdminLayout() {
 
       {/* Hidden screens */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen
         name="order/[id]"
         options={{
