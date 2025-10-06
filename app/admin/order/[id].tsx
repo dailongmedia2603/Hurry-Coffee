@@ -76,10 +76,10 @@ export default function AdminOrderDetailScreen() {
                 },
                 (payload) => {
                     setOrder((currentOrder) => {
-                        if (currentOrder) {
+                        if (currentOrder && currentOrder.status !== payload.new.status) {
                             return { ...currentOrder, ...payload.new };
                         }
-                        return null;
+                        return currentOrder;
                     });
                 }
             )
@@ -91,18 +91,22 @@ export default function AdminOrderDetailScreen() {
     }, [id]);
 
     const handleUpdateStatus = async (newStatus: OrderStatus) => {
+        if (!order) return;
         setUpdating(true);
+
         const { error } = await supabase
             .from('orders')
             .update({ status: newStatus })
             .eq('id', id);
         
+        setUpdating(false);
+
         if (error) {
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
+        } else {
+            // Cập nhật giao diện ngay lập tức sau khi máy chủ xác nhận thành công
+            setOrder({ ...order, status: newStatus });
         }
-        // Giao diện sẽ tự cập nhật một cách an toàn thông qua real-time subscription.
-        // Không cần cập nhật giao diện tức thì ở đây nữa.
-        setUpdating(false);
     };
 
     const renderActionButtons = () => {
@@ -228,7 +232,7 @@ const styles = StyleSheet.create({
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500', flex: 1, textAlign: 'right' },
-    separator: { height: 1, backgroundColor: '#F0F0E0', marginVertical: 8 },
+    separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
     actionContainer: {
         paddingHorizontal: 16,
