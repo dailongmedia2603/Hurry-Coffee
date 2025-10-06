@@ -13,6 +13,14 @@ export default function RootIndex() {
     );
   }
 
+  if (session && !profile) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#73509c" />
+      </View>
+    );
+  }
+
   if (session && profile) {
     if (profile.role === 'admin') {
       return <Redirect href="/admin" />;

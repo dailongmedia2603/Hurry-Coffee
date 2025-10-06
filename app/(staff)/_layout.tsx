@@ -23,8 +23,16 @@ export default function StaffLayout() {
     return <AdminLoginScreen />;
   }
 
-  if (profile?.role !== 'staff') {
-    return <Redirect href={profile?.role === 'admin' ? '/admin' : '/'} />;
+  if (!profile) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#73509c" />
+      </View>
+    );
+  }
+
+  if (profile.role !== 'staff') {
+    return <Redirect href={profile.role === 'admin' ? '/admin' : '/'} />;
   }
 
   return (
