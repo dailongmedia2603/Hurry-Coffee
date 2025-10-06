@@ -103,10 +103,9 @@ export default function AdminOrderDetailScreen() {
 
         if (error) {
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
-        } else {
-            // Cập nhật giao diện ngay lập tức sau khi máy chủ xác nhận thành công
-            setOrder({ ...order, status: newStatus });
         }
+        // Giao diện sẽ được cập nhật một cách an toàn thông qua real-time subscription.
+        // Không thực hiện cập nhật giao diện tức thì ở đây để tránh lỗi.
     };
 
     const renderActionButtons = () => {
