@@ -5,7 +5,7 @@ import OrderCard from '@/src/components/OrderCard';
 import { Order, Location } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
 import { useFocusEffect } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/src/utils/storage";
 
 const ANONYMOUS_ID_KEY = 'anonymous_device_id';
 
@@ -35,7 +35,7 @@ export default function MyOrdersScreen() {
             if (user) {
                 query = query.eq('user_id', user.id);
             } else {
-                const anonymousId = await SecureStore.getItemAsync(ANONYMOUS_ID_KEY);
+                const anonymousId = await storage.getItem(ANONYMOUS_ID_KEY);
                 if (anonymousId) {
                     query = query.eq('anonymous_device_id', anonymousId);
                 } else {
