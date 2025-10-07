@@ -66,7 +66,7 @@ serve(async (req) => {
   const Data = [{
     Content: content,
     IsUnicode: "0",
-    SmsType: "8", // "8" is for OTP brandname
+    SmsType: "2", // Changed from "8" to "2" as requested
     Brandname: EffectiveBrand,
     CallbackUrl,
     RequestId: crypto.randomUUID(),
