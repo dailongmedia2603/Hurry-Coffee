@@ -42,72 +42,33 @@ serve(async (req) => {
     return badRequest("Invalid JSON payload");
   }
 
-  const {
-    phone,
-    content,          // cho SMS thường
-    templateId,       // cho kênh Zalo (TempID)
-    params,           // mảng tham số template (Zalo)
-    oaid,             // OAID Zalo
-    campaignId,
-    requestId,
-    sandbox,          // "0" production, "1" sandbox
-    brandname,        // override brand
-    smsType,          // "2" = brandname care, "8" = OTP brandname (tuỳ account)
-    isUnicode,        // "0" hoặc "1"
-    sendSms = true,   // bật/tắt SMS
-    sendZalo = false, // bật/tắt Zalo
-  } = body ?? {};
+  // ==== EXTRACT DATA FROM SUPABASE AUTH HOOK PAYLOAD ====
+  const phone = body?.user?.phone;
+  const otp = body?.sms?.otp;
 
-  if (!phone) return badRequest("Missing 'phone'");
+  if (!phone || !otp) {
+    return badRequest("Invalid payload from Supabase Auth Hook. Missing phone or OTP.");
+  }
 
-  // dựng Channels tuỳ theo flag / dữ liệu
-  const Channels: string[] = [];
-  if (sendZalo || (templateId && oaid)) Channels.push("zalo");
-  if (sendSms !== false) Channels.push("sms");
-  if (Channels.length === 0) return badRequest("No channel selected (sms/zalo).");
+  // Construct the SMS content from the OTP
+  const content = `Ma xac thuc cua ban la: ${otp}`;
 
   // ==== DATA ====
-  const Data: any[] = [];
-
-  // ZALO TEMPLATE (nếu có)
-  if (Channels.includes("zalo")) {
-    if (!templateId || !oaid) {
-      return badRequest("Zalo requires 'templateId' and 'oaid'.");
-    }
-    Data.push({
-      TempID: String(templateId),
-      Params: Array.isArray(params) ? params : [],
-      OAID: String(oaid),
-      campaignid: campaignId ?? "Webhook Zalo Campaign",
-      CallbackUrl,
-      RequestId: requestId ?? crypto.randomUUID(),
-      Sandbox: sandbox ?? "0",
-      SendingMode: "1",
-    });
-  }
-
-  // SMS THUỜNG
-  if (Channels.includes("sms")) {
-    if (!content && !templateId) {
-      // Cho SMS cần 'content' (nếu bạn không dùng template SMS của eSMS).
-      return badRequest("SMS requires 'content'.");
-    }
-    Data.push({
-      Content: String(content ?? ""),
-      IsUnicode: String(isUnicode ?? "0"),
-      SmsType: String(smsType ?? "2"),
-      Brandname: String(brandname ?? DefaultBrand),
-      CallbackUrl,
-      RequestId: requestId ?? crypto.randomUUID(),
-      Sandbox: sandbox ?? "0",
-    });
-  }
+  const Data = [{
+    Content: content,
+    IsUnicode: "0",
+    SmsType: "8", // "8" is typically for OTP brandname
+    Brandname: DefaultBrand,
+    CallbackUrl,
+    RequestId: crypto.randomUUID(),
+    Sandbox: "0",
+  }];
 
   const esmsPayload = {
     ApiKey,
     SecretKey,
     Phone: String(phone),
-    Channels,
+    Channels: ["sms"],
     Data,
   };
 
@@ -136,8 +97,8 @@ serve(async (req) => {
     esmsJson = { raw: await esmsRes.text() };
   }
 
-  if (!esmsRes.ok) {
-    console.error("eSMS non-200:", esmsRes.status, esmsJson);
+  if (!esmsRes.ok || esmsJson?.CodeResponse !== '100') {
+    console.error("eSMS non-200 or error response:", esmsRes.status, esmsJson);
     return json({ error: "eSMS error", status: esmsRes.status, response: esmsJson }, 502);
   }
 
