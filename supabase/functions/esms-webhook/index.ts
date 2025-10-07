@@ -25,7 +25,7 @@ serve(async (req) => {
   // ==== ENV / SECRETS ====
   const ApiKey = Deno.env.get("ESMS_API_KEY");
   const SecretKey = Deno.env.get("ESMS_SECRET_KEY");
-  const DefaultBrand = Deno.env.get("ESMS_BRANDNAME") ?? "Brand";
+  const DefaultBrand = Deno.env.get("ESMS_BRANDNAME");
   const CallbackUrl = Deno.env.get("ESMS_CALLBACK_URL") ?? "https://esms.vn/webhook/";
 
   if (!ApiKey || !SecretKey) {
@@ -42,32 +42,41 @@ serve(async (req) => {
     return badRequest("Invalid JSON payload");
   }
 
-  // ==== EXTRACT DATA FROM SUPABASE AUTH HOOK PAYLOAD ====
-  const phone = body?.user?.phone;
+  // ==== EXTRACT & SANITIZE DATA FROM SUPABASE AUTH HOOK PAYLOAD ====
+  const phoneInput = body?.user?.phone;
   const otp = body?.sms?.otp;
 
-  if (!phone || !otp) {
+  const Phone = String((typeof phoneInput === "string" ? phoneInput.trim() : phoneInput) ?? "");
+  if (!Phone || !otp) {
     return badRequest("Invalid payload from Supabase Auth Hook. Missing phone or OTP.");
   }
 
-  // Construct the SMS content from the OTP
+  // Sanitize brandname from secret to handle empty/whitespace values
+  const EffectiveBrand = String(DefaultBrand || "").trim();
+  if (!EffectiveBrand) {
+    return json({ error: "Server not configured: ESMS_BRANDNAME secret is missing or empty." }, 500);
+  }
+
+  // Add the requested log for easier debugging
+  console.log("[eSMS] Using Brandname:", EffectiveBrand);
+
   const content = `Ma xac thuc cua ban la: ${otp}`;
 
   // ==== DATA ====
   const Data = [{
     Content: content,
     IsUnicode: "0",
-    SmsType: "8", // "8" is typically for OTP brandname
-    Brandname: DefaultBrand,
+    SmsType: "8", // "8" is for OTP brandname
+    Brandname: EffectiveBrand,
     CallbackUrl,
     RequestId: crypto.randomUUID(),
-    Sandbox: "0",
+    Sandbox: "0", // Auth hooks should always be in production
   }];
 
   const esmsPayload = {
     ApiKey,
     SecretKey,
-    Phone: String(phone),
+    Phone: Phone,
     Channels: ["sms"],
     Data,
   };
@@ -102,6 +111,6 @@ serve(async (req) => {
     return json({ error: "eSMS error", status: esmsRes.status, response: esmsJson }, 502);
   }
 
-  // Trả về kết quả từ eSMS (để debug thuận tiện)
+  // Return success response
   return json({ ok: true, esms: esmsJson }, 200);
 });
