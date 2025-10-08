@@ -113,35 +113,28 @@ export default function OrderDetailScreen() {
                         setUpdating(true);
                         
                         const { data: { user } } = await supabase.auth.getUser();
-                        let query = supabase
-                            .from('orders')
-                            .update({ status: 'Đã hủy' })
-                            .eq('id', order.id)
-                            .eq('status', 'Đang xử lý'); // Đảm bảo chỉ hủy đơn đang xử lý
-
-                        if (user) {
-                            query = query.eq('user_id', user.id);
-                        } else {
-                            const anonymousId = await getAnonymousId();
-                            if (anonymousId) {
-                                query = query.eq('anonymous_device_id', anonymousId);
-                            } else {
-                                Alert.alert('Lỗi', 'Không thể xác thực để hủy đơn hàng.');
-                                setUpdating(false);
-                                return;
-                            }
+                        let anonymousId = null;
+                        if (!user) {
+                            anonymousId = await getAnonymousId();
                         }
 
-                        const { error } = await query;
+                        const { data: result, error } = await supabase.rpc('try_cancel_order', {
+                            p_order_id: order.id,
+                            p_anonymous_device_id: anonymousId
+                        });
+
+                        setUpdating(false);
 
                         if (error) {
-                            console.error("Lỗi hủy đơn hàng:", error);
-                            Alert.alert('Lỗi', 'Không thể hủy đơn hàng. Vui lòng thử lại.');
-                        } else {
+                            console.error("Lỗi RPC khi hủy đơn hàng:", error);
+                            Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+                        } else if (result === 'Thành công') {
                             Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
                             setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
+                        } else {
+                            // Hiển thị thông báo lỗi cụ thể từ hàm
+                            Alert.alert('Không thể hủy đơn', result || 'Vui lòng thử lại.');
                         }
-                        setUpdating(false);
                     },
                 },
             ]
