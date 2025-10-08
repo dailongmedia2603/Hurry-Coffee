@@ -7,7 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ESMS_URL = "https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/";
+// Cập nhật URL endpoint mới
+const ESMS_URL = "https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_post_json/";
 
 function json(res: unknown, status = 200) {
   return new Response(JSON.stringify(res), {
@@ -51,34 +52,28 @@ serve(async (req) => {
     return badRequest("Invalid payload from Supabase Auth Hook. Missing phone or OTP.");
   }
 
-  // Sanitize brandname from secret to handle empty/whitespace values
   const EffectiveBrand = String(DefaultBrand || "").trim();
   if (!EffectiveBrand) {
     return json({ error: "Server not configured: ESMS_BRANDNAME secret is missing or empty." }, 500);
   }
 
-  // Add the requested log for easier debugging
   console.log("[eSMS] Using Brandname:", EffectiveBrand);
 
-  const content = `Ma xac thuc cua ban la: ${otp}`;
+  // Tạo nội dung theo mẫu mới
+  const content = `${otp} la ma xac minh dang ky ${EffectiveBrand} cua ban`;
 
-  // ==== DATA ====
-  const Data = [{
-    Content: content,
-    IsUnicode: "0",
-    SmsType: "8", // Reverted back to OTP type
-    Brandname: EffectiveBrand,
-    CallbackUrl,
-    RequestId: crypto.randomUUID(),
-    Sandbox: "0", // Auth hooks should always be in production
-  }];
-
+  // ==== Cấu trúc payload phẳng mới ====
   const esmsPayload = {
     ApiKey,
     SecretKey,
-    Phone: Phone,
-    Channels: ["sms"],
-    Data,
+    Phone,
+    Content: content,
+    Brandname: EffectiveBrand,
+    SmsType: "2", // Đặt thành "2" theo yêu cầu
+    IsUnicode: "0",
+    RequestId: crypto.randomUUID(),
+    CallbackUrl,
+    campaignid: "OTP Verification", // Thêm campaignid mặc định
   };
 
   // ==== CALL E-SMS WITH TIMEOUT ====
@@ -103,11 +98,12 @@ serve(async (req) => {
   try {
     esmsJson = await esmsRes.json();
   } catch {
-    esmsJson = { raw: await esmsRes.text() };
+    const rawText = await esmsRes.text();
+    esmsJson = { raw: rawText };
   }
 
-  if (!esmsRes.ok || esmsJson?.CodeResponse !== '100') {
-    console.error("eSMS non-200 or error response:", esmsRes.status, esmsJson);
+  if (!esmsRes.ok) {
+    console.error("eSMS non-200 response:", esmsRes.status, esmsJson);
     return json({ error: "eSMS error", status: esmsRes.status, response: esmsJson }, 502);
   }
 
