@@ -112,10 +112,19 @@ export default function OrderDetailScreen() {
                     onPress: async () => {
                         setUpdating(true);
                         try {
-                            const { error } = await supabase
+                            const { data: { user } } = await supabase.auth.getUser();
+                            let query = supabase
                                 .from('orders')
                                 .update({ status: 'Đã hủy' })
                                 .eq('id', order.id);
+
+                            // Nếu là người dùng ẩn danh, thêm điều kiện kiểm tra anonymous_device_id
+                            if (!user) {
+                                const anonymousId = await getAnonymousId();
+                                query = query.eq('anonymous_device_id', anonymousId);
+                            }
+
+                            const { error } = await query;
 
                             if (error) {
                                 throw error;
