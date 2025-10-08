@@ -99,7 +99,7 @@ export default function OrderDetailScreen() {
     }, [id]);
 
     const handleCancelOrder = () => {
-        if (!order || order.status !== 'Đang xử lý') return;
+        if (!order || (order.status !== 'Đang xử lý' && order.status !== 'Dang xu ly')) return;
 
         Alert.alert(
             "Xác nhận hủy đơn",
@@ -170,8 +170,8 @@ export default function OrderDetailScreen() {
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const deliveryFee = order.total - subtotal;
-    const canCancel = order.status === 'Đang xử lý';
-    const showCancelButton = ['Đang xử lý', 'Đang làm', 'Đang giao', 'Sẵn sàng'].includes(order.status);
+    const canCancel = order.status === 'Đang xử lý' || order.status === 'Dang xu ly';
+    const showCancelButton = ['Đang xử lý', 'Dang xu ly', 'Đang làm', 'Đang giao', 'Sẵn sàng'].includes(order.status);
 
     return (
         <SafeAreaView style={styles.safeArea}>
