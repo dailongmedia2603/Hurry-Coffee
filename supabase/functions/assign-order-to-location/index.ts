@@ -7,7 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Hàm tính khoảng cách Haversine bằng JavaScript (dự phòng)
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // metres
   const φ1 = lat1 * Math.PI/180;
@@ -23,14 +22,16 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c; // in metres
 }
 
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    console.log("[assign-order] Function invoked.");
     const { order_id, delivery_address } = await req.json();
+    console.log(`[assign-order] Received order_id: ${order_id}, address: "${delivery_address}"`);
+
     if (!order_id || !delivery_address) {
       return new Response(JSON.stringify({ error: 'Thiếu order_id hoặc delivery_address' }), {
         status: 400,
@@ -38,37 +39,32 @@ serve(async (req) => {
       });
     }
 
-    // 1. Lấy API key từ secrets
     const trackAsiaApiKey = Deno.env.get("TRACK_ASIA_API_KEY");
-    if (!trackAsiaApiKey) {
-      throw new Error("TRACK_ASIA_API_KEY chưa được cấu hình trong Supabase secrets.");
-    }
+    if (!trackAsiaApiKey) throw new Error("TRACK_ASIA_API_KEY chưa được cấu hình.");
 
-    // 2. Geocode địa chỉ của khách hàng để lấy tọa độ
+    console.log("[assign-order] Geocoding customer address...");
     const geocodeUrl = `https://maps.track-asia.com/api/v2/geocode/json?address=${encodeURIComponent(delivery_address)}&key=${trackAsiaApiKey}`;
     
     const geocodeResponse = await fetch(geocodeUrl);
-    if (!geocodeResponse.ok) {
-      throw new Error(`Lỗi Geocoding API: ${geocodeResponse.statusText}`);
-    }
+    if (!geocodeResponse.ok) throw new Error(`Lỗi Geocoding API: ${geocodeResponse.statusText}`);
+    
     const geocodeData = await geocodeResponse.json();
-
     if (!geocodeData.results || geocodeData.results.length === 0) {
-      // Nếu không tìm thấy, vẫn trả về thành công để không chặn luồng, đơn hàng sẽ được xử lý thủ công
-      console.warn(`Không thể geocode địa chỉ: ${delivery_address}`);
-      return new Response(JSON.stringify({ message: "Không tìm thấy tọa độ cho địa chỉ, cần xử lý thủ công." }), { status: 200 });
+      console.warn(`[assign-order] Không thể geocode địa chỉ: ${delivery_address}`);
+      return new Response(JSON.stringify({ message: "Không tìm thấy tọa độ, cần xử lý thủ công." }), { status: 200 });
     }
 
     const customerLocation = geocodeData.results[0].geometry.location;
     const customerLat = customerLocation.lat;
     const customerLng = customerLocation.lng;
+    console.log(`[assign-order] Geocoding successful. Lat: ${customerLat}, Lng: ${customerLng}`);
 
-    // 3. Tìm cửa hàng gần nhất
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log("[assign-order] Fetching locations from DB...");
     const { data: locations, error: locationsError } = await supabaseAdmin
       .from('locations')
       .select('id, latitude, longitude')
@@ -76,9 +72,7 @@ serve(async (req) => {
       .not('longitude', 'is', null);
 
     if (locationsError) throw locationsError;
-    if (!locations || locations.length === 0) {
-      throw new Error("Không có cửa hàng nào có tọa độ hợp lệ trong cơ sở dữ liệu.");
-    }
+    if (!locations || locations.length === 0) throw new Error("Không có cửa hàng nào có tọa độ hợp lệ.");
 
     let closestLocation = null;
     let minDistance = Infinity;
@@ -92,24 +86,26 @@ serve(async (req) => {
     }
 
     if (!closestLocation) {
-       console.warn(`Không tìm thấy cửa hàng gần nhất cho địa chỉ: ${delivery_address}`);
+       console.warn(`[assign-order] Không tìm thấy cửa hàng gần nhất cho địa chỉ: ${delivery_address}`);
        return new Response(JSON.stringify({ message: "Không tìm thấy cửa hàng gần nhất, cần xử lý thủ công." }), { status: 200 });
     }
+    console.log(`[assign-order] Closest location found: ID ${closestLocation.id} at ${minDistance.toFixed(2)} meters.`);
 
-    // 4. Cập nhật đơn hàng với ID của cửa hàng gần nhất
-    // Chúng ta sẽ dùng pickup_location_id để lưu cửa hàng phụ trách đơn giao đi
+    console.log(`[assign-order] Updating order ${order_id} with location ${closestLocation.id}...`);
     const { error: updateError } = await supabaseAdmin
       .from('orders')
       .update({ pickup_location_id: closestLocation.id })
       .eq('id', order_id);
 
     if (updateError) throw updateError;
+    console.log("[assign-order] Order updated successfully.");
 
     return new Response(JSON.stringify({ success: true, assigned_location_id: closestLocation.id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
+    console.error("[assign-order] Unhandled error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
