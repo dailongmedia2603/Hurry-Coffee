@@ -39,6 +39,7 @@ export default function CheckoutScreen() {
             notes: notes,
             order_type: details.orderType,
             delivery_address: details.orderType === 'delivery' ? details.address : null,
+            // Nếu là đơn pickup thì gán luôn, delivery thì để trống chờ function xử lý
             pickup_location_id: details.orderType === 'pickup' ? details.locationId : null,
             customer_name: details.name,
             customer_phone: details.phone,
@@ -62,6 +63,24 @@ export default function CheckoutScreen() {
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // *** BẮT ĐẦU THAY ĐỔI ***
+      // Nếu là đơn giao hàng, gọi Edge Function để tự động gán cửa hàng
+      if (details.orderType === 'delivery' && details.address) {
+        // Chạy ngầm, không cần await để không block UI
+        supabase.functions.invoke('assign-order-to-location', {
+          body: {
+            order_id: newOrder.id,
+            delivery_address: details.address,
+          },
+        }).then(({ error }) => {
+          if (error) {
+            // Ghi lại lỗi ở console để debug, không cần báo cho người dùng
+            console.error('Lỗi khi tự động phân phối đơn hàng:', error);
+          }
+        });
+      }
+      // *** KẾT THÚC THAY ĐỔI ***
 
       setModalVisible(false);
       clearCart();
