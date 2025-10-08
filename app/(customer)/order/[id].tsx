@@ -113,21 +113,24 @@ export default function OrderDetailScreen() {
                         setUpdating(true);
                         try {
                             const { data: { user } } = await supabase.auth.getUser();
-                            let query = supabase
-                                .from('orders')
-                                .update({ status: 'Đã hủy' })
-                                .eq('id', order.id);
 
-                            // Nếu là người dùng ẩn danh, thêm điều kiện kiểm tra anonymous_device_id
-                            if (!user) {
+                            if (user) {
+                                // Người dùng đã đăng nhập, có thể update trực tiếp vì RLS sẽ bảo vệ
+                                const { error } = await supabase
+                                    .from('orders')
+                                    .update({ status: 'Đã hủy' })
+                                    .eq('id', order.id);
+                                if (error) throw error;
+                            } else {
+                                // Người dùng ẩn danh, phải gọi Edge Function để xác thực an toàn
                                 const anonymousId = await getAnonymousId();
-                                query = query.eq('anonymous_device_id', anonymousId);
-                            }
-
-                            const { error } = await query;
-
-                            if (error) {
-                                throw error;
+                                const { error } = await supabase.functions.invoke('cancel-order', {
+                                    body: {
+                                        order_id: order.id,
+                                        anonymous_id: anonymousId,
+                                    },
+                                });
+                                if (error) throw new Error(error.message);
                             }
 
                             Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
