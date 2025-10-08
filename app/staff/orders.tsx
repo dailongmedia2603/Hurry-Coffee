@@ -47,8 +47,16 @@ export default function StaffOrdersScreen() {
 
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
+    const needsVerification = !item.is_phone_verified;
+
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/staff/order/${item.id}`)}>
+        {needsVerification && (
+          <View style={styles.verificationBadge}>
+            <Ionicons name="call" size={14} color="#fff" />
+            <Text style={styles.verificationText}>Cần gọi xác nhận</Text>
+          </View>
+        )}
         <View style={styles.itemHeader}>
           <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
@@ -115,5 +123,21 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#6b7280',
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  verificationText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 6,
   },
 });

@@ -23,6 +23,7 @@ export interface Order {
   locations: Location | null;
   customer_name: string | null;
   customer_phone: string | null;
+  is_phone_verified: boolean | null;
 }
 
 export interface Location {
