@@ -113,30 +113,26 @@ export default function OrderDetailScreen() {
                         setUpdating(true);
                         
                         const { data: { user } } = await supabase.auth.getUser();
-                        let error;
+                        let query = supabase
+                            .from('orders')
+                            .update({ status: 'Đã hủy' })
+                            .eq('id', order.id)
+                            .eq('status', 'Đang xử lý'); // Đảm bảo chỉ hủy đơn đang xử lý
 
                         if (user) {
-                            // Authenticated user flow
-                            const { error: rpcError } = await supabase.rpc('cancel_order', {
-                                p_order_id: order.id
-                            });
-                            error = rpcError;
+                            query = query.eq('user_id', user.id);
                         } else {
-                            // Anonymous user flow
-                            try {
-                                const anonymousId = await getAnonymousId();
-                                if (!anonymousId) {
-                                    throw new Error("Không tìm thấy định danh thiết bị.");
-                                }
-                                const { error: rpcError } = await supabase.rpc('cancel_anonymous_order', {
-                                    p_order_id: order.id,
-                                    p_anonymous_device_id: anonymousId
-                                });
-                                error = rpcError;
-                            } catch (e) {
-                                error = e;
+                            const anonymousId = await getAnonymousId();
+                            if (anonymousId) {
+                                query = query.eq('anonymous_device_id', anonymousId);
+                            } else {
+                                Alert.alert('Lỗi', 'Không thể xác thực để hủy đơn hàng.');
+                                setUpdating(false);
+                                return;
                             }
                         }
+
+                        const { error } = await query;
 
                         if (error) {
                             console.error("Lỗi hủy đơn hàng:", error);
