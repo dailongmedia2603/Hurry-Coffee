@@ -119,11 +119,13 @@ export default function OrderDetailScreen() {
                                 anonymousId = await getAnonymousId();
                             }
 
+                            const payload = {
+                                order_id: order.id,
+                                anonymous_device_id: anonymousId
+                            };
+
                             const { data, error } = await supabase.functions.invoke('cancel-order', {
-                                body: {
-                                    order_id: order.id,
-                                    anonymous_device_id: anonymousId
-                                }
+                                body: payload
                             });
 
                             if (error) {

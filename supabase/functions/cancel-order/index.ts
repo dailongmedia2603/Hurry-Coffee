@@ -25,11 +25,14 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, anonymous_device_id } = await req.json();
-    console.log(`[cancel-order] Parsed body: order_id=${order_id}, anonymous_device_id=${anonymous_device_id}`);
+    const body = await req.json();
+    console.log(`[cancel-order] Parsed body:`, body);
+
+    const order_id = body.order_id;
+    const anonymous_device_id = body.anonymous_device_id;
 
     if (!order_id) {
-      console.error("[cancel-order] Error: order_id is missing.");
+      console.error("[cancel-order] Error: order_id is missing from body.");
       return jsonResponse({ error: 'Thiếu mã đơn hàng (order_id).' }, 400);
     }
 
