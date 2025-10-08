@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
+import { getAnonymousId } from '@/src/utils/anonymousId';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -110,12 +111,36 @@ export default function OrderDetailScreen() {
                     style: "destructive",
                     onPress: async () => {
                         setUpdating(true);
-                        const { error } = await supabase
-                            .from('orders')
-                            .update({ status: 'Đã hủy' })
-                            .eq('id', order.id);
+                        
+                        const { data: { user } } = await supabase.auth.getUser();
+                        let error;
+
+                        if (user) {
+                            // Authenticated user flow
+                            const { error: updateError } = await supabase
+                                .from('orders')
+                                .update({ status: 'Đã hủy' })
+                                .eq('id', order.id);
+                            error = updateError;
+                        } else {
+                            // Anonymous user flow
+                            try {
+                                const anonymousId = await getAnonymousId();
+                                if (!anonymousId) {
+                                    throw new Error("Không tìm thấy định danh thiết bị.");
+                                }
+                                const { error: rpcError } = await supabase.rpc('cancel_anonymous_order', {
+                                    p_order_id: order.id,
+                                    p_anonymous_device_id: anonymousId
+                                });
+                                error = rpcError;
+                            } catch (e) {
+                                error = e;
+                            }
+                        }
 
                         if (error) {
+                            console.error("Lỗi hủy đơn hàng:", error);
                             Alert.alert('Lỗi', 'Không thể hủy đơn hàng. Vui lòng thử lại.');
                         } else {
                             Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
@@ -252,7 +277,7 @@ const styles = StyleSheet.create({
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500' },
-    separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
+    separator: { height: 1, backgroundColor: '#F0F0E0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
     addressContainer: { flexDirection: 'row', alignItems: 'center' },
     addressTextContainer: { marginLeft: 12, flex: 1 },
