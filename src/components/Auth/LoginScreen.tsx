@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
@@ -37,9 +37,8 @@ export default function LoginScreen() {
     setLoading(false);
   }
 
-  async function verifyOtp() {
-    if (!phone || otp.length !== 6) {
-      setErrorMessage("Vui lòng nhập đủ 6 số của mã OTP.");
+  const verifyOtp = useCallback(async () => {
+    if (!phone || otp.length !== 6 || loading) {
       return;
     }
     setLoading(true);
@@ -56,7 +55,13 @@ export default function LoginScreen() {
       setErrorMessage("Mã OTP không hợp lệ. Vui lòng thử lại.");
     }
     setLoading(false);
-  }
+  }, [phone, otp, loading]);
+
+  useEffect(() => {
+    if (otp.length === 6) {
+      verifyOtp();
+    }
+  }, [otp, verifyOtp]);
 
   const handleOtpChange = (text: string, index: number) => {
     const newOtp = otp.split('');
