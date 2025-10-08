@@ -114,23 +114,23 @@ export default function OrderDetailScreen() {
                         try {
                             const { data: { user } } = await supabase.auth.getUser();
 
-                            if (user) {
-                                // Người dùng đã đăng nhập, có thể update trực tiếp vì RLS sẽ bảo vệ
-                                const { error } = await supabase
-                                    .from('orders')
-                                    .update({ status: 'Đã hủy' })
-                                    .eq('id', order.id);
-                                if (error) throw error;
-                            } else {
-                                // Người dùng ẩn danh, phải gọi Edge Function để xác thực an toàn
+                            let query = supabase
+                                .from('orders')
+                                .update({ status: 'Đã hủy' })
+                                .eq('id', order.id);
+
+                            // **SỬA LỖI QUAN TRỌNG**
+                            // Nếu là người dùng ẩn danh, phải gửi kèm mã định danh thiết bị
+                            // để chứng minh quyền sở hữu và vượt qua RLS.
+                            if (!user) {
                                 const anonymousId = await getAnonymousId();
-                                const { error } = await supabase.functions.invoke('cancel-order', {
-                                    body: {
-                                        order_id: order.id,
-                                        anonymous_id: anonymousId,
-                                    },
-                                });
-                                if (error) throw new Error(error.message);
+                                query = query.eq('anonymous_device_id', anonymousId);
+                            }
+
+                            const { error } = await query;
+
+                            if (error) {
+                                throw error;
                             }
 
                             Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
