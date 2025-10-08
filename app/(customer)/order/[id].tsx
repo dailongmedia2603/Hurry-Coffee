@@ -110,39 +110,23 @@ export default function OrderDetailScreen() {
                     text: "Hủy đơn",
                     style: "destructive",
                     onPress: async () => {
+                        setUpdating(true);
                         try {
-                            setUpdating(true);
-                            
-                            const { data: { user } } = await supabase.auth.getUser();
-                            let anonymousId = null;
-                            if (!user) {
-                                anonymousId = await getAnonymousId();
-                            }
-
-                            const payload = {
-                                order_id: order.id,
-                                anonymous_device_id: anonymousId
-                            };
-
-                            const { data, error } = await supabase.functions.invoke('cancel-order', {
-                                body: payload
-                            });
+                            const { error } = await supabase
+                                .from('orders')
+                                .update({ status: 'Đã hủy' })
+                                .eq('id', order.id);
 
                             if (error) {
                                 throw error;
                             }
 
-                            if (data.error) {
-                                Alert.alert('Không thể hủy đơn', data.error);
-                            } else {
-                                Alert.alert('Thành công', data.message || 'Đơn hàng của bạn đã được hủy.');
-                                setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
-                            }
+                            Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
+                            setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
 
                         } catch (err: any) {
-                            console.error("Lỗi toàn cục khi hủy đơn:", JSON.stringify(err, null, 2));
-                            const message = err.message || 'Đã có lỗi xảy ra khi gọi đến máy chủ. Vui lòng thử lại.';
-                            Alert.alert('Lỗi', message);
+                            console.error("Lỗi khi hủy đơn:", err);
+                            Alert.alert('Lỗi', err.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.');
                         } finally {
                             setUpdating(false);
                         }
