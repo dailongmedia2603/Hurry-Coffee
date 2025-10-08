@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -49,9 +49,17 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [isPhoneVerified, setIsPhoneVerified] = useState(!!user);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
+
+  // State for OTP verification
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const otpInputs = useRef<(TextInput | null)[]>([]);
+
+  const isPhoneVerified = !!user;
 
   useEffect(() => {
     const fetchAddresses = async (userId: string) => {
@@ -60,14 +68,14 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
         .from('user_addresses')
         .select('*')
         .eq('user_id', userId)
-        .order('is_default', { ascending: false }) // Ưu tiên địa chỉ mặc định
+        .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching user addresses:', error);
       } else if (data && data.length > 0) {
         setUserAddresses(data);
-        setSelectedAddress(data[0]); // Tự động chọn địa chỉ đầu tiên (mặc định)
+        setSelectedAddress(data[0]);
       } else {
         setUserAddresses([]);
         setSelectedAddress(null);
@@ -79,16 +87,18 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       if (user) {
         const userPhone = user.phone ? user.phone.replace(/^\+84/, '0') : '';
         setPhone(userPhone);
-        setIsPhoneVerified(true);
         fetchAddresses(user.id);
       } else {
         setName('');
         setPhone('');
-        setIsPhoneVerified(false);
         setUserAddresses([]);
         setSelectedAddress(null);
       }
+      // Reset state on modal open
       setCustomAddress('');
+      setOtpSent(false);
+      setOtp('');
+      setOtpError('');
     }
   }, [user, profile, visible]);
 
@@ -99,6 +109,71 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       setName(profile?.full_name || '');
     }
   }, [selectedAddress, userAddresses, profile, user]);
+
+  const formatPhoneNumber = (phoneNumber: string) => {
+    const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
+    return `+84${cleaned}`;
+  };
+
+  const handleSendOtp = async () => {
+    if (!phone) {
+      setOtpError("Vui lòng nhập số điện thoại.");
+      return;
+    }
+    setOtpLoading(true);
+    setOtpError('');
+    const formattedPhone = formatPhoneNumber(phone);
+    const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone });
+
+    if (error) {
+      console.error("Lỗi gửi OTP:", error);
+      setOtpError("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại.");
+    } else {
+      setOtpSent(true);
+    }
+    setOtpLoading(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!phone || otp.length !== 6) {
+      setOtpError("Vui lòng nhập đủ 6 số của mã OTP.");
+      return;
+    }
+    setOtpLoading(true);
+    setOtpError('');
+    const formattedPhone = formatPhoneNumber(phone);
+    const { error } = await supabase.auth.verifyOtp({
+      phone: formattedPhone,
+      token: otp,
+      type: 'sms',
+    });
+
+    if (error) {
+      console.error("Lỗi xác thực OTP:", error);
+      setOtpError("Mã OTP không hợp lệ. Vui lòng thử lại.");
+    } else {
+      // Success! The onAuthStateChange listener in AuthContext will handle the login.
+      // The modal will re-render with the new user session.
+      setOtpSent(false);
+      setOtp('');
+    }
+    setOtpLoading(false);
+  };
+
+  const handleOtpChange = (text: string, index: number) => {
+    const newOtp = otp.split('');
+    newOtp[index] = text;
+    setOtp(newOtp.join(''));
+    if (text && index < 5) {
+      otpInputs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = ({ nativeEvent: { key } }: any, index: number) => {
+    if (key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+  };
 
   const handleConfirm = () => {
     const isDelivery = orderType === 'delivery';
@@ -121,132 +196,98 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   const renderDeliveryAddressInput = () => {
     if (addressLoading) {
-      return (
-        <View style={styles.addressButton}>
-          <ActivityIndicator color="#73509c" />
-        </View>
-      );
+      return <View style={styles.addressButton}><ActivityIndicator color="#73509c" /></View>;
     }
-
     if (userAddresses.length > 0) {
       return (
         <TouchableOpacity style={styles.addressButton} onPress={() => setAddressPickerVisible(true)}>
           <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
           <View style={{ flex: 1 }}>
             <Text style={styles.addressNameText} numberOfLines={1}>{selectedAddress?.name}</Text>
-            <Text style={styles.addressDetailText} numberOfLines={1}>
-              {selectedAddress ? selectedAddress.address : 'Chọn một địa chỉ'}
-            </Text>
+            <Text style={styles.addressDetailText} numberOfLines={1}>{selectedAddress ? selectedAddress.address : 'Chọn một địa chỉ'}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#666" />
         </TouchableOpacity>
       );
     }
-
     return (
       <View style={styles.addressButton}>
         <Ionicons name="location-outline" size={20} color="#666" style={styles.inputIcon} />
-        <TextInput 
-          style={styles.input}
-          placeholder='Nhập địa chỉ của bạn'
-          value={customAddress}
-          onChangeText={setCustomAddress}
-        />
+        <TextInput style={styles.input} placeholder='Nhập địa chỉ của bạn' value={customAddress} onChangeText={setCustomAddress} />
       </View>
     );
   };
 
+  const renderPhoneVerification = () => {
+    if (isPhoneVerified) {
+      return (
+        <View style={styles.verifiedBadge}>
+          <Ionicons name="checkmark-circle" size={20} color="#00C853" />
+          <Text style={styles.verifiedText}>Số điện thoại đã được xác thực</Text>
+        </View>
+      );
+    }
+
+    if (otpSent) {
+      return (
+        <View>
+          <Text style={styles.otpPrompt}>Nhập mã OTP được gửi đến số điện thoại của bạn.</Text>
+          <View style={styles.otpContainer}>
+            {[...Array(6)].map((_, index) => (
+              <TextInput
+                key={index}
+                ref={(el) => { otpInputs.current[index] = el; }}
+                style={[styles.otpInput, otp[index] ? styles.otpInputFilled : null]}
+                keyboardType="number-pad"
+                maxLength={1}
+                onChangeText={(text) => handleOtpChange(text, index)}
+                onKeyPress={(e) => handleKeyPress(e, index)}
+                value={otp[index] || ''}
+              />
+            ))}
+          </View>
+          <TouchableOpacity style={styles.otpButton} onPress={handleVerifyOtp} disabled={otpLoading}>
+            {otpLoading ? <ActivityIndicator color="#73509c" /> : <Text style={styles.otpButtonText}>Xác nhận OTP</Text>}
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (phone.length >= 9) {
+      return (
+        <TouchableOpacity style={styles.otpButton} onPress={handleSendOtp} disabled={otpLoading}>
+          {otpLoading ? <ActivityIndicator color="#73509c" /> : <Text style={styles.otpButtonText}>Xác minh số điện thoại</Text>}
+        </TouchableOpacity>
+      );
+    }
+
+    return null;
+  };
+
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalOverlay}
-      >
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
         <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Xác nhận đơn hàng</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.header}><Text style={styles.headerTitle}>Xác nhận đơn hàng</Text><TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity></View>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.sectionTitle}>Hình thức nhận hàng</Text>
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity
-                style={[styles.toggleButton, orderType === 'delivery' && styles.toggleButtonActive]}
-                onPress={() => setOrderType('delivery')}
-              >
-                <Ionicons name="bicycle-outline" size={20} color={orderType === 'delivery' ? '#fff' : '#73509c'} />
-                <Text style={[styles.toggleButtonText, orderType === 'delivery' && styles.toggleButtonTextActive]}>Giao đến</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleButton, orderType === 'pickup' && styles.toggleButtonActive]}
-                onPress={() => setOrderType('pickup')}
-              >
-                <Ionicons name="bag-handle-outline" size={20} color={orderType === 'pickup' ? '#fff' : '#73509c'} />
-                <Text style={[styles.toggleButtonText, orderType === 'pickup' && styles.toggleButtonTextActive]}>Ghé lấy</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.sectionTitle}>
-              {orderType === 'delivery' ? 'Địa chỉ giao hàng' : 'Chọn điểm ghé lấy'}
-            </Text>
-            {orderType === 'delivery' ? (
-                renderDeliveryAddressInput()
-            ) : (
-                <TouchableOpacity style={styles.addressButton} onPress={() => setLocationPickerVisible(true)}>
-                    <Ionicons name="storefront-outline" size={20} color="#666" style={styles.inputIcon} />
-                    <Text style={[styles.input, !selectedLocation && styles.placeholderText]}>
-                        {selectedLocation ? selectedLocation.name : 'Chọn một cửa hàng'}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={20} color="#666" />
-                </TouchableOpacity>
-            )}
-
+            <View style={styles.toggleContainer}><TouchableOpacity style={[styles.toggleButton, orderType === 'delivery' && styles.toggleButtonActive]} onPress={() => setOrderType('delivery')}><Ionicons name="bicycle-outline" size={20} color={orderType === 'delivery' ? '#fff' : '#73509c'} /><Text style={[styles.toggleButtonText, orderType === 'delivery' && styles.toggleButtonTextActive]}>Giao đến</Text></TouchableOpacity><TouchableOpacity style={[styles.toggleButton, orderType === 'pickup' && styles.toggleButtonActive]} onPress={() => setOrderType('pickup')}><Ionicons name="bag-handle-outline" size={20} color={orderType === 'pickup' ? '#fff' : '#73509c'} /><Text style={[styles.toggleButtonText, orderType === 'pickup' && styles.toggleButtonTextActive]}>Ghé lấy</Text></TouchableOpacity></View>
+            <Text style={styles.sectionTitle}>{orderType === 'delivery' ? 'Địa chỉ giao hàng' : 'Chọn điểm ghé lấy'}</Text>
+            {orderType === 'delivery' ? renderDeliveryAddressInput() : <TouchableOpacity style={styles.addressButton} onPress={() => setLocationPickerVisible(true)}><Ionicons name="storefront-outline" size={20} color="#666" style={styles.inputIcon} /><Text style={[styles.input, !selectedLocation && styles.placeholderText]}>{selectedLocation ? selectedLocation.name : 'Chọn một cửa hàng'}</Text><Ionicons name="chevron-forward" size={20} color="#666" /></TouchableOpacity>}
             <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput style={styles.input} placeholder="Tên người nhận" value={name} onChangeText={setName} />
-            </View>
-            <View style={styles.inputContainer}>
-              <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!user} />
-            </View>
-
-            {isPhoneVerified && (
-                <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={20} color="#00C853" />
-                    <Text style={styles.verifiedText}>Số điện thoại đã được xác thực</Text>
-                </View>
-            )}
+            <View style={styles.inputContainer}><Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} /><TextInput style={styles.input} placeholder="Tên người nhận" value={name} onChangeText={setName} /></View>
+            <View style={styles.inputContainer}><Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} /><TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} /></View>
+            {otpError ? <Text style={styles.errorText}>{otpError}</Text> : null}
+            {renderPhoneVerification()}
           </ScrollView>
           <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmButtonText}>Hoàn tất đặt hàng</Text>}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-      <LocationPickerModal
-        visible={isLocationPickerVisible}
-        onClose={() => setLocationPickerVisible(false)}
-        onSelect={(location) => {
-          setSelectedLocation(location);
-        }}
-      />
-      <AddressPickerModal
-        visible={isAddressPickerVisible}
-        onClose={() => setAddressPickerVisible(false)}
-        addresses={userAddresses}
-        onSelect={(address) => {
-          setSelectedAddress(address);
-          setAddressPickerVisible(false);
-        }}
-      />
+      <LocationPickerModal visible={isLocationPickerVisible} onClose={() => setLocationPickerVisible(false)} onSelect={(location) => setSelectedLocation(location)} />
+      <AddressPickerModal visible={isAddressPickerVisible} onClose={() => setAddressPickerVisible(false)} addresses={userAddresses} onSelect={(address) => { setSelectedAddress(address); setAddressPickerVisible(false); }} />
     </Modal>
   );
 };
@@ -276,6 +317,11 @@ const styles = StyleSheet.create({
   confirmButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   addressNameText: { fontSize: 16, fontWeight: '500', color: '#333' },
   addressDetailText: { fontSize: 14, color: '#666' },
+  errorText: { color: 'red', marginTop: 8, textAlign: 'center' },
+  otpPrompt: { fontSize: 14, color: '#666', textAlign: 'center', marginVertical: 12 },
+  otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  otpInput: { width: 48, height: 56, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, textAlign: 'center', fontSize: 22, fontWeight: 'bold', color: '#333' },
+  otpInputFilled: { borderColor: '#73509c' },
 });
 
 export default ConfirmationModal;
