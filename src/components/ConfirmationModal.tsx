@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -61,6 +61,45 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   const isPhoneVerified = !!user;
 
+  const formatPhoneNumber = (phoneNumber: string) => {
+    const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
+    return `+84${cleaned}`;
+  };
+
+  const handleVerifyOtp = useCallback(async () => {
+    if (otp.length !== 6) {
+      // This check is for the manual button press
+      setOtpError("Vui lòng nhập đủ 6 số của mã OTP.");
+      return;
+    }
+    if (otpLoading) return; // Prevent multiple submissions
+
+    setOtpLoading(true);
+    setOtpError('');
+    const formattedPhone = formatPhoneNumber(phone);
+    const { error } = await supabase.auth.verifyOtp({
+      phone: formattedPhone,
+      token: otp,
+      type: 'sms',
+    });
+
+    if (error) {
+      console.error("Lỗi xác thực OTP:", error);
+      setOtpError("Mã OTP không hợp lệ. Vui lòng thử lại.");
+    } else {
+      setOtpSent(false);
+      setOtp('');
+    }
+    setOtpLoading(false);
+  }, [otp, phone, otpLoading]);
+
+  // Effect to auto-submit OTP when it's complete
+  useEffect(() => {
+    if (otp.length === 6) {
+      handleVerifyOtp();
+    }
+  }, [otp, handleVerifyOtp]);
+
   useEffect(() => {
     const fetchAddresses = async (userId: string) => {
       setAddressLoading(true);
@@ -94,7 +133,6 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
         setUserAddresses([]);
         setSelectedAddress(null);
       }
-      // Reset state on modal open
       setCustomAddress('');
       setOtpSent(false);
       setOtp('');
@@ -109,11 +147,6 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       setName(profile?.full_name || '');
     }
   }, [selectedAddress, userAddresses, profile, user]);
-
-  const formatPhoneNumber = (phoneNumber: string) => {
-    const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
-    return `+84${cleaned}`;
-  };
 
   const handleSendOtp = async () => {
     if (!phone) {
@@ -130,32 +163,6 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       setOtpError("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại.");
     } else {
       setOtpSent(true);
-    }
-    setOtpLoading(false);
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!phone || otp.length !== 6) {
-      setOtpError("Vui lòng nhập đủ 6 số của mã OTP.");
-      return;
-    }
-    setOtpLoading(true);
-    setOtpError('');
-    const formattedPhone = formatPhoneNumber(phone);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otp,
-      type: 'sms',
-    });
-
-    if (error) {
-      console.error("Lỗi xác thực OTP:", error);
-      setOtpError("Mã OTP không hợp lệ. Vui lòng thử lại.");
-    } else {
-      // Success! The onAuthStateChange listener in AuthContext will handle the login.
-      // The modal will re-render with the new user session.
-      setOtpSent(false);
-      setOtp('');
     }
     setOtpLoading(false);
   };
