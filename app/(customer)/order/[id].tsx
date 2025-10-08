@@ -212,24 +212,25 @@ export default function OrderDetailScreen() {
                     <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
+
+                {showCancelButton && (
+                    <View style={styles.cancelContainer}>
+                        <TouchableOpacity
+                            style={[styles.cancelButton, !canCancel && styles.disabledButton]}
+                            onPress={handleCancelOrder}
+                            disabled={!canCancel || updating}
+                        >
+                            {updating ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.cancelButtonText}>
+                                    {canCancel ? 'Hủy đơn hàng' : 'Không thể hủy đơn'}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
             </ScrollView>
-            {showCancelButton && (
-                <View style={styles.footer}>
-                    <TouchableOpacity
-                        style={[styles.cancelButton, !canCancel && styles.disabledButton]}
-                        onPress={handleCancelOrder}
-                        disabled={!canCancel || updating}
-                    >
-                        {updating ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.cancelButtonText}>
-                                {canCancel ? 'Hủy đơn hàng' : 'Không thể hủy đơn'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
         </SafeAreaView>
     );
 }
@@ -258,12 +259,9 @@ const styles = StyleSheet.create({
     addressLabel: { fontSize: 14, color: '#666' },
     addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
     addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
-    footer: {
-        padding: 16,
-        paddingBottom: 34,
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: 1,
-        borderTopColor: '#E0E0E0',
+    cancelContainer: {
+        paddingHorizontal: 16,
+        marginTop: 24,
     },
     cancelButton: {
         backgroundColor: '#ef4444',
