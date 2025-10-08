@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
@@ -40,6 +40,7 @@ export default function OrderDetailScreen() {
     const router = useRouter();
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -69,7 +70,63 @@ export default function OrderDetailScreen() {
         };
 
         fetchOrderDetails();
+
+        const channel = supabase
+            .channel(`customer-order-${id}`)
+            .on<OrderDetails>(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'orders',
+                    filter: `id=eq.${id}`,
+                },
+                (payload) => {
+                    setOrder((currentOrder) => {
+                        if (currentOrder && currentOrder.status !== payload.new.status) {
+                            return { ...currentOrder, ...payload.new };
+                        }
+                        return currentOrder;
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [id]);
+
+    const handleCancelOrder = async () => {
+        if (!order || order.status !== 'Đang xử lý') return;
+
+        Alert.alert(
+            "Xác nhận hủy đơn",
+            "Bạn có chắc chắn muốn hủy đơn hàng này không?",
+            [
+                { text: "Không", style: "cancel" },
+                {
+                    text: "Hủy đơn",
+                    style: "destructive",
+                    onPress: async () => {
+                        setUpdating(true);
+                        const { error } = await supabase
+                            .from('orders')
+                            .update({ status: 'Đã hủy' })
+                            .eq('id', order.id);
+
+                        if (error) {
+                            Alert.alert('Lỗi', 'Không thể hủy đơn hàng. Vui lòng thử lại.');
+                        } else {
+                            Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
+                            setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
+                        }
+                        setUpdating(false);
+                    },
+                },
+            ]
+        );
+    };
 
     if (loading) {
         return (
@@ -89,6 +146,8 @@ export default function OrderDetailScreen() {
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const deliveryFee = order.total - subtotal;
+    const canCancel = order.status === 'Đang xử lý';
+    const showCancelButton = ['Đang xử lý', 'Đang làm', 'Đang giao', 'Sẵn sàng'].includes(order.status);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -154,6 +213,23 @@ export default function OrderDetailScreen() {
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
             </ScrollView>
+            {showCancelButton && (
+                <View style={styles.footer}>
+                    <TouchableOpacity
+                        style={[styles.cancelButton, !canCancel && styles.disabledButton]}
+                        onPress={handleCancelOrder}
+                        disabled={!canCancel || updating}
+                    >
+                        {updating ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.cancelButtonText}>
+                                {canCancel ? 'Hủy đơn hàng' : 'Không thể hủy đơn'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -182,4 +258,25 @@ const styles = StyleSheet.create({
     addressLabel: { fontSize: 14, color: '#666' },
     addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
     addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
+    footer: {
+        padding: 16,
+        paddingBottom: 34,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+    },
+    cancelButton: {
+        backgroundColor: '#ef4444',
+        paddingVertical: 16,
+        borderRadius: 30,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    disabledButton: {
+        backgroundColor: '#ccc',
+    },
 });
