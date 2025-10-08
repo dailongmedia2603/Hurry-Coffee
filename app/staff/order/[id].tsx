@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
+import { formatDisplayPhone } from '@/src/utils/formatters';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -202,7 +203,7 @@ export default function StaffOrderDetailScreen() {
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Thông tin</Text>
                     <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
-                    <InfoRow label="Số điện thoại" value={order.customer_phone || 'Không có'} />
+                    <InfoRow label="Số điện thoại" value={formatDisplayPhone(order.customer_phone) || 'Không có'} />
                     <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
                     <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
                 </View>

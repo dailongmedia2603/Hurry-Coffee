@@ -18,6 +18,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Location, UserAddress } from '@/types';
 import LocationPickerModal from './LocationPickerModal';
 import AddressPickerModal from './AddressPickerModal';
+import { formatDisplayPhone } from '@/src/utils/formatters';
 
 type OrderType = 'delivery' | 'pickup';
 
@@ -124,7 +125,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
     if (visible) {
       if (user) {
-        const userPhone = user.phone ? user.phone.replace(/^\+84/, '0') : '';
+        const userPhone = formatDisplayPhone(user.phone);
         setPhone(userPhone);
         fetchAddresses(user.id);
       } else {

@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
+import { formatDisplayPhone } from '@/src/utils/formatters';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -72,7 +73,7 @@ export default function StaffOrdersScreen() {
         </View>
         <View style={styles.itemInfoRow}>
           <Ionicons name="call-outline" size={16} color="#6b7280" />
-          <Text style={styles.itemInfoText}>{item.customer_phone || 'Không có SĐT'}</Text>
+          <Text style={styles.itemInfoText}>{formatDisplayPhone(item.customer_phone) || 'Không có SĐT'}</Text>
         </View>
         <View style={styles.itemFooter}>
           <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>

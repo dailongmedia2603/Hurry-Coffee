@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { UserAddress } from '@/types';
+import { formatDisplayPhone } from '@/src/utils/formatters';
 
 const ProfileMenuItem = ({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
@@ -136,7 +137,7 @@ export default function ProfileScreen() {
             )}
           </TouchableOpacity>
           <Text style={styles.profileName}>{displayName}</Text>
-          <Text style={styles.profileEmail}>{user?.phone}</Text>
+          <Text style={styles.profileEmail}>{formatDisplayPhone(user?.phone)}</Text>
         </View>
 
         <View style={styles.menuContainer}>
