@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +13,16 @@ function jsonResponse(data, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Helper to check for admin role
+async function isAdmin(supabaseClient: SupabaseClient): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('is_admin');
+  if (error) {
+    console.error('[cancel-order] Error checking admin status:', error);
+    return false;
+  }
+  return data === true;
 }
 
 serve(async (req) => {
@@ -69,8 +79,14 @@ serve(async (req) => {
     const { data: { user } } = await userSupabaseClient.auth.getUser();
     console.log(`[cancel-order] Authenticating user. User ID: ${user?.id}`);
 
+    // Check for admin role first
+    const isCallerAdmin = user ? await isAdmin(userSupabaseClient) : false;
+
     let isOwner = false;
-    if (user) {
+    if (isCallerAdmin) {
+        isOwner = true;
+        console.log("[cancel-order] Ownership confirmed via admin role.");
+    } else if (user) {
       if (order.user_id === user.id) {
         isOwner = true;
         console.log("[cancel-order] Ownership confirmed for authenticated user.");
