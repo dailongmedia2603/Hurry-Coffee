@@ -117,11 +117,10 @@ export default function OrderDetailScreen() {
 
                         if (user) {
                             // Authenticated user flow
-                            const { error: updateError } = await supabase
-                                .from('orders')
-                                .update({ status: 'Đã hủy' })
-                                .eq('id', order.id);
-                            error = updateError;
+                            const { error: rpcError } = await supabase.rpc('cancel_order', {
+                                p_order_id: order.id
+                            });
+                            error = rpcError;
                         } else {
                             // Anonymous user flow
                             try {
@@ -277,7 +276,7 @@ const styles = StyleSheet.create({
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500' },
-    separator: { height: 1, backgroundColor: '#F0F0E0', marginVertical: 8 },
+    separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
     addressContainer: { flexDirection: 'row', alignItems: 'center' },
     addressTextContainer: { marginLeft: 12, flex: 1 },
