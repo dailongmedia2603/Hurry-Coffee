@@ -98,7 +98,47 @@ export default function OrderDetailScreen() {
         };
     }, [id]);
 
-    const handleCancelOrder = async () => {
+    const performCancel = async () => {
+        if (!order) return;
+        try {
+            setUpdating(true);
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            let anonymousId = null;
+            if (!user) {
+                anonymousId = await getAnonymousId();
+            }
+
+            const { data, error } = await supabase.functions.invoke('cancel-order', {
+                body: {
+                    order_id: order.id,
+                    anonymous_device_id: anonymousId
+                }
+            });
+
+            if (error) {
+                // Bắt các lỗi mạng, lỗi xác thực...
+                throw error;
+            }
+
+            // Xử lý các lỗi logic trả về từ function
+            if (data.error) {
+                Alert.alert('Không thể hủy đơn', data.error);
+            } else {
+                Alert.alert('Thành công', data.message || 'Đơn hàng của bạn đã được hủy.');
+                setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
+            }
+
+        } catch (err: any) {
+            console.error("Lỗi toàn cục khi hủy đơn:", JSON.stringify(err, null, 2));
+            const message = err.message || 'Đã có lỗi xảy ra khi gọi đến máy chủ. Vui lòng thử lại.';
+            Alert.alert('Lỗi', message);
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleCancelOrder = () => {
         if (!order || order.status !== 'Đang xử lý') return;
 
         Alert.alert(
@@ -109,50 +149,7 @@ export default function OrderDetailScreen() {
                 {
                     text: "Hủy đơn",
                     style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setUpdating(true);
-                            
-                            const { data: { user } } = await supabase.auth.getUser();
-                            let anonymousId = null;
-                            if (!user) {
-                                anonymousId = await getAnonymousId();
-                            }
-
-                            const { data, error } = await supabase.functions.invoke('cancel-order', {
-                                body: {
-                                    order_id: order.id,
-                                    anonymous_device_id: anonymousId
-                                }
-                            });
-
-                            if (error) {
-                                // Ném lỗi để khối catch xử lý
-                                throw error;
-                            }
-
-                            // Xử lý phản hồi logic từ function
-                            if (data.error) {
-                                Alert.alert('Không thể hủy đơn', data.error);
-                            } else {
-                                Alert.alert('Thành công', data.message || 'Đơn hàng của bạn đã được hủy.');
-                                setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
-                            }
-
-                        } catch (err: any) {
-                            console.error("Lỗi toàn cục khi hủy đơn:", JSON.stringify(err, null, 2));
-                            let message = 'Đã có lỗi xảy ra. Vui lòng thử lại.';
-                            // Cố gắng lấy thông báo lỗi cụ thể hơn
-                            if (err.context && err.context.error) {
-                                message = err.context.error;
-                            } else if (err.message) {
-                                message = err.message;
-                            }
-                            Alert.alert('Lỗi', message);
-                        } finally {
-                            setUpdating(false);
-                        }
-                    },
+                    onPress: performCancel, // Gọi hàm async đã được tách riêng
                 },
             ]
         );
