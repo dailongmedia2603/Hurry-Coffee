@@ -118,22 +118,21 @@ export default function OrderDetailScreen() {
                             anonymousId = await getAnonymousId();
                         }
 
-                        const { data: result, error } = await supabase.rpc('try_cancel_order', {
-                            p_order_id: order.id,
-                            p_anonymous_device_id: anonymousId
+                        const { data, error } = await supabase.functions.invoke('cancel-order', {
+                            body: {
+                                order_id: order.id,
+                                anonymous_device_id: anonymousId
+                            }
                         });
 
                         setUpdating(false);
 
                         if (error) {
-                            console.error("Lỗi RPC khi hủy đơn hàng:", error);
-                            Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
-                        } else if (result === 'Thành công') {
+                            console.error("Lỗi khi gọi Edge Function:", error);
+                            Alert.alert('Lỗi', data?.error || 'Không thể hủy đơn hàng. Vui lòng thử lại.');
+                        } else {
                             Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
                             setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
-                        } else {
-                            // Hiển thị thông báo lỗi cụ thể từ hàm
-                            Alert.alert('Không thể hủy đơn', result || 'Vui lòng thử lại.');
                         }
                     },
                 },
