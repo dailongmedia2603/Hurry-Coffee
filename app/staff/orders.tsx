@@ -48,6 +48,9 @@ export default function StaffOrdersScreen() {
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
     const needsVerification = !item.is_phone_verified;
+    const orderTitle = item.order_type === 'pickup' 
+        ? `Đơn ghé lấy #${item.id.substring(0, 8)}` 
+        : `Đơn giao hàng #${item.id.substring(0, 8)}`;
 
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/staff/order/${item.id}`)}>
@@ -58,7 +61,7 @@ export default function StaffOrdersScreen() {
           </View>
         )}
         <View style={styles.itemHeader}>
-          <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
+          <Text style={styles.itemName}>{orderTitle}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
             <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
           </View>
