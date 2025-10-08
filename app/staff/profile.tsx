@@ -1,15 +1,45 @@
-import React from 'react';
-import { SafeAreaView, View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
+import { supabase } from '@/src/integrations/supabase/client';
 
 export default function StaffProfileScreen() {
   const { user, profile } = useAuth();
+  const [locationName, setLocationName] = useState<string | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (profile?.location_id) {
+        setLoadingLocation(true);
+        const { data, error } = await supabase
+          .from('locations')
+          .select('name')
+          .eq('id', profile.location_id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching location:", error);
+          setLocationName('Không tìm thấy địa điểm');
+        } else if (data) {
+          setLocationName(data.name);
+        }
+        setLoadingLocation(false);
+      } else {
+        setLocationName(null);
+      }
+    };
+
+    if (profile) {
+      fetchLocation();
+    }
+  }, [profile]);
 
   if (!user || !profile) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Text>Đang tải hồ sơ...</Text>
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color="#73509c" />
       </SafeAreaView>
     );
   }
@@ -25,6 +55,20 @@ export default function StaffProfileScreen() {
             <Text style={styles.roleText}>{profile.role === 'staff' ? 'Nhân viên' : 'Admin'}</Text>
           </View>
         </View>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Ionicons name="storefront-outline" size={24} color="#73509c" style={styles.infoIcon} />
+            <View>
+              <Text style={styles.infoLabel}>Địa điểm làm việc</Text>
+              {loadingLocation ? (
+                <ActivityIndicator size="small" color="#73509c" />
+              ) : (
+                <Text style={styles.infoValue}>{locationName || 'Chưa được gán'}</Text>
+              )}
+            </View>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -32,16 +76,27 @@ export default function StaffProfileScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#f3f4f6" },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+  },
   container: {
     flex: 1,
     padding: 16,
   },
   profileHeader: { 
     alignItems: "center", 
-    marginTop: 40,
     padding: 20,
     backgroundColor: '#fff',
     borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    marginBottom: 16,
   },
   profileName: { 
     color: "#161616", 
@@ -65,5 +120,32 @@ const styles = StyleSheet.create({
     color: '#73509c',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  infoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIcon: {
+    marginRight: 16,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
   },
 });
