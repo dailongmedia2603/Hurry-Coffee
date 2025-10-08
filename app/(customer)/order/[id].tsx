@@ -110,29 +110,47 @@ export default function OrderDetailScreen() {
                     text: "Hủy đơn",
                     style: "destructive",
                     onPress: async () => {
-                        setUpdating(true);
-                        
-                        const { data: { user } } = await supabase.auth.getUser();
-                        let anonymousId = null;
-                        if (!user) {
-                            anonymousId = await getAnonymousId();
-                        }
-
-                        const { data, error } = await supabase.functions.invoke('cancel-order', {
-                            body: {
-                                order_id: order.id,
-                                anonymous_device_id: anonymousId
+                        try {
+                            setUpdating(true);
+                            
+                            const { data: { user } } = await supabase.auth.getUser();
+                            let anonymousId = null;
+                            if (!user) {
+                                anonymousId = await getAnonymousId();
                             }
-                        });
 
-                        setUpdating(false);
+                            const { data, error } = await supabase.functions.invoke('cancel-order', {
+                                body: {
+                                    order_id: order.id,
+                                    anonymous_device_id: anonymousId
+                                }
+                            });
 
-                        if (error) {
-                            console.error("Lỗi khi gọi Edge Function:", error);
-                            Alert.alert('Lỗi', data?.error || 'Không thể hủy đơn hàng. Vui lòng thử lại.');
-                        } else {
-                            Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
-                            setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
+                            if (error) {
+                                // Ném lỗi để khối catch xử lý
+                                throw error;
+                            }
+
+                            // Xử lý phản hồi logic từ function
+                            if (data.error) {
+                                Alert.alert('Không thể hủy đơn', data.error);
+                            } else {
+                                Alert.alert('Thành công', data.message || 'Đơn hàng của bạn đã được hủy.');
+                                setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
+                            }
+
+                        } catch (err: any) {
+                            console.error("Lỗi toàn cục khi hủy đơn:", JSON.stringify(err, null, 2));
+                            let message = 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+                            // Cố gắng lấy thông báo lỗi cụ thể hơn
+                            if (err.context && err.context.error) {
+                                message = err.context.error;
+                            } else if (err.message) {
+                                message = err.message;
+                            }
+                            Alert.alert('Lỗi', message);
+                        } finally {
+                            setUpdating(false);
                         }
                     },
                 },

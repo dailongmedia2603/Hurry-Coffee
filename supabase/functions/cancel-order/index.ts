@@ -7,27 +7,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper to create a JSON response
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 serve(async (req) => {
+  console.log(`[cancel-order] --- Invoked at ${new Date().toISOString()} ---`);
+  console.log(`[cancel-order] Request Method: ${req.method}`);
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    console.log("[cancel-order] Handling OPTIONS request.");
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { order_id, anonymous_device_id } = await req.json();
+    console.log(`[cancel-order] Parsed body: order_id=${order_id}, anonymous_device_id=${anonymous_device_id}`);
+
     if (!order_id) {
-      return new Response(JSON.stringify({ error: 'Thiếu mã đơn hàng (order_id).' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error("[cancel-order] Error: order_id is missing.");
+      return jsonResponse({ error: 'Thiếu mã đơn hàng (order_id).' }, 400);
     }
 
-    // Tạo một client với quyền admin để truy vấn dữ liệu
     const adminSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+    console.log("[cancel-order] Admin Supabase client created.");
 
-    // Lấy thông tin đơn hàng
+    console.log(`[cancel-order] Fetching order details for ID: ${order_id}`);
     const { data: order, error: fetchError } = await adminSupabaseClient
       .from('orders')
       .select('user_id, anonymous_device_id, status')
@@ -35,68 +47,60 @@ serve(async (req) => {
       .single();
 
     if (fetchError) {
-      return new Response(JSON.stringify({ error: 'Không tìm thấy đơn hàng.' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error(`[cancel-order] Error fetching order:`, fetchError);
+      return jsonResponse({ error: 'Không tìm thấy đơn hàng.' }, 404);
     }
+    console.log("[cancel-order] Order fetched successfully:", order);
 
-    // Kiểm tra trạng thái đơn hàng
     if (order.status !== 'Đang xử lý') {
-      return new Response(JSON.stringify({ error: 'Đơn hàng không thể hủy vì đã được xử lý.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.warn(`[cancel-order] Attempt to cancel order with status: ${order.status}`);
+      return jsonResponse({ error: 'Đơn hàng không thể hủy vì đã được xử lý.' }, 400);
     }
+    console.log("[cancel-order] Order status check passed.");
 
-    // Xác thực người dùng
     const userSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
     const { data: { user } } = await userSupabaseClient.auth.getUser();
+    console.log(`[cancel-order] Authenticating user. User ID: ${user?.id}`);
 
     let isOwner = false;
     if (user) {
-      // Người dùng đã đăng nhập
       if (order.user_id === user.id) {
         isOwner = true;
+        console.log("[cancel-order] Ownership confirmed for authenticated user.");
       }
     } else if (anonymous_device_id) {
-      // Khách vãng lai
       if (order.anonymous_device_id === anonymous_device_id) {
         isOwner = true;
+        console.log("[cancel-order] Ownership confirmed for anonymous user.");
       }
     }
 
     if (!isOwner) {
-      return new Response(JSON.stringify({ error: 'Bạn không có quyền hủy đơn hàng này.' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error("[cancel-order] Authorization failed. User is not the owner.");
+      return jsonResponse({ error: 'Bạn không có quyền hủy đơn hàng này.' }, 403);
     }
+    console.log("[cancel-order] Authorization successful.");
 
-    // Nếu tất cả kiểm tra đều qua, thực hiện cập nhật
+    console.log(`[cancel-order] Updating order ${order_id} status to 'Đã hủy'.`);
     const { error: updateError } = await adminSupabaseClient
       .from('orders')
       .update({ status: 'Đã hủy' })
       .eq('id', order_id);
 
     if (updateError) {
+      console.error("[cancel-order] Error updating order:", updateError);
       throw updateError;
     }
+    console.log("[cancel-order] Order updated successfully in database.");
 
-    return new Response(JSON.stringify({ message: 'Đơn hàng đã được hủy thành công.' }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ message: 'Đơn hàng đã được hủy thành công.' }, 200);
 
   } catch (error) {
-    console.error('Lỗi trong Edge Function cancel-order:', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('[cancel-order] Unhandled exception:', error);
+    return jsonResponse({ error: (error as Error).message }, 500);
   }
 })
