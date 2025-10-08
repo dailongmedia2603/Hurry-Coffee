@@ -102,12 +102,14 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
         address, 
         image_url: finalImageUrl, 
         opening_hours: openingHours, 
-        google_maps_url: googleMapsUrl 
+        google_maps_url: googleMapsUrl,
+        ...(existingLocation && { id: existingLocation.id }) // Thêm id nếu là cập nhật
       };
 
-      const { error } = existingLocation
-        ? await supabase.from('locations').update(locationData).eq('id', existingLocation.id)
-        : await supabase.from('locations').insert(locationData);
+      // Gọi Edge Function để xử lý việc lưu và geocoding
+      const { error } = await supabase.functions.invoke('save-location', {
+        body: locationData,
+      });
 
       if (error) throw error;
 
@@ -116,7 +118,9 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
 
     } catch (error: any) {
       console.error("Save location error:", error);
-      Alert.alert('Lỗi', error.message || 'Không thể lưu địa điểm.');
+      // Hiển thị lỗi từ Edge Function nếu có
+      const errorMessage = error.context?.error_message || error.message || 'Không thể lưu địa điểm.';
+      Alert.alert('Lỗi', errorMessage);
     } finally {
       setLoading(false);
       setUploading(false);
