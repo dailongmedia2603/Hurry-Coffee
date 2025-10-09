@@ -34,12 +34,14 @@ const LocationCard = ({ location }: { location: Location }) => {
                     <Text style={styles.infoText}>Mở cửa: {location.opening_hours}</Text>
                 </View>
                 <View style={styles.footer}>
-                    {location.distance !== undefined && location.distance !== null && (
-                        <View style={styles.distanceContainer}>
-                            <Ionicons name="navigate-circle-outline" size={16} color="#333" />
-                            <Text style={styles.distanceText}>{formatDistance(location.distance)}</Text>
-                        </View>
-                    )}
+                    <View style={styles.distanceContainer}>
+                        {location.distance !== undefined && location.distance !== null && (
+                            <>
+                                <Ionicons name="navigate-circle-outline" size={16} color="#333" />
+                                <Text style={styles.distanceText}>{formatDistance(location.distance)}</Text>
+                            </>
+                        )}
+                    </View>
                     <TouchableOpacity style={styles.directionsButton} onPress={handleDirections}>
                         <Text style={styles.directionsButtonText}>Chỉ đường</Text>
                     </TouchableOpacity>
