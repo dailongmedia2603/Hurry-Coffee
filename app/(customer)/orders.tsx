@@ -1,6 +1,6 @@
 import { View, Text, FlatList, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import LocationCard from '@/src/components/LocationCard';
 import { Location } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
@@ -11,8 +11,7 @@ const LocationsScreen = () => {
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [debouncedQuery] = useDebounce(searchQuery, 300);
-    const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-
+    const router = useRouter();
 
 	useEffect(() => {
 		const fetchLocations = async () => {
@@ -32,10 +31,6 @@ const LocationsScreen = () => {
 		fetchLocations();
 	}, [debouncedQuery]);
 
-	const filteredLocations = locations.filter(location =>
-		location.name.toLowerCase().includes(searchQuery.toLowerCase())
-	);
-
 	if (loading) {
 		return <ActivityIndicator style={styles.centered} size="large" />;
 	}
@@ -50,8 +45,8 @@ const LocationsScreen = () => {
 				onChangeText={setSearchQuery}
 			/>
 			<FlatList
-				data={filteredLocations}
-				renderItem={({ item }) => <LocationCard location={item} onPress={() => setSelectedLocation(item)} />}
+				data={locations}
+				renderItem={({ item }) => <LocationCard location={item} onPress={() => { /* Handle location selection */ }} />}
 				keyExtractor={(item) => item.id}
 				contentContainerStyle={styles.listContainer}
 				ListEmptyComponent={<Text style={styles.emptyText}>Không tìm thấy cửa hàng nào.</Text>}
@@ -61,31 +56,11 @@ const LocationsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#f5f5f5',
-	},
-	centered: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-	searchInput: {
-		backgroundColor: 'white',
-		padding: 15,
-		margin: 10,
-		borderRadius: 10,
-		fontSize: 16,
-	},
-	listContainer: {
-		paddingHorizontal: 10,
-	},
-	emptyText: {
-		textAlign: 'center',
-		marginTop: 50,
-		fontSize: 16,
-		color: '#666',
-	},
+	container: { flex: 1, backgroundColor: '#f5f5f5' },
+	centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+	searchInput: { backgroundColor: 'white', padding: 15, margin: 10, borderRadius: 10, fontSize: 16 },
+	listContainer: { paddingHorizontal: 10 },
+	emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#666' },
 });
 
 export default LocationsScreen;

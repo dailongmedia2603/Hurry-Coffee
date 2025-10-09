@@ -44,7 +44,6 @@ export type Order = {
   is_phone_verified: boolean | null;
   anonymous_device_id: string | null;
   order_items: OrderItem[];
-  // Các trường tùy chọn từ các truy vấn tùy chỉnh
   restaurant_image_url?: string;
   restaurant_name?: string;
   items_count?: number;
@@ -85,4 +84,19 @@ export type ProductCategory = {
   name: string;
   created_at: string;
   icon_name: string | null;
+};
+
+export type CartItem = {
+  id: string;
+  product: Product;
+  quantity: number;
+};
+
+export type ConfirmationDetails = {
+  customer_name: string;
+  customer_phone: string;
+  notes: string;
+  order_type: 'delivery' | 'pickup';
+  delivery_address: UserAddress | null;
+  pickup_location: Location | null;
 };

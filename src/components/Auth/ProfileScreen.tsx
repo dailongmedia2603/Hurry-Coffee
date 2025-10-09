@@ -1,175 +1,181 @@
-import React, { useState, useCallback } from 'react';
-import { SafeAreaView, View, ScrollView, Image, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { useAuth } from '@/src/providers/AuthProvider';
+import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/src/context/AuthContext';
-import { useRouter, useFocusEffect } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { UserAddress } from '@/types';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 
-const ProfileMenuItem = ({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void }) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <View style={styles.menuItemContent}>
-      <Ionicons name={icon} size={24} color="#161616" style={styles.menuIcon} />
-      <Text style={styles.menuLabel}>{label}</Text>
-    </View>
-    <Ionicons name="chevron-forward-outline" size={20} color="#666" />
-  </TouchableOpacity>
-);
-
-export default function ProfileScreen() {
-  const { user, profile, signOut, refetchProfile } = useAuth();
+const ProfileScreen = () => {
+  const { user, profile, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
-  const [uploading, setUploading] = useState(false);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [addressLoading, setAddressLoading] = useState(true);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
 
-  const fetchAddresses = useCallback(async () => {
-    if (!user) {
-      setAddressLoading(false);
-      return;
-    }
-    setAddressLoading(true);
-    const { data, error } = await supabase
-      .from('user_addresses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (!user) return;
+      setLoadingAddresses(true);
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching addresses for profile:', error);
-    } else {
-      setAddresses(data || []);
+      if (data) {
+        setAddresses(data);
+      }
+      setLoadingAddresses(false);
+    };
+
+    if (user) {
+        fetchAddresses();
     }
-    setAddressLoading(false);
   }, [user]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchAddresses();
-    }, [fetchAddresses])
-  );
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/');
+  };
 
-  const handleAvatarChange = async () => {
+  const handleSetDefault = async (addressId: string) => {
     if (!user) return;
-
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Quyền truy cập', 'Chúng tôi cần quyền truy cập thư viện ảnh để bạn có thể chọn ảnh đại diện.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
+    const { error } = await supabase.rpc('set_default_address', {
+      p_user_id: user.id,
+      p_address_id: addressId,
     });
 
-    if (result.canceled || !result.assets[0]) {
-      return;
-    }
-
-    const image = result.assets[0];
-    if (!image.base64) {
-      return;
-    }
-
-    setUploading(true);
-    const fileExt = image.uri.split('.').pop();
-    const filePath = `${user.id}/${new Date().getTime()}.${fileExt}`;
-    const contentType = image.mimeType ?? 'image/jpeg';
-
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, decode(image.base64), { contentType, upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      await refetchProfile();
-    } catch (error: any) {
-      console.error("Error uploading avatar:", error);
-      Alert.alert('Lỗi', error.message || 'Không thể tải lên ảnh đại diện.');
-    } finally {
-      setUploading(false);
+    if (error) {
+      Alert.alert('Lỗi', 'Không thể đặt làm địa chỉ mặc định.');
+    } else {
+      setAddresses(prev =>
+        prev.map(addr => ({
+          ...addr,
+          is_default: addr.id === addressId,
+        }))
+      );
     }
   };
 
-  const defaultAddress = addresses.find(addr => addr.is_default);
-  const displayName = defaultAddress?.name || profile?.full_name || 'Tên người dùng';
+  const handleDeleteAddress = async (addressId: string) => {
+    Alert.alert(
+      "Xác nhận xoá",
+      "Bạn có chắc chắn muốn xoá địa chỉ này?",
+      [
+        { text: "Huỷ", style: "cancel" },
+        {
+          text: "Xoá",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase.from('user_addresses').delete().eq('id', addressId);
+            if (error) {
+              Alert.alert('Lỗi', 'Không thể xoá địa chỉ.');
+            } else {
+              setAddresses(prev => prev.filter(addr => addr.id !== addressId));
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  if (authLoading) {
+    return <ActivityIndicator style={styles.centered} size="large" />;
+  }
+
+  if (!user || !profile) {
+    return (
+      <View style={styles.centered}>
+        <Text>Vui lòng đăng nhập để xem thông tin.</Text>
+        <Pressable onPress={() => router.replace('/(auth)/sign-in')} style={styles.button}>
+          <Text style={styles.buttonText}>Đăng nhập</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const displayName = profile.full_name || user.email;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContentContainer}
-      >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Hồ sơ</Text>
+    <ScrollView style={styles.container}>
+      <Stack.Screen options={{ title: 'Tài khoản của tôi' }} />
+      <View style={styles.profileHeader}>
+        <View style={styles.avatar}>
+          <Ionicons name="person-circle-outline" size={80} color="#555" />
         </View>
-
-        <View style={styles.profileHeader}>
-          <TouchableOpacity onPress={handleAvatarChange} disabled={uploading}>
-            <Image
-              source={{ uri: profile?.avatar_url || 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png' }}
-              style={styles.avatar}
-            />
-            {uploading ? (
-              <ActivityIndicator style={styles.avatarOverlay} size="large" color="#fff" />
-            ) : (
-              <View style={styles.editIconContainer}>
-                <Ionicons name="pencil" size={18} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
+        <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{displayName}</Text>
-          <Text style={styles.profileEmail}>{formatDisplayPhone(user?.phone)}</Text>
+          <Text style={styles.profileEmail}>{formatDisplayPhone(user?.phone || '')}</Text>
         </View>
+      </View>
 
-        <View style={styles.menuContainer}>
-          <ProfileMenuItem icon="location-outline" label="Địa chỉ nhận nước" onPress={() => router.push('/address')} />
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Địa chỉ đã lưu</Text>
+          <Pressable onPress={() => router.push('/address')}>
+            <Text style={styles.addButton}>+ Thêm mới</Text>
+          </Pressable>
         </View>
+        {loadingAddresses ? <ActivityIndicator /> : (
+          addresses.length > 0 ? (
+            addresses.map(addr => (
+              <View key={addr.id} style={styles.addressCard}>
+                <View style={styles.addressInfo}>
+                  <Text style={styles.addressName}>{addr.name}</Text>
+                  <Text style={styles.addressText}>{addr.address}</Text>
+                  {addr.is_default && <View style={styles.defaultBadge}><Text style={styles.defaultBadgeText}>Mặc định</Text></View>}
+                </View>
+                <View style={styles.addressActions}>
+                  {!addr.is_default && (
+                    <Pressable onPress={() => handleSetDefault(addr.id)} style={styles.actionButton}>
+                      <Ionicons name="checkmark-circle-outline" size={22} color="#007AFF" />
+                    </Pressable>
+                  )}
+                  <Pressable onPress={() => handleDeleteAddress(addr.id)} style={styles.actionButton}>
+                    <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+                  </Pressable>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>Bạn chưa có địa chỉ nào.</Text>
+          )
+        )}
+      </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.logoutButtonText}>Đăng xuất</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      <Pressable onPress={handleSignOut} style={styles.signOutButton}>
+        <Text style={styles.signOutButtonText}>Đăng xuất</Text>
+      </Pressable>
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
-  scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
-  scrollContentContainer: { paddingBottom: 120 },
-  header: { alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, marginBottom: 10 },
-  headerTitle: { color: "#161616", fontSize: 20, fontWeight: "bold" },
-  profileHeader: { alignItems: "center", marginBottom: 32 },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 16 },
-  avatarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 50 },
-  editIconContainer: { position: 'absolute', bottom: 16, right: 0, backgroundColor: '#73509c', padding: 8, borderRadius: 16, borderWidth: 2, borderColor: '#fff' },
-  profileName: { color: "#161616", fontSize: 22, fontWeight: "bold", marginBottom: 4 },
-  profileEmail: { color: "#7C7C7C", fontSize: 16 },
-  menuContainer: { marginHorizontal: 16 },
-  menuItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF", borderColor: "#DCDCDC", borderRadius: 12, borderWidth: 1, paddingVertical: 18, paddingHorizontal: 16, marginBottom: 12 },
-  menuItemContent: { flexDirection: "row", alignItems: "center" },
-  menuIcon: { marginRight: 16 },
-  menuLabel: { color: "#161616", fontSize: 16 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 16, marginTop: 24, padding: 16, backgroundColor: '#73509c', borderRadius: 30 },
-  logoutButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+  container: { flex: 1, backgroundColor: '#f8f8f8' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  avatar: { marginRight: 20 },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 20, fontWeight: 'bold' },
+  profileEmail: { fontSize: 16, color: '#666', marginTop: 4 },
+  section: { backgroundColor: 'white', marginTop: 10, padding: 20 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold' },
+  addButton: { color: '#007AFF', fontSize: 16 },
+  addressCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  addressInfo: { flex: 1 },
+  addressName: { fontSize: 16, fontWeight: '500' },
+  addressText: { fontSize: 14, color: '#666', marginTop: 4 },
+  defaultBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, alignSelf: 'flex-start', marginTop: 5 },
+  defaultBadgeText: { color: '#00C853', fontSize: 12, fontWeight: 'bold' },
+  addressActions: { flexDirection: 'row', alignItems: 'center' },
+  actionButton: { padding: 5, marginLeft: 10 },
+  emptyText: { color: '#888', textAlign: 'center', paddingVertical: 20 },
+  signOutButton: { backgroundColor: '#FFEBEE', margin: 20, padding: 15, borderRadius: 10, alignItems: 'center' },
+  signOutButtonText: { color: '#D50000', fontSize: 16, fontWeight: 'bold' },
+  button: { backgroundColor: '#007AFF', padding: 15, borderRadius: 8, marginTop: 20 },
+  buttonText: { color: 'white', fontWeight: 'bold' },
 });
+
+export default ProfileScreen;
