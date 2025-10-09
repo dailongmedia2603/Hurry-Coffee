@@ -1,107 +1,80 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, Alert, ScrollView } from 'react-native';
+import { ActivityIndicator, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/src/integrations/supabase/client';
+import OrderDetails from '@/src/components/OrderDetails';
 import { Order } from '@/types';
-import dayjs from 'dayjs';
-import 'dayjs/locale/vi';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { useCancelOrder } from '@/src/hooks/useCancelOrder';
-import Colors from '@/src/constants/Colors';
 
-dayjs.extend(relativeTime);
-dayjs.locale('vi');
+const OrderDetailsScreen = () => {
+  const { id } = useLocalSearchParams();
+  const orderId = Array.isArray(id) ? id[0] : id;
 
-const OrderDetailScreen = () => {
-  const { id: idString } = useLocalSearchParams();
-  const id = idString as string;
-
-  const { data: order, error, isLoading } = useQuery({
-    queryKey: ['order', id],
+  const { data: order, isLoading, error } = useQuery<Order>({
+    queryKey: ['order', orderId],
     queryFn: async () => {
+      if (!orderId) return null;
       const { data, error } = await supabase
         .from('orders')
-        .select('*, order_items(*, products(*)), locations(*)')
-        .eq('id', id)
+        .select(`
+          *,
+          items_count:order_items(count),
+          locations (
+            name,
+            image_url
+          )
+        `)
+        .eq('id', orderId)
         .single();
       if (error) {
         throw new Error(error.message);
       }
-      return data as any as Order;
+      const mappedData = {
+        ...data,
+        restaurant_name: data.locations?.name || 'N/A',
+        restaurant_image_url: data.locations?.image_url || '',
+        items_count: data.items_count[0]?.count || 0,
+      };
+      return mappedData;
     },
+    enabled: !!orderId,
   });
 
-  const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder();
+  // Sử dụng hook mới, logic phức tạp đã được chuyển đi
+  const { cancelOrder, isCancelling } = useCancelOrder();
 
-  const handleCancel = () => {
-    Alert.alert(
-      'Xác nhận hủy',
-      'Bạn có chắc chắn muốn hủy đơn hàng này không?',
-      [
-        { text: 'Không', style: 'cancel' },
-        {
-          text: 'Hủy đơn',
-          style: 'destructive',
-          onPress: () => cancelOrder({ orderId: id }),
-        },
-      ]
-    );
+  const handleCancelOrder = () => {
+    if (!orderId) return;
+    cancelOrder(orderId);
   };
 
   if (isLoading) {
-    return <ActivityIndicator size="large" style={styles.loader} />;
+    return <ActivityIndicator size="large" color="#0000ff" style={{ flex: 1, justifyContent: 'center' }} />;
   }
 
   if (error || !order) {
-    return <Text style={styles.errorText}>Không tìm thấy đơn hàng.</Text>;
+    return <Text style={styles.errorText}>Không tìm thấy đơn hàng hoặc có lỗi xảy ra.</Text>;
   }
 
-  const getStatusColor = (status: string) => {
-    if (status === 'Hoàn thành') return Colors.light.success;
-    if (status === 'Đã hủy') return Colors.light.error;
-    if (status === 'Đang xử lý') return Colors.light.warning;
-    return Colors.light.tint;
-  };
+  const canCancel = order.status === 'Đang xử lý';
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: `Đơn hàng #${id.slice(0, 6)}...` }} />
-      
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerContainer}>
-            <Text style={styles.orderId}>Đơn hàng #{id.slice(0, 6)}...</Text>
-            <Text style={styles.orderDate}>{dayjs(order.created_at).format('HH:mm, DD/MM/YYYY')}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                <Text style={styles.statusText}>{order.status}</Text>
-            </View>
-        </View>
+      <Stack.Screen options={{ title: `Đơn hàng #${order.id.substring(0, 8)}` }} />
+      <OrderDetails order={order} />
 
-        <Text style={styles.sectionTitle}>Sản phẩm</Text>
-        {order.order_items?.map((item) => (
-          <View key={item.id} style={styles.itemContainer}>
-            <Text style={styles.itemName}>{item.products.name} x{item.quantity}</Text>
-            <Text style={styles.itemPrice}>{(item.price * item.quantity).toLocaleString('vi-VN')}đ</Text>
-          </View>
-        ))}
-
-        <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Tổng cộng</Text>
-            <Text style={styles.totalAmount}>{order.total.toLocaleString('vi-VN')}đ</Text>
-        </View>
-      </ScrollView>
-
-      {order.status === 'Đang xử lý' && (
-        <Pressable
-          style={[styles.button, isCancelling && styles.buttonDisabled]}
-          onPress={handleCancel}
+      {canCancel && (
+        <TouchableOpacity 
+          style={[styles.cancelButton, isCancelling && styles.disabledButton]} 
+          onPress={handleCancelOrder}
           disabled={isCancelling}
         >
           {isCancelling ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Hủy đơn hàng</Text>
+            <Text style={styles.cancelButtonText}>Hủy đơn hàng</Text>
           )}
-        </Pressable>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -110,109 +83,36 @@ const OrderDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
-  },
-  scrollContent: {
     padding: 16,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
   errorText: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     textAlign: 'center',
+    marginTop: 20,
     fontSize: 16,
     color: 'red',
   },
-  headerContainer: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  orderId: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  orderDate: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  itemName: {
-    fontSize: 16,
-  },
-  itemPrice: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  totalAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.tint,
-  },
-  button: {
-    backgroundColor: Colors.light.error,
-    padding: 16,
-    margin: 16,
+  cancelButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
+  disabledButton: {
+    backgroundColor: '#a0a0a0',
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  cancelButtonText: {
+    color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
-export default OrderDetailScreen;
+export default OrderDetailsScreen;

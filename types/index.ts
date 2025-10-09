@@ -9,15 +9,6 @@ export interface Product {
   created_at: string;
 }
 
-export interface OrderItem {
-  id: number;
-  order_id: string;
-  product_id: string;
-  quantity: number;
-  price: number;
-  products: Product;
-}
-
 export type OrderStatus = 'Đang xử lý' | 'Đang làm' | 'Đang giao' | 'Sẵn sàng' | 'Hoàn thành' | 'Đã hủy';
 
 export interface Order {
@@ -25,18 +16,14 @@ export interface Order {
   created_at: string;
   status: OrderStatus;
   total: number;
-  items_count?: number;
+  items_count: number;
+  restaurant_name: string;
+  restaurant_image_url: string;
   order_type: 'delivery' | 'pickup';
   locations: Location | null;
   customer_name: string | null;
   customer_phone: string | null;
   is_phone_verified: boolean | null;
-  order_items?: OrderItem[];
-  user_id: string | null;
-  notes: string | null;
-  delivery_address: string | null;
-  pickup_location_id: string | null;
-  anonymous_device_id: string | null;
 }
 
 export interface Location {
