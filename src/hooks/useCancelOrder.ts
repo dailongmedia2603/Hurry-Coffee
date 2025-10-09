@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/src/integrations/supabase/client';
-import { useCart } from '../providers/CartProvider';
+import { supabase } from '@/integrations/supabase/client';
+import { useCart } from '@/providers/CartProvider';
 import Toast from 'react-native-toast-message';
 
 export const useCancelOrder = (orderId: string) => {
