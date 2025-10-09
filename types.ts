@@ -18,7 +18,16 @@ export type OrderItem = {
   products: Product | null;
 };
 
-export type OrderStatus = 'Đang xử lý' | 'Đã xác nhận' | 'Đang giao' | 'Đã giao' | 'Đã huỷ' | 'Hoàn thành';
+export type OrderStatus = 
+  'Đang xử lý' | 
+  'Đã xác nhận' | 
+  'Đang làm' |
+  'Sẵn sàng' |
+  'Đang giao' | 
+  'Đã giao' | 
+  'Hoàn thành' |
+  'Đã huỷ' |
+  'Đã hủy';
 
 export type Order = {
   id: string;
@@ -27,7 +36,7 @@ export type Order = {
   status: OrderStatus | string;
   created_at: string;
   notes: string | null;
-  order_type: string | null;
+  order_type: 'delivery' | 'pickup' | null;
   delivery_address: string | null;
   pickup_location_id: string | null;
   customer_name: string | null;

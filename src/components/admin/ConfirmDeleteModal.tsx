@@ -1,35 +1,40 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 
-type ConfirmDeleteModalProps = {
+export type ConfirmDeleteModalProps = {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  title: string;
-  message: string;
+  itemName: string;
 };
 
-const ConfirmDeleteModal = ({ visible, onClose, onConfirm, title, message }: ConfirmDeleteModalProps) => {
+const ConfirmDeleteModal = ({ visible, onClose, onConfirm, itemName }: ConfirmDeleteModalProps) => {
   return (
     <Modal
-      animationType="fade"
       transparent={true}
       visible={visible}
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <Ionicons name="warning-outline" size={48} color="#ef4444" style={styles.icon} />
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+      <View style={styles.centeredView}>
+        <View style={styles.modalView}>
+          <Text style={styles.modalTitle}>Xác nhận xoá</Text>
+          <Text style={styles.modalText}>
+            Bạn có chắc chắn muốn xoá "{itemName}" không? Hành động này không thể hoàn tác.
+          </Text>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Hủy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={onConfirm}>
-              <Text style={styles.confirmButtonText}>Xóa</Text>
-            </TouchableOpacity>
+            <Pressable
+              style={[styles.button, styles.buttonCancel]}
+              onPress={onClose}
+            >
+              <Text style={styles.textStyle}>Huỷ</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.button, styles.buttonConfirm]}
+              onPress={onConfirm}
+            >
+              <Text style={styles.textStyle}>Xoá</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -38,39 +43,37 @@ const ConfirmDeleteModal = ({ visible, onClose, onConfirm, title, message }: Con
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  centeredView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContainer: {
-    width: '90%',
-    maxWidth: 320,
+  modalView: {
+    margin: 20,
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 10,
+    padding: 25,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+    width: '80%',
   },
-  icon: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20,
+  modalTitle: {
+    marginBottom: 15,
+    textAlign: 'center',
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
   },
-  message: {
-    fontSize: 16,
-    color: '#6b7280',
+  modalText: {
+    marginBottom: 20,
     textAlign: 'center',
-    marginBottom: 24,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -78,29 +81,22 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   button: {
-    flex: 1,
-    paddingVertical: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 10,
+    elevation: 2,
+    flex: 1,
+    marginHorizontal: 5,
   },
-  cancelButton: {
-    backgroundColor: '#e5e7eb',
-    marginRight: 8,
+  buttonCancel: {
+    backgroundColor: '#9E9E9E',
   },
-  cancelButtonText: {
-    color: '#374151',
+  buttonConfirm: {
+    backgroundColor: '#f44336',
+  },
+  textStyle: {
+    color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
-  },
-  confirmButton: {
-    backgroundColor: '#ef4444',
-    marginLeft: 8,
-  },
-  confirmButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    textAlign: 'center',
   },
 });
 

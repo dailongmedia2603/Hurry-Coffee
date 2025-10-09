@@ -3,33 +3,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OrderStatus } from '@/types';
 
-type StatusStepProps = {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  isCompleted: boolean;
-  isActive: boolean;
-};
-
-const StatusStep = ({ icon, label, isCompleted, isActive }: StatusStepProps) => {
-  const color = isCompleted || isActive ? '#73509c' : '#ccc';
-  return (
-    <View style={styles.stepContainer}>
-      <View style={[styles.iconWrapper, { backgroundColor: isCompleted || isActive ? '#E8E4F2' : '#f0f0f0' }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <Text style={[styles.label, { color: isActive ? '#000' : '#666' }]}>{label}</Text>
-    </View>
-  );
-};
-
-const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderType: 'delivery' | 'pickup' }) => {
+const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderType: 'delivery' | 'pickup' | null }) => {
   const statuses: OrderStatus[] = orderType === 'delivery'
     ? ['Đang xử lý', 'Đang làm', 'Đang giao', 'Hoàn thành']
     : ['Đang xử lý', 'Đang làm', 'Sẵn sàng', 'Hoàn thành'];
-  
-  const currentIndex = statuses.indexOf(status);
 
-  const getIconForStatus = (s: OrderStatus): keyof typeof Ionicons.glyphMap => {
+  const currentStatusIndex = statuses.indexOf(status);
+
+  const getIconForStatus = (s: OrderStatus) => {
     switch (s) {
       case 'Đang xử lý': return 'receipt-outline';
       case 'Đang làm': return 'flame-outline';
@@ -44,13 +25,19 @@ const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderT
     <View style={styles.container}>
       {statuses.map((s, index) => (
         <React.Fragment key={s}>
-          <StatusStep
-            label={s}
-            icon={getIconForStatus(s)}
-            isCompleted={index < currentIndex}
-            isActive={index === currentIndex}
-          />
-          {index < statuses.length - 1 && <View style={[styles.line, { backgroundColor: index < currentIndex ? '#73509c' : '#ccc' }]} />}
+          <View style={styles.statusItem}>
+            <View style={[styles.iconContainer, index <= currentStatusIndex && styles.activeIconContainer]}>
+              <Ionicons
+                name={getIconForStatus(s)}
+                size={24}
+                color={index <= currentStatusIndex ? 'white' : '#aaa'}
+              />
+            </View>
+            <Text style={[styles.statusText, index <= currentStatusIndex && styles.activeStatusText]}>{s}</Text>
+          </View>
+          {index < statuses.length - 1 && (
+            <View style={[styles.line, index < currentStatusIndex && styles.activeLine]} />
+          )}
         </React.Fragment>
       ))}
     </View>
@@ -58,38 +45,47 @@ const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderT
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: '#fff',
-  },
-  stepContainer: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  iconWrapper: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  line: {
-    flex: 1,
-    height: 2,
-    backgroundColor: '#ccc',
-    marginTop: 24,
-    marginHorizontal: -10,
-  },
+    container: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        paddingHorizontal: 10,
+        marginVertical: 20,
+    },
+    statusItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    iconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#e0e0e0',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activeIconContainer: {
+        backgroundColor: '#00C853',
+    },
+    statusText: {
+        marginTop: 5,
+        fontSize: 12,
+        color: '#aaa',
+        textAlign: 'center',
+    },
+    activeStatusText: {
+        color: '#333',
+        fontWeight: 'bold',
+    },
+    line: {
+        flex: 1,
+        height: 2,
+        backgroundColor: '#e0e0e0',
+        marginTop: 19,
+    },
+    activeLine: {
+        backgroundColor: '#00C853',
+    },
 });
 
 export default OrderStatusTracker;

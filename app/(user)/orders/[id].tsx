@@ -3,8 +3,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order } from '@/types';
-import OrderListItem from '@/src/components/OrderListItem';
-import OrderItemListItem from '@/src/components/OrderItemListItem';
+import OrderListItem from '@/components/OrderListItem';
+import OrderItemListItem from '@/components/OrderItemListItem';
 import { cancelOrder } from '@/lib/order';
 
 const OrderDetailsScreen = () => {

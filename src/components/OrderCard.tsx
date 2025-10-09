@@ -1,42 +1,40 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { formatPrice } from '@/src/utils/formatters';
 import { useRouter } from 'expo-router';
 import { Order, OrderStatus } from '@/types';
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
-};
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 const getStatusStyle = (status: OrderStatus) => {
   switch (status) {
+    case 'Đã xác nhận':
+      return { color: '#00C853', backgroundColor: '#E8F5E9', text: 'Đã xác nhận' };
     case 'Đang giao':
       return { color: '#2979FF', backgroundColor: '#E3F2FD', text: 'Đang giao' };
     case 'Hoàn thành':
       return { color: '#00C853', backgroundColor: '#E8F5E9', text: 'Hoàn thành' };
+    case 'Đã huỷ':
+    case 'Đã hủy':
+      return { color: '#D50000', backgroundColor: '#FFEBEE', text: 'Đã hủy' };
     case 'Đang xử lý':
       return { color: '#FF9100', backgroundColor: '#FFF3E0', text: 'Đang xử lý' };
     case 'Đang làm':
       return { color: '#3b82f6', backgroundColor: '#dbeafe', text: 'Đang làm' };
     case 'Sẵn sàng':
       return { color: '#FF9100', backgroundColor: '#FFF3E0', text: 'Sẵn sàng' };
-    case 'Đã hủy':
-      return { color: '#D50000', backgroundColor: '#FFEBEE', text: 'Đã hủy' };
     default:
-      return { color: '#666', backgroundColor: '#F5F5F5', text: 'Không rõ' };
+      return { color: '#666', backgroundColor: '#F5F5F5', text: status };
   }
 };
 
 const OrderCard = ({ order }: { order: Order }) => {
     const router = useRouter();
-    const statusStyle = getStatusStyle(order.status);
+    const statusStyle = getStatusStyle(order.status as OrderStatus);
 
     const imageSource = order.restaurant_image_url === 'local_delivery_icon'
         ? require('@/assets/images/delivery.png')
-        : { uri: order.restaurant_image_url };
+        : (order.restaurant_image_url ? { uri: order.restaurant_image_url } : require('@/assets/images/placeholder.png'));
 
     return (
         <TouchableOpacity style={styles.card} onPress={() => router.push(`/order/${order.id}`)}>
@@ -50,11 +48,9 @@ const OrderCard = ({ order }: { order: Order }) => {
                 </View>
                 <Text style={styles.itemInfo}>{order.items_count} món hàng • {formatPrice(order.total)}</Text>
                 <View style={styles.footer}>
-                    <Text style={styles.date}>{new Date(order.created_at).toLocaleDateString('vi-VN')}</Text>
-                    <TouchableOpacity style={styles.detailsButton}>
-                        <Text style={styles.detailsButtonText}>Xem chi tiết</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#73509c" />
-                    </TouchableOpacity>
+                    <Text style={styles.timestamp}>
+                        {formatDistanceToNow(new Date(order.created_at), { addSuffix: true, locale: vi })}
+                    </Text>
                 </View>
             </View>
         </TouchableOpacity>
@@ -63,46 +59,45 @@ const OrderCard = ({ order }: { order: Order }) => {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 16,
+        backgroundColor: 'white',
+        borderRadius: 10,
         flexDirection: 'row',
-        padding: 12,
-        shadowColor: "#000",
+        overflow: 'hidden',
+        marginBottom: 15,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.2,
         shadowRadius: 2,
-        elevation: 2,
+        elevation: 3,
     },
     restaurantImage: {
-        width: 64,
-        height: 64,
-        borderRadius: 12,
-        marginRight: 12,
+        width: 80,
+        height: '100%',
     },
     cardContent: {
         flex: 1,
+        padding: 10,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 4,
+        alignItems: 'center',
+        marginBottom: 5,
     },
     restaurantName: {
         fontSize: 16,
         fontWeight: 'bold',
         flex: 1,
-        marginRight: 8,
     },
     statusBadge: {
+        borderRadius: 12,
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 12,
+        marginLeft: 8,
     },
     statusText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontWeight: 'bold',
     },
     itemInfo: {
         fontSize: 14,
@@ -113,22 +108,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
-        paddingTop: 8,
     },
-    date: {
+    timestamp: {
         fontSize: 12,
         color: '#999',
-    },
-    detailsButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    detailsButtonText: {
-        color: '#73509c',
-        fontWeight: 'bold',
-        marginRight: 4,
     },
 });
 
