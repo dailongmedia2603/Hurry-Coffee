@@ -1,117 +1,237 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, Pressable, Alert } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Product, ProductCategory } from '@/types';
 import CategoryPickerModal from './CategoryPickerModal';
 
-type ProductFormProps = {
-    product?: Product | null;
-    onSubmit: (data: any) => void;
-    loading: boolean;
+const formatCurrency = (value: string) => {
+  if (!value) return '';
+  const num = value.replace(/[^\d]/g, '');
+  if (num === '' || isNaN(parseInt(num, 10))) return '';
+  return new Intl.NumberFormat('vi-VN').format(parseInt(num, 10));
 };
 
-const ProductForm = ({ product, onSubmit, loading }: ProductFormProps) => {
-    const [name, setName] = useState(product?.name || '');
-    const [price, setPrice] = useState(product?.price?.toString() || '');
-    const [description, setDescription] = useState(product?.description || '');
-    const [category, setCategory] = useState<ProductCategory | null>(null);
-    const [categories, setCategories] = useState<ProductCategory[]>([]);
-    const [image, setImage] = useState(product?.image_url || null);
-    const [isCategoryPickerVisible, setCategoryPickerVisible] = useState(false);
+const parseCurrency = (value: string) => {
+  return value.replace(/[^\d]/g, '');
+};
 
-    useEffect(() => {
-        const fetchCategories = async () => {
-            const { data } = await supabase.from('product_categories').select('*');
-            if (data) setCategories(data);
-        };
-        fetchCategories();
+type ProductFormProps = {
+  visible: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  product: Product | null;
+};
 
-        if (product?.category) {
-            supabase.from('product_categories').select('*').eq('name', product.category).single().then(({ data }) => {
-                if (data) setCategory(data);
-            });
-        }
-    }, [product]);
+const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: ProductFormProps) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [formattedPrice, setFormattedPrice] = useState('');
+  const [formattedOriginalPrice, setFormattedOriginalPrice] = useState('');
+  const [category, setCategory] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-    const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+  const [allCategories, setAllCategories] = useState<ProductCategory[]>([]);
+  const [isCategoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
-        }
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      const { data } = await supabase.from('product_categories').select('*').order('name');
+      if (data) setAllCategories(data);
+      setCategoriesLoading(false);
     };
 
-    const validate = () => {
-        if (!name || !price || !category) {
-            Alert.alert('Lỗi', 'Vui lòng điền đầy đủ tên, giá và phân loại.');
-            return false;
-        }
-        return true;
+    if (visible) {
+      fetchCategories();
+      if (existingProduct) {
+        setName(existingProduct.name);
+        setDescription(existingProduct.description || '');
+        setFormattedPrice(formatCurrency(existingProduct.price.toString()));
+        setFormattedOriginalPrice(existingProduct.original_price ? formatCurrency(existingProduct.original_price.toString()) : '');
+        setCategory(existingProduct.category || '');
+        setImageUrl(existingProduct.image_url || '');
+      } else {
+        setName('');
+        setDescription('');
+        setFormattedPrice('');
+        setFormattedOriginalPrice('');
+        setCategory('');
+        setImageUrl('');
+      }
+      setSelectedImage(null);
+    }
+  }, [existingProduct, visible]);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0]);
+      setImageUrl(result.assets[0].uri);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!name || !formattedPrice) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng điền tên và giá sản phẩm.');
+      return;
+    }
+
+    setLoading(true);
+    let finalImageUrl = existingProduct?.image_url || '';
+
+    if (selectedImage && selectedImage.base64) {
+      setUploading(true);
+      const fileExt = selectedImage.uri.split('.').pop();
+      const filePath = `public/${Date.now()}.${fileExt}`;
+      const contentType = selectedImage.mimeType ?? 'image/jpeg';
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, decode(selectedImage.base64), { contentType, upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
+        finalImageUrl = publicUrl;
+      } catch (error: any) {
+        Alert.alert('Lỗi tải ảnh', error.message);
+        setLoading(false);
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
+    const productData = {
+      name,
+      description,
+      price: parseFloat(parseCurrency(formattedPrice)),
+      original_price: formattedOriginalPrice ? parseFloat(parseCurrency(formattedOriginalPrice)) : null,
+      category,
+      image_url: finalImageUrl,
     };
 
-    const handleSubmit = () => {
-        if (!validate()) return;
-        onSubmit({
-            name,
-            price: parseFloat(price),
-            description,
-            category: category?.name,
-            image_url: image,
-        });
-    };
+    const { error } = existingProduct
+      ? await supabase.from('products').update(productData).eq('id', existingProduct.id)
+      : await supabase.from('products').insert(productData);
 
-    return (
-        <View style={styles.container}>
-            <Pressable onPress={pickImage}>
-                <Image
-                    source={image ? { uri: image } : require('@/assets/images/placeholder.png')}
-                    style={styles.image}
-                />
-                <Text style={styles.selectImageText}>Chọn ảnh</Text>
-            </Pressable>
+    setLoading(false);
 
-            <TextInput value={name} onChangeText={setName} placeholder="Tên sản phẩm" style={styles.input} />
-            <TextInput value={price} onChangeText={setPrice} placeholder="Giá" style={styles.input} keyboardType="numeric" />
-            <TextInput value={description} onChangeText={setDescription} placeholder="Mô tả" style={[styles.input, styles.multilineInput]} multiline />
+    if (error) {
+      Alert.alert('Lỗi', 'Không thể lưu sản phẩm.');
+    } else {
+      onSave();
+      onClose();
+    }
+  };
 
-            <Pressable style={styles.pickerButton} onPress={() => setCategoryPickerVisible(true)}>
-                <Text style={styles.pickerButtonText}>{category ? category.name : 'Chọn phân loại'}</Text>
-            </Pressable>
-
-            <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSubmit} disabled={loading}>
-                <Text style={styles.buttonText}>{loading ? 'Đang xử lý...' : (product ? 'Cập nhật' : 'Thêm mới')}</Text>
-            </Pressable>
-
-            <CategoryPickerModal
-                visible={isCategoryPickerVisible}
-                onClose={() => setCategoryPickerVisible(false)}
-                onSelect={(cat) => {
-                    setCategory(cat);
-                    setCategoryPickerVisible(false);
-                }}
-                categories={categories}
+  return (
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
+        <View style={styles.modalContainer}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>{existingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
+          </View>
+          <ScrollView>
+            <Text style={styles.label}>Tên sản phẩm</Text>
+            <TextInput style={styles.input} value={name} onChangeText={setName} />
+            <Text style={styles.label}>Mô tả</Text>
+            <TextInput style={styles.input} value={description} onChangeText={setDescription} multiline />
+            <Text style={styles.label}>Giá (VND)</Text>
+            <TextInput style={styles.input} value={formattedPrice} onChangeText={(text) => setFormattedPrice(formatCurrency(text))} keyboardType="numeric" />
+            <Text style={styles.label}>Giá gốc (VND) - Tùy chọn</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nhập giá gốc để hiển thị giảm giá"
+              value={formattedOriginalPrice} 
+              onChangeText={(text) => setFormattedOriginalPrice(formatCurrency(text))} 
+              keyboardType="numeric" 
             />
+            <Text style={styles.label}>Phân loại</Text>
+            <TouchableOpacity style={styles.pickerButton} onPress={() => setCategoryPickerVisible(true)}>
+              <Text style={[styles.pickerButtonText, !category && styles.placeholderText]}>
+                {category || 'Chọn một phân loại'}
+              </Text>
+              {categoriesLoading ? (
+                <ActivityIndicator size="small" />
+              ) : (
+                <Ionicons name="chevron-down" size={20} color="#6b7280" />
+              )}
+            </TouchableOpacity>
+            
+            <Text style={styles.label}>Hình ảnh</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Ionicons name="camera-outline" size={40} color="#9ca3af" />
+                  <Text style={styles.imagePlaceholderText}>Chọn ảnh</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {uploading && <ActivityIndicator style={{ marginTop: 10 }} color="#73509c" />}
+
+          </ScrollView>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Lưu</Text>}
+          </TouchableOpacity>
         </View>
-    );
+      </KeyboardAvoidingView>
+      <CategoryPickerModal
+        visible={isCategoryPickerVisible}
+        onClose={() => setCategoryPickerVisible(false)}
+        categories={allCategories}
+        onSelect={(selectedCategory) => {
+          setCategory(selectedCategory);
+          setCategoryPickerVisible(false);
+        }}
+      />
+    </Modal>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: { padding: 10 },
-    image: { width: 150, height: 150, borderRadius: 10, alignSelf: 'center', backgroundColor: '#eee' },
-    selectImageText: { textAlign: 'center', color: '#007AFF', marginVertical: 10 },
-    input: { backgroundColor: 'white', padding: 15, borderRadius: 5, marginVertical: 5, fontSize: 16 },
-    multilineInput: { height: 100, textAlignVertical: 'top' },
-    pickerButton: { backgroundColor: 'white', padding: 15, borderRadius: 5, marginVertical: 5 },
-    pickerButtonText: { fontSize: 16 },
-    button: { backgroundColor: '#007AFF', padding: 15, borderRadius: 5, alignItems: 'center', marginTop: 10 },
-    buttonDisabled: { backgroundColor: '#A9A9A9' },
-    buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
+  modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold' },
+  label: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 6, marginTop: 10 },
+  input: { backgroundColor: '#f3f4f6', borderRadius: 8, padding: 12, fontSize: 16 },
+  saveButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 24 },
+  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  imagePicker: { width: '100%', height: 150, borderRadius: 8, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginTop: 4, overflow: 'hidden' },
+  imagePreview: { width: '100%', height: '100%' },
+  imagePlaceholder: { alignItems: 'center' },
+  imagePlaceholderText: { marginTop: 8, color: '#6b7280' },
+  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 8, padding: 12, height: 50 },
+  pickerButtonText: { fontSize: 16, color: '#111827' },
+  placeholderText: { color: '#9ca3af' },
 });
 
 export default ProductForm;

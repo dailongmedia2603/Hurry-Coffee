@@ -1,7 +1,8 @@
 import React from 'react';
-import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-export type ConfirmDeleteModalProps = {
+type ConfirmDeleteModalProps = {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -12,28 +13,23 @@ export type ConfirmDeleteModalProps = {
 const ConfirmDeleteModal = ({ visible, onClose, onConfirm, title, message }: ConfirmDeleteModalProps) => {
   return (
     <Modal
+      animationType="fade"
       transparent={true}
       visible={visible}
-      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <Text style={styles.modalText}>{message}</Text>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Ionicons name="warning-outline" size={48} color="#ef4444" style={styles.icon} />
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
           <View style={styles.buttonContainer}>
-            <Pressable
-              style={[styles.button, styles.buttonCancel]}
-              onPress={onClose}
-            >
-              <Text style={styles.textStyle}>Huỷ</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.button, styles.buttonConfirm]}
-              onPress={onConfirm}
-            >
-              <Text style={styles.textStyle}>Xác nhận</Text>
-            </Pressable>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>Hủy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={onConfirm}>
+              <Text style={styles.confirmButtonText}>Xóa</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -42,37 +38,39 @@ const ConfirmDeleteModal = ({ visible, onClose, onConfirm, title, message }: Con
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalView: {
-    margin: 20,
+  modalContainer: {
+    width: '90%',
+    maxWidth: 320,
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 25,
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    width: '80%',
   },
-  modalTitle: {
-    marginBottom: 15,
-    textAlign: 'center',
-    fontSize: 18,
+  icon: {
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 20,
     fontWeight: 'bold',
-  },
-  modalText: {
-    marginBottom: 20,
+    marginBottom: 8,
     textAlign: 'center',
+  },
+  message: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -80,22 +78,29 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   button: {
-    borderRadius: 8,
-    padding: 10,
-    elevation: 2,
     flex: 1,
-    marginHorizontal: 5,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonCancel: {
-    backgroundColor: '#9E9E9E',
+  cancelButton: {
+    backgroundColor: '#e5e7eb',
+    marginRight: 8,
   },
-  buttonConfirm: {
-    backgroundColor: '#f44336',
-  },
-  textStyle: {
-    color: 'white',
+  cancelButtonText: {
+    color: '#374151',
     fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 16,
+  },
+  confirmButton: {
+    backgroundColor: '#ef4444',
+    marginLeft: 8,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

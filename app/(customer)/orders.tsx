@@ -1,66 +1,129 @@
-import { View, Text, FlatList, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
-import React, { useState, useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import React, { useState, useMemo, useEffect } from "react";
+import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 import LocationCard from '@/src/components/LocationCard';
 import { Location } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
-import { useDebounce } from 'use-debounce';
 
-const LocationsScreen = () => {
-	const [locations, setLocations] = useState<Location[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [searchQuery, setSearchQuery] = useState('');
-	const [debouncedQuery] = useDebounce(searchQuery, 300);
-    const router = useRouter();
+export default function LocationsScreen() {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [locations, setLocations] = useState<Location[]>([]);
+    const [loading, setLoading] = useState(true);
 
-	useEffect(() => {
-		const fetchLocations = async () => {
-			setLoading(true);
-			let query = supabase.from('locations').select('*');
-			if (debouncedQuery) {
-				query = query.ilike('name', `%${debouncedQuery}%`);
-			}
-			const { data, error } = await query.order('name', { ascending: true });
+    useEffect(() => {
+        const fetchLocations = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('locations')
+                .select('*')
+                .order('created_at', { ascending: true });
 
-			if (data) {
-				setLocations(data);
-			}
-			setLoading(false);
-		};
+            if (error) {
+                console.error('Error fetching locations:', error);
+            } else {
+                setLocations(data || []);
+            }
+            setLoading(false);
+        };
 
-		fetchLocations();
-	}, [debouncedQuery]);
+        fetchLocations();
+    }, []);
 
-	if (loading) {
-		return <ActivityIndicator style={styles.centered} size="large" />;
-	}
+    const filteredLocations = useMemo(() => {
+        if (!searchQuery) {
+            return locations;
+        }
+        const lowercasedQuery = searchQuery.toLowerCase();
+        return locations.filter(location => 
+            location.name.toLowerCase().includes(lowercasedQuery) || 
+            location.address.toLowerCase().includes(lowercasedQuery)
+        );
+    }, [searchQuery, locations]);
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.centered}>
+                <ActivityIndicator size="large" color="#73509c" />
+            </SafeAreaView>
+        );
+    }
 
 	return (
-		<View style={styles.container}>
-			<Stack.Screen options={{ title: 'Chọn cửa hàng' }} />
-			<TextInput
-				style={styles.searchInput}
-				placeholder="Tìm kiếm cửa hàng..."
-				value={searchQuery}
-				onChangeText={setSearchQuery}
-			/>
+		<SafeAreaView style={styles.safeArea}>
+			<View style={styles.headerContainer}>
+				<Text style={styles.headerTitle}>Hệ thống cửa hàng</Text>
+			</View>
+			<View style={styles.filtersContainer}>
+				<View style={styles.searchBar}>
+					<Ionicons name="search" size={20} color="#989898" style={{marginRight: 12}} />
+					<TextInput 
+						placeholder="Tìm kiếm cửa hàng..."
+						style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+					/>
+				</View>
+			</View>
 			<FlatList
-				data={locations}
-				renderItem={({ item }) => <LocationCard location={item} onPress={() => { /* Handle location selection */ }} />}
+				data={filteredLocations}
+				renderItem={({ item }) => <LocationCard location={item} />}
 				keyExtractor={(item) => item.id}
 				contentContainerStyle={styles.listContainer}
-				ListEmptyComponent={<Text style={styles.emptyText}>Không tìm thấy cửa hàng nào.</Text>}
+				showsVerticalScrollIndicator={false}
 			/>
-		</View>
+		</SafeAreaView>
 	);
-};
+}
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: '#f5f5f5' },
-	centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-	searchInput: { backgroundColor: 'white', padding: 15, margin: 10, borderRadius: 10, fontSize: 16 },
-	listContainer: { paddingHorizontal: 10 },
-	emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#666' },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F5F5F5',
+    },
+	safeArea: {
+		flex: 1,
+		backgroundColor: "#F5F5F5",
+	},
+	headerContainer: {
+		backgroundColor: '#FFFFFF',
+		paddingVertical: 20,
+		paddingHorizontal: 16,
+		alignItems: 'center',
+		borderBottomWidth: 1,
+		borderBottomColor: '#E0E0E0',
+	},
+	headerTitle: {
+		color: "#161616",
+		fontSize: 20,
+		fontWeight: "bold",
+	},
+	filtersContainer: {
+		flexDirection: 'row',
+		padding: 16,
+		alignItems: 'center',
+		backgroundColor: '#FFFFFF',
+	},
+	searchBar: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#FAFAFA",
+		borderColor: "#DCDCDC",
+		borderRadius: 30,
+		borderWidth: 1,
+		paddingHorizontal: 16,
+		height: 50,
+	},
+	searchInput: {
+		color: "#333",
+		fontSize: 14,
+		flex: 1,
+	},
+	listContainer: {
+		paddingHorizontal: 16,
+		paddingTop: 16,
+		paddingBottom: 100,
+	},
 });
-
-export default LocationsScreen;

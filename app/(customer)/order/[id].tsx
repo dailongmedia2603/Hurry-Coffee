@@ -1,170 +1,230 @@
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, ScrollView, Pressable } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
-import OrderItemListItem from '@/src/components/OrderItemListItem';
-import { formatPrice, formatDisplayPhone } from '@/src/utils/formatters';
-import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
+import { getAnonymousId } from '@/src/utils/anonymousId';
 
-const OrderDetailsScreen = () => {
-    const { id } = useLocalSearchParams();
-    const orderId = Array.isArray(id) ? id[0] : id;
+type OrderItemWithProduct = {
+  quantity: number;
+  price: number;
+  products: Product | null;
+};
+
+type OrderDetails = Omit<Order, 'items_count' | 'restaurant_name' | 'restaurant_image_url'> & {
+  order_items: OrderItemWithProduct[];
+  delivery_address: string | null;
+  customer_name: string | null;
+  notes: string | null;
+  locations: Location | null;
+  order_type: 'delivery' | 'pickup';
+};
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price);
+};
+
+const InfoRow = ({ label, value, valueStyle }: { label: string, value: string, valueStyle?: object }) => (
+  <View style={styles.infoRow}>
+    <Text style={styles.infoLabel}>{label}</Text>
+    <Text style={[styles.infoValue, valueStyle]}>{value}</Text>
+  </View>
+);
+
+export default function OrderDetailScreen() {
+    const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-
-    const [order, setOrder] = useState<Order | null>(null);
-    const [pickupLocation, setPickupLocation] = useState<Location | null>(null);
+    const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     useEffect(() => {
-        if (!orderId) return;
+        if (!id) return;
 
-        const fetchOrder = async () => {
+        const fetchOrderDetails = async () => {
             setLoading(true);
-            setError(null);
             try {
-                const { data, error: orderError } = await supabase
+                const { data, error } = await supabase
                     .from('orders')
-                    .select(`
-                        *,
-                        order_items (
-                            *,
-                            products (*)
-                        )
-                    `)
-                    .eq('id', orderId)
+                    .select(`*, order_items (quantity, price, products (*)), locations (*)`)
+                    .eq('id', id)
                     .single();
-
-                if (orderError) throw orderError;
-                setOrder(data as Order);
-
-                if (data.order_type === 'pickup' && data.pickup_location_id) {
-                    const { data: locationData, error: locationError } = await supabase
-                        .from('locations')
-                        .select('*')
-                        .eq('id', data.pickup_location_id)
-                        .single();
-                    if (locationError) throw locationError;
-                    setPickupLocation(locationData);
-                }
-
-            } catch (e: any) {
-                setError(e.message);
+                if (error) throw error;
+                setOrder(data as any);
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                setOrder(null);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchOrder();
+        fetchOrderDetails();
 
-        const subscription = supabase
-            .channel(`orders:${orderId}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-                (payload) => {
-                    setOrder(prevOrder => ({ ...prevOrder, ...payload.new }) as Order);
-                }
+        const channel = supabase
+            .channel(`customer-order-${id}`)
+            .on<OrderDetails>(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
+                (payload) => setOrder((currentOrder) => 
+                    currentOrder && currentOrder.status !== payload.new.status 
+                    ? { ...currentOrder, ...payload.new } 
+                    : currentOrder
+                )
             )
             .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [id]);
 
-        return () => {
-            supabase.removeChannel(subscription);
-        };
+    const handleCancelOrder = async () => {
+        Alert.alert(
+            "Xác nhận hủy",
+            "Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.",
+            [
+                { text: "Ở lại", style: "cancel" },
+                {
+                    text: "Xác nhận hủy",
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsCancelling(true);
+                        try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            const body: { order_id: string, anonymous_device_id?: string } = { order_id: id! };
 
-    }, [orderId]);
+                            if (!user) {
+                                body.anonymous_device_id = await getAnonymousId();
+                            }
 
-    const handleCall = () => {
-        if (order?.customer_phone) {
-            Linking.openURL(`tel:${order.customer_phone}`);
-        }
+                            const { error } = await supabase.functions.invoke('cancel-order', { body });
+
+                            if (error) {
+                                throw new Error(error.message);
+                            }
+
+                            Alert.alert("Thành công", "Đơn hàng của bạn đã được hủy.");
+                            setOrder(prevOrder => prevOrder ? { ...prevOrder, status: 'Đã hủy' } : null);
+
+                        } catch (error: any) {
+                            Alert.alert("Lỗi", error.message || "Không thể hủy đơn hàng. Vui lòng thử lại.");
+                        } finally {
+                            setIsCancelling(false);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     if (loading) {
-        return <ActivityIndicator size="large" style={{ flex: 1, justifyContent: 'center' }} />;
+        return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color="#73509c" /></SafeAreaView>;
     }
-    if (error || !order) {
-        return <Text style={styles.errorText}>Không tìm thấy đơn hàng hoặc đã có lỗi xảy ra.</Text>;
+
+    if (!order) {
+        return <SafeAreaView style={styles.centered}><Text>Không tìm thấy đơn hàng.</Text></SafeAreaView>;
     }
+
+    const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const deliveryFee = order.total - subtotal;
 
     return (
-        <View style={styles.container}>
-            <Stack.Screen options={{ title: `Đơn hàng #${order.id.slice(0, 6)}` }} />
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={24} color="#000" /></TouchableOpacity>
+                <Text style={styles.headerTitle} numberOfLines={1}>Chi tiết đơn hàng</Text>
+                <View style={{ width: 24 }} /> 
+            </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <OrderStatusTracker status={order.status as OrderStatus} orderType={order.order_type} />
+                <OrderStatusTracker status={order.status} orderType={order.order_type} />
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Thông tin đơn hàng</Text>
-                    <View style={styles.infoRow}>
-                        <Ionicons name="person-outline" size={20} color="#555" />
-                        <Text style={styles.infoText}>{order.customer_name}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                        <Ionicons name="call-outline" size={20} color="#555" />
-                        <Text style={styles.infoText}>{formatDisplayPhone(order.customer_phone || '')}</Text>
-                        <Pressable onPress={handleCall} style={styles.callButton}>
-                            <Text style={styles.callButtonText}>Gọi</Text>
-                        </Pressable>
-                    </View>
-                    {order.order_type === 'delivery' && (
-                        <View style={styles.infoRow}>
-                            <Ionicons name="location-outline" size={20} color="#555" />
-                            <Text style={styles.infoText}>{order.delivery_address}</Text>
+                    <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
+                    {order.order_items.map((item, index) => (
+                        <View key={index} style={styles.itemContainer}>
+                            <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+                            <View style={styles.itemDetails}><Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text></View>
+                            <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
                         </View>
-                    )}
-                    {order.order_type === 'pickup' && pickupLocation && (
-                         <View style={styles.infoRow}>
-                            <Ionicons name="storefront-outline" size={20} color="#555" />
-                            <Text style={styles.infoText}>Nhận tại: {pickupLocation.name}</Text>
-                        </View>
-                    )}
-                     <View style={styles.infoRow}>
-                        <Ionicons name="reader-outline" size={20} color="#555" />
-                        <Text style={styles.infoText}>Ghi chú: {order.notes || 'Không có'}</Text>
-                    </View>
+                    ))}
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Chi phí</Text>
+                    <InfoRow label="Tạm tính" value={formatPrice(subtotal)} />
+                    <InfoRow label="Phí giao hàng" value={formatPrice(deliveryFee)} />
+                    <View style={styles.separator} />
+                    <InfoRow label="Tổng cộng" value={formatPrice(order.total)} valueStyle={styles.totalPrice} />
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Thông tin giao hàng</Text>
+                    <View style={styles.addressContainer}><Ionicons name="storefront-outline" size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>Nhà hàng</Text><Text style={styles.addressValue}>Nhà hàng Hurry Coffee</Text></View></View>
+                    <View style={styles.addressSeparator} />
+                    <View style={styles.addressContainer}><Ionicons name={order.order_type === 'delivery' ? "home-outline" : "bag-handle-outline"} size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{order.order_type === 'delivery' ? 'Giao đến' : 'Nhận tại'}</Text><Text style={styles.addressValue}>{order.order_type === 'delivery' ? order.delivery_address : order.locations?.name}</Text></View></View>
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
+                    <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
+                    <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
+                    <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
 
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Các món đã đặt</Text>
-                    <FlatList
-                        data={order.order_items}
-                        renderItem={({ item }) => <OrderItemListItem item={item} />}
-                        keyExtractor={(item) => item.id.toString()}
-                        scrollEnabled={false}
-                    />
-                    <View style={styles.totalRow}>
-                        <Text style={styles.totalText}>Tổng cộng</Text>
-                        <Text style={styles.totalPrice}>{formatPrice(order.total)}</Text>
+                {order.status === 'Đang xử lý' && (
+                    <View style={styles.actionContainer}>
+                        <TouchableOpacity style={styles.cancelButton} onPress={handleCancelOrder} disabled={isCancelling}>
+                            {isCancelling ? (
+                                <ActivityIndicator color="#D50000" />
+                            ) : (
+                                <Text style={styles.cancelButtonText}>Hủy đơn hàng</Text>
+                            )}
+                        </TouchableOpacity>
                     </View>
-                </View>
+                )}
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
-};
+}
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8f8f8' },
-    scrollContainer: { padding: 15 },
-    errorText: { flex: 1, textAlign: 'center', marginTop: 50, fontSize: 16 },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+    safeArea: { flex: 1, backgroundColor: '#FAFAFA' },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
+    backButton: { padding: 4 },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', marginHorizontal: 8 },
+    scrollContainer: { paddingBottom: 40, backgroundColor: '#FAFAFA' },
+    card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+    itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    itemImage: { width: 50, height: 50, borderRadius: 8, marginRight: 12 },
+    itemDetails: { flex: 1 },
+    itemName: { fontSize: 16, fontWeight: '500' },
+    itemPrice: { fontSize: 16, fontWeight: 'bold' },
+    infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+    infoLabel: { fontSize: 16, color: '#666' },
+    infoValue: { fontSize: 16, color: '#333', fontWeight: '500' },
+    separator: { height: 1, backgroundColor: '#F0F0E0', marginVertical: 8 },
+    totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
+    addressContainer: { flexDirection: 'row', alignItems: 'center' },
+    addressTextContainer: { marginLeft: 12, flex: 1 },
+    addressLabel: { fontSize: 14, color: '#666' },
+    addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
+    addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
+    actionContainer: {
+        marginHorizontal: 16,
+        marginTop: 24,
     },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-    infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    infoText: { fontSize: 16, marginLeft: 10, flex: 1 },
-    callButton: { backgroundColor: '#E8F5E9', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 15 },
-    callButtonText: { color: '#00C853', fontWeight: 'bold' },
-    totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#eee' },
-    totalText: { fontSize: 18, fontWeight: 'bold' },
-    totalPrice: { fontSize: 18, fontWeight: 'bold', color: '#00C853' },
+    cancelButton: {
+        backgroundColor: '#FFEBEE',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#D50000',
+    },
+    cancelButtonText: {
+        color: '#D50000',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
-
-export default OrderDetailsScreen;

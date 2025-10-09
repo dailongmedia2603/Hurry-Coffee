@@ -1,166 +1,179 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, FlatList, TextInput, Pressable, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { ProductCategory } from '@/types';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import IconPickerModal from './IconPickerModal';
 
-const CategoryManagerModal = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
+type CategoryManagerModalProps = {
+  visible: boolean;
+  onClose: () => void;
+};
+
+const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [loading, setLoading] = useState(false);
+  
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryIcon, setNewCategoryIcon] = useState<string | null>('fast-food-outline');
+  const [newCategoryIcon, setNewCategoryIcon] = useState<keyof typeof Ionicons.glyphMap>('fast-food-outline');
+  const [isAdding, setIsAdding] = useState(false);
+
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
-  const [deletingCategory, setDeletingCategory] = useState<ProductCategory | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isIconPickerVisible, setIconPickerVisible] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      fetchCategories();
-    }
-  }, [visible]);
-
   const fetchCategories = async () => {
-    const { data, error } = await supabase.from('product_categories').select('*').order('name');
-    if (data) setCategories(data);
+    setLoading(true);
+    const { data, error } = await supabase.from('product_categories').select('*').order('name', { ascending: true });
+    if (error) {
+      showAlert('Lỗi', 'Không thể tải danh sách phân loại.');
+    } else {
+      setCategories(data || []);
+    }
+    setLoading(false);
   };
+
+  useEffect(() => { if (visible) fetchCategories(); }, [visible]);
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
-    const { error } = await supabase.from('product_categories').insert({ name: newCategoryName, icon_name: newCategoryIcon });
-    if (!error) {
+    setIsAdding(true);
+    const { error } = await supabase.from('product_categories').insert({ name: newCategoryName.trim(), icon_name: newCategoryIcon });
+    if (error) {
+      showAlert('Lỗi', 'Không thể thêm phân loại mới. Có thể tên đã tồn tại.');
+    } else {
       setNewCategoryName('');
       setNewCategoryIcon('fast-food-outline');
-      fetchCategories();
-    } else {
-      Alert.alert('Lỗi', 'Không thể thêm phân loại mới.');
+      await fetchCategories();
     }
+    setIsAdding(false);
   };
+
+  const handleDeleteCategory = (id: string) => {
+    setItemToDelete(id);
+    setConfirmModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    const { error } = await supabase.from('product_categories').delete().eq('id', itemToDelete);
+    if (error) showAlert('Lỗi', 'Không thể xóa phân loại. Có thể vẫn còn sản phẩm thuộc phân loại này.');
+    else await fetchCategories();
+    setConfirmModalVisible(false);
+    setItemToDelete(null);
+  };
+
+  const handleStartEdit = (category: ProductCategory) => setEditingCategory({ ...category });
+  const handleCancelEdit = () => setEditingCategory(null);
 
   const handleUpdateCategory = async () => {
-    if (!editingCategory) return;
+    if (!editingCategory || !editingCategory.name.trim()) return;
+    setIsUpdating(true);
     const { error } = await supabase.rpc('update_category_and_products', {
-        p_category_id: editingCategory.id,
-        p_new_name: editingCategory.name,
-        p_new_icon_name: editingCategory.icon_name
+      p_category_id: editingCategory.id,
+      p_new_name: editingCategory.name.trim(),
+      p_new_icon_name: editingCategory.icon_name
     });
-
-    if (!error) {
-      setEditingCategory(null);
-      fetchCategories();
+    if (error) {
+      showAlert('Lỗi', 'Không thể cập nhật phân loại. Tên có thể đã tồn tại.');
     } else {
-      Alert.alert('Lỗi', 'Không thể cập nhật phân loại.');
+      handleCancelEdit();
+      await fetchCategories();
     }
-  };
-
-  const handleDeleteCategory = async () => {
-    if (!deletingCategory) return;
-    const { error } = await supabase.from('product_categories').delete().eq('id', deletingCategory.id);
-    if (!error) {
-      setDeletingCategory(null);
-      fetchCategories();
-    } else {
-      Alert.alert('Lỗi', 'Không thể xoá phân loại. Có thể vẫn còn sản phẩm thuộc phân loại này.');
-    }
+    setIsUpdating(false);
   };
 
   const renderCategoryItem = ({ item }: { item: ProductCategory }) => {
-    if (editingCategory && editingCategory.id === item.id) {
+    const isEditing = editingCategory?.id === item.id;
+    if (isEditing) {
       return (
-        <View style={styles.editingItemContainer}>
-          <Pressable onPress={() => setIconPickerVisible(true)}>
-            <Ionicons name={(editingCategory.icon_name as any) || 'help-circle-outline'} size={24} color="black" />
-          </Pressable>
+        <View style={[styles.categoryItem, styles.editingItem]}>
+          <TouchableOpacity style={styles.iconEditButton} onPress={() => setIconPickerVisible(true)}>
+            <Ionicons name={editingCategory.icon_name as any || 'help-circle'} size={24} color="#73509c" />
+          </TouchableOpacity>
           <TextInput
             style={styles.editInput}
             value={editingCategory.name}
-            onChangeText={(text) => setEditingCategory((cat: ProductCategory | null) => (cat ? { ...cat, name: text } : null))}
+            onChangeText={(text) => setEditingCategory(cat => cat ? { ...cat, name: text } : null)}
             autoFocus={true}
+            onSubmitEditing={handleUpdateCategory}
           />
-          <Pressable onPress={handleUpdateCategory}><Ionicons name="checkmark-circle" size={24} color="green" /></Pressable>
-          <Pressable onPress={() => setEditingCategory(null)}><Ionicons name="close-circle" size={24} color="gray" /></Pressable>
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity onPress={handleUpdateCategory} disabled={isUpdating} style={styles.actionButton}>
+              {isUpdating ? <ActivityIndicator size="small" /> : <Ionicons name="checkmark-circle" size={24} color="#16a34a" />}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleCancelEdit} style={styles.actionButton}>
+              <Ionicons name="close-circle" size={24} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
-
     return (
-      <View style={styles.itemContainer}>
-        <Ionicons name={(item.icon_name as any) || 'help-circle-outline'} size={24} color="black" />
-        <Text style={styles.itemText}>{item.name}</Text>
-        <View style={styles.itemActions}>
-          <Pressable onPress={() => setEditingCategory(item)}><Ionicons name="pencil" size={20} color="blue" /></Pressable>
-          <Pressable onPress={() => setDeletingCategory(item)}><Ionicons name="trash" size={20} color="red" /></Pressable>
+      <View style={styles.categoryItem}>
+        <Ionicons name={item.icon_name as any || 'help-circle'} size={24} color="#333" style={{ marginRight: 12 }} />
+        <Text style={styles.categoryName}>{item.name}</Text>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity onPress={() => handleStartEdit(item)} style={styles.actionButton}><Ionicons name="pencil" size={22} color="#3b82f6" /></TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteCategory(item.id)} style={styles.actionButton}><Ionicons name="trash-outline" size={22} color="#ef4444" /></TouchableOpacity>
         </View>
       </View>
     );
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>Quản lý Phân loại</Text>
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-        />
-        <View style={styles.addContainer}>
-          <Pressable onPress={() => setIconPickerVisible(true)}>
-            <Ionicons name={(newCategoryIcon as any) || 'help-circle-outline'} size={24} color="black" />
-          </Pressable>
-          <TextInput
-            style={styles.addInput}
-            placeholder="Tên phân loại mới"
-            value={newCategoryName}
-            onChangeText={setNewCategoryName}
-          />
-          <Pressable style={styles.addButton} onPress={handleAddCategory}>
-            <Text style={styles.addButtonText}>Thêm</Text>
-          </Pressable>
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
+        <View style={styles.modalContainer}>
+          <View style={styles.header}><Text style={styles.headerTitle}>Quản lý Phân loại</Text><TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity></View>
+          <View style={styles.addForm}>
+            <TouchableOpacity style={styles.iconEditButton} onPress={() => setIconPickerVisible(true)}><Ionicons name={newCategoryIcon} size={24} color="#73509c" /></TouchableOpacity>
+            <TextInput style={styles.input} placeholder="Tên phân loại mới" value={newCategoryName} onChangeText={setNewCategoryName} />
+            <TouchableOpacity style={styles.addButton} onPress={handleAddCategory} disabled={isAdding}>{isAdding ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="add" size={24} color="#fff" />}</TouchableOpacity>
+          </View>
+          {loading ? <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} /> : <FlatList data={categories} keyExtractor={(item) => item.id} renderItem={renderCategoryItem} contentContainerStyle={{ paddingTop: 10 }} />}
         </View>
-        <Pressable style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Đóng</Text>
-        </Pressable>
-      </SafeAreaView>
-      <ConfirmDeleteModal
-        visible={!!deletingCategory}
-        onClose={() => setDeletingCategory(null)}
-        onConfirm={handleDeleteCategory}
-        title="Xoá phân loại"
-        message={`Bạn có chắc chắn muốn xoá "${deletingCategory?.name || ''}" không?`}
-      />
-      <IconPickerModal 
-        visible={isIconPickerVisible} 
-        onClose={() => setIconPickerVisible(false)} 
-        onSelectIcon={(icon: string) => {
-          if (editingCategory) {
-            setEditingCategory((cat: ProductCategory | null) => (cat ? { ...cat, icon_name: icon } : null));
-          } else {
-            setNewCategoryIcon(icon);
-          }
+      </View>
+      <ConfirmDeleteModal visible={isConfirmModalVisible} onClose={() => { setConfirmModalVisible(false); setItemToDelete(null); }} onConfirm={confirmDelete} title="Xóa phân loại" message="Bạn có chắc chắn muốn xóa phân loại này? Hành động này không thể hoàn tác." />
+      <IconPickerModal visible={isIconPickerVisible} onClose={() => setIconPickerVisible(false)} onSelectIcon={(icon) => {
+          if (editingCategory) setEditingCategory(cat => cat ? { ...cat, icon_name: icon } : null);
+          else setNewCategoryIcon(icon);
           setIconPickerVisible(false);
-        }} 
+        }}
       />
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: 20, paddingHorizontal: 20 },
-    title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-    list: { flex: 1 },
-    itemContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    editingItemContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    itemText: { flex: 1, fontSize: 16, marginLeft: 10 },
-    itemActions: { flexDirection: 'row', gap: 15 },
-    editInput: { flex: 1, fontSize: 16, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 5, marginHorizontal: 10 },
-    addContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 20, borderTopWidth: 1, paddingTop: 10, borderColor: '#eee' },
-    addInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 10, marginHorizontal: 10 },
-    addButton: { backgroundColor: 'green', padding: 10, borderRadius: 5 },
-    addButtonText: { color: 'white' },
-    closeButton: { marginTop: 20, backgroundColor: 'gray', padding: 15, borderRadius: 5, alignItems: 'center' },
-    closeButtonText: { color: 'white', fontWeight: 'bold' },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+    modalBackdrop: { ...StyleSheet.absoluteFillObject },
+    modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, height: '60%' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    headerTitle: { fontSize: 20, fontWeight: 'bold' },
+    addForm: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+    input: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, padding: 12, fontSize: 16, marginHorizontal: 10 },
+    addButton: { backgroundColor: '#73509c', padding: 12, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    categoryItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    categoryName: { fontSize: 16, flex: 1 },
+    actionsContainer: { flexDirection: 'row', alignItems: 'center' },
+    actionButton: { paddingHorizontal: 8 },
+    editingItem: { paddingVertical: 8 },
+    editInput: { flex: 1, fontSize: 16, backgroundColor: '#f3f4f6', borderRadius: 8, padding: 10, marginHorizontal: 10 },
+    iconEditButton: { padding: 12, backgroundColor: '#f3f4f6', borderRadius: 8 },
 });
 
 export default CategoryManagerModal;

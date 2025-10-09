@@ -1,45 +1,54 @@
 import React from 'react';
-import { Modal, View, Text, FlatList, Pressable, StyleSheet, SafeAreaView } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCategory } from '@/types';
 
 type CategoryPickerModalProps = {
-    visible: boolean;
-    onClose: () => void;
-    onSelect: (category: ProductCategory) => void;
-    categories: ProductCategory[];
+  visible: boolean;
+  onClose: () => void;
+  categories: ProductCategory[];
+  onSelect: (categoryName: string) => void;
 };
 
-const CategoryPickerModal = ({ visible, onClose, onSelect, categories }: CategoryPickerModalProps) => {
-    return (
-        <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-            <SafeAreaView style={styles.container}>
-                <Text style={styles.title}>Chọn Phân loại</Text>
-                <FlatList
-                    data={categories}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <Pressable style={styles.itemContainer} onPress={() => onSelect(item)}>
-                            <Ionicons name={(item.icon_name as any) || 'help-circle-outline'} size={24} color="black" />
-                            <Text style={styles.itemText}>{item.name}</Text>
-                        </Pressable>
-                    )}
-                />
-                <Pressable style={styles.closeButton} onPress={onClose}>
-                    <Text style={styles.closeButtonText}>Đóng</Text>
-                </Pressable>
-            </SafeAreaView>
-        </Modal>
-    );
+const CategoryPickerModal = ({ visible, onClose, categories, onSelect }: CategoryPickerModalProps) => {
+  return (
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
+        <View style={styles.modalContainer}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Chọn Phân loại</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
+          </View>
+          <FlatList
+            data={categories}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.categoryItem}
+                onPress={() => {
+                  onSelect(item.name);
+                  onClose();
+                }}
+              >
+                <Text style={styles.categoryName}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: 20 },
-    title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-    itemContainer: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    itemText: { fontSize: 18, marginLeft: 10 },
-    closeButton: { backgroundColor: 'gray', padding: 15, alignItems: 'center', margin: 20, borderRadius: 5 },
-    closeButtonText: { color: 'white', fontWeight: 'bold' },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+    modalBackdrop: { ...StyleSheet.absoluteFillObject },
+    modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '50%' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    headerTitle: { fontSize: 20, fontWeight: 'bold' },
+    categoryItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    categoryName: { fontSize: 16 },
 });
 
 export default CategoryPickerModal;
