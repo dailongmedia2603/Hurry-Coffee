@@ -32,18 +32,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
-  const profileRef = useRef<Profile | null>(null); // Ref to hold the latest profile state for comparison
-
-  // Update profileRef whenever profile state changes
-  useEffect(() => {
-    profileRef.current = profile;
-  }, [profile]);
 
   const fetchProfile = useCallback(async (u: User | null) => {
     if (!u) {
-      if (mountedRef.current && profileRef.current !== null) {
-        setProfile(null);
-      }
+      if (mountedRef.current) setProfile(null);
       return;
     }
     try {
@@ -56,32 +48,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', u.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means "no rows found" for .single()
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
       }
-
-      if (mountedRef.current) {
-        const newProfile = data ?? null;
-        const currentProfile = profileRef.current;
-
-        // Perform a shallow comparison of relevant fields to prevent unnecessary re-renders
-        const isProfileContentSame = 
-          currentProfile?.full_name === newProfile?.full_name &&
-          currentProfile?.avatar_url === newProfile?.avatar_url &&
-          currentProfile?.role === newProfile?.role &&
-          currentProfile?.location_id === newProfile?.location_id;
-
-        // Only update state if the profile content has actually changed or if null/non-null status changes
-        if (currentProfile === null && newProfile !== null ||
-            currentProfile !== null && newProfile === null ||
-            (currentProfile !== null && newProfile !== null && !isProfileContentSame)) {
-          setProfile(newProfile);
-        }
-      }
+      if (mountedRef.current) setProfile(data ?? null);
     } catch (e) {
       console.error('fetchProfile failed:', e);
     }
-  }, []); // fetchProfile remains stable with empty dependencies
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -98,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
 
         if (currentUser) {
-          fetchProfile(currentUser);
+          fetchProfile(currentUser); // Không await
         }
       } catch (e) {
         console.error('Failed to initialize session:', e);
@@ -111,13 +85,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mountedRef.current) return;
-      // React's useState performs a shallow comparison, so if nextSession/nextUser are new objects
-      // but contain the same data, it might not trigger a re-render.
-      // However, to be safe, we ensure fetchProfile only updates if content changes.
       setSession(nextSession);
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
-      fetchProfile(nextUser);
+      fetchProfile(nextUser); // Không await
     });
 
     return () => {
