@@ -1,12 +1,12 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { ActivityIndicator, Text, View, StyleSheet, Pressable } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { fetchOrderById } from '@/api/orders';
-import OrderListItem from '@/components/OrderListItem';
-import OrderItemListItem from '@/components/OrderItemListItem';
+import { fetchOrderById } from '../../../src/api/orders';
+import OrderListItem from '../../../src/components/OrderListItem';
+import OrderItemListItem from '../../../src/components/OrderItemListItem';
 import { FlatList } from 'react-native-gesture-handler';
-import Colors from '@/constants/Colors';
-import { useCancelOrder } from '@/src/hooks/useCancelOrder';
+import Colors from '../../../src/constants/Colors';
+import { useCancelOrder } from '../../../src/hooks/useCancelOrder';
 
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams();
