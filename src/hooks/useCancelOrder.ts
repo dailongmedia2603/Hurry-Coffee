@@ -1,54 +1,43 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useCart } from '@/providers/CartProvider';
+import { supabase } from '@/src/integrations/supabase/client';
+import { useAnonymousId } from './useAnonymousId';
 import Toast from 'react-native-toast-message';
 
-export const useCancelOrder = (orderId: string) => {
+export const useCancelOrder = () => {
   const queryClient = useQueryClient();
-  const { anonymousDeviceId } = useCart();
+  const { anonymousId } = useAnonymousId();
 
-  const { mutate: cancelOrder, isPending: isCancelling } = useMutation({
-    mutationFn: async () => {
-      // Dữ liệu gửi đến Edge Function
-      const payload = {
-        order_id: orderId,
-        anonymous_device_id: anonymousDeviceId,
-      };
-
-      const { data, error } = await supabase.functions.invoke('cancel-order', {
-        body: payload,
+  return useMutation({
+    mutationFn: async ({ orderId }: { orderId: string }) => {
+      const { error, data } = await supabase.functions.invoke('cancel-order', {
+        body: {
+          order_id: orderId,
+          anonymous_device_id: anonymousId,
+        },
       });
 
       if (error) {
-        // Cố gắng phân tích lỗi từ phản hồi của function để thông báo rõ ràng hơn
         let errorMessage = error.message;
         try {
-          const parsedError = JSON.parse(error.context?.response?.text || '{}');
-          if (parsedError.error) {
-            errorMessage = parsedError.error;
-          }
+          // Edge functions return errors in the response body
+          const functionError = data?.error || 'Lỗi không xác định';
+          errorMessage = functionError;
         } catch (e) {
-          // Bỏ qua lỗi phân tích, sử dụng thông báo gốc
+          // Ignore parsing error, use original message
         }
         throw new Error(errorMessage);
       }
-
-      return data;
     },
-    onSuccess: async () => {
-      // Vô hiệu hóa query của đơn hàng này để fetch lại dữ liệu mới (trạng thái "Đã hủy")
-      await queryClient.invalidateQueries({ queryKey: ['order', orderId] });
-      
-      // Vô hiệu hóa danh sách đơn hàng để cập nhật
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
-
+    onSuccess: (_, variables) => {
       Toast.show({
         type: 'success',
         text1: 'Thành công',
         text2: 'Đơn hàng của bạn đã được hủy.',
       });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       Toast.show({
         type: 'error',
         text1: 'Lỗi',
@@ -56,6 +45,4 @@ export const useCancelOrder = (orderId: string) => {
       });
     },
   });
-
-  return { cancelOrder, isCancelling };
 };
