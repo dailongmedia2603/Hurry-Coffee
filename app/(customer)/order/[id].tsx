@@ -43,69 +43,51 @@ export default function OrderDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
 
-    useEffect(() => {
+    const fetchOrderDetails = async () => {
         if (!id) return;
-
-        const fetchOrderDetails = async () => {
-            setLoading(true);
+        setLoading(true);
+        try {
             const { data, error } = await supabase
                 .from('orders')
-                .select(`
-                    *,
-                    order_items (
-                        quantity,
-                        price,
-                        products (*)
-                    ),
-                    locations (*)
-                `)
+                .select(`*, order_items (quantity, price, products (*)), locations (*)`)
                 .eq('id', id)
                 .single();
-
-            if (error) {
-                console.error('Error fetching order details:', error);
-            } else {
-                setOrder(data as any);
-            }
+            if (error) throw error;
+            setOrder(data as any);
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            setOrder(null);
+        } finally {
             setLoading(false);
-        };
+        }
+    };
 
+    useEffect(() => {
         fetchOrderDetails();
-
         const channel = supabase
             .channel(`customer-order-${id}`)
             .on<OrderDetails>(
                 'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'orders',
-                    filter: `id=eq.${id}`,
-                },
-                (payload) => {
-                    setOrder((currentOrder) => {
-                        if (currentOrder && currentOrder.status !== payload.new.status) {
-                            return { ...currentOrder, ...payload.new };
-                        }
-                        return currentOrder;
-                    });
-                }
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
+                (payload) => setOrder((currentOrder) => 
+                    currentOrder && currentOrder.status !== payload.new.status 
+                    ? { ...currentOrder, ...payload.new } 
+                    : currentOrder
+                )
             )
             .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, [id]);
 
     const handleCancelOrder = () => {
+        // Bước 1: Kiểm tra điều kiện. Nếu không thỏa mãn, không làm gì cả.
         if (!order || (order.status !== 'Đang xử lý' && order.status !== 'Dang xu ly')) {
-            // Nếu điều kiện không thỏa, không làm gì cả.
-            // Nút bấm đã được vô hiệu hóa nên trường hợp này ít khi xảy ra.
+            console.log("Điều kiện hủy đơn không được thỏa mãn.");
             return;
         }
 
-        // Hiển thị popup xác nhận ngay lập tức
+        // Bước 2: Hiển thị popup xác nhận NGAY LẬP TỨC.
+        // Toàn bộ logic gọi Supabase nằm trong callback 'onPress' của nút "Hủy đơn".
         Alert.alert(
             "Xác nhận hủy đơn",
             "Bạn có chắc chắn muốn hủy đơn hàng này không?",
@@ -114,31 +96,27 @@ export default function OrderDetailScreen() {
                 {
                     text: "Hủy đơn",
                     style: "destructive",
+                    // Bước 3: Chỉ khi người dùng bấm "Hủy đơn", hàm async này mới được thực thi.
                     onPress: async () => {
                         setUpdating(true);
                         try {
                             const { data: { user } } = await supabase.auth.getUser();
-
                             let query = supabase
                                 .from('orders')
                                 .update({ status: 'Đã hủy' })
                                 .eq('id', order.id);
 
-                            // Nếu là người dùng ẩn danh, gửi kèm mã định danh thiết bị để xác thực
                             if (!user) {
                                 const anonymousId = await getAnonymousId();
                                 query = query.eq('anonymous_device_id', anonymousId);
                             }
 
                             const { error } = await query;
-
-                            if (error) {
-                                throw error;
-                            }
+                            if (error) throw error;
 
                             Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
+                            // Cập nhật giao diện ngay lập tức
                             setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
-
                         } catch (err: any) {
                             console.error("Lỗi khi hủy đơn:", err);
                             Alert.alert('Lỗi', err.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.');
@@ -152,19 +130,11 @@ export default function OrderDetailScreen() {
     };
 
     if (loading) {
-        return (
-            <SafeAreaView style={styles.centered}>
-                <ActivityIndicator size="large" color="#73509c" />
-            </SafeAreaView>
-        );
+        return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color="#73509c" /></SafeAreaView>;
     }
 
     if (!order) {
-        return (
-            <SafeAreaView style={styles.centered}>
-                <Text>Không tìm thấy đơn hàng.</Text>
-            </SafeAreaView>
-        );
+        return <SafeAreaView style={styles.centered}><Text>Không tìm thấy đơn hàng.</Text></SafeAreaView>;
     }
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -175,31 +145,22 @@ export default function OrderDetailScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={24} color="#000" /></TouchableOpacity>
                 <Text style={styles.headerTitle} numberOfLines={1}>Chi tiết đơn hàng</Text>
                 <View style={{ width: 24 }} /> 
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <OrderStatusTracker status={order.status} orderType={order.order_type} />
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
                     {order.order_items.map((item, index) => (
                         <View key={index} style={styles.itemContainer}>
-                            <Image 
-                                source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} 
-                                style={styles.itemImage} 
-                            />
-                            <View style={styles.itemDetails}>
-                                <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
-                            </View>
+                            <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+                            <View style={styles.itemDetails}><Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text></View>
                             <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
                         </View>
                     ))}
                 </View>
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Chi phí</Text>
                     <InfoRow label="Tạm tính" value={formatPrice(subtotal)} />
@@ -207,49 +168,22 @@ export default function OrderDetailScreen() {
                     <View style={styles.separator} />
                     <InfoRow label="Tổng cộng" value={formatPrice(order.total)} valueStyle={styles.totalPrice} />
                 </View>
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Thông tin giao hàng</Text>
-                    <View style={styles.addressContainer}>
-                        <Ionicons name="storefront-outline" size={24} color="#73509c" />
-                        <View style={styles.addressTextContainer}>
-                            <Text style={styles.addressLabel}>Nhà hàng</Text>
-                            <Text style={styles.addressValue}>Nhà hàng Hurry Coffee</Text>
-                        </View>
-                    </View>
+                    <View style={styles.addressContainer}><Ionicons name="storefront-outline" size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>Nhà hàng</Text><Text style={styles.addressValue}>Nhà hàng Hurry Coffee</Text></View></View>
                     <View style={styles.addressSeparator} />
-                    <View style={styles.addressContainer}>
-                        <Ionicons name={order.order_type === 'delivery' ? "home-outline" : "bag-handle-outline"} size={24} color="#73509c" />
-                        <View style={styles.addressTextContainer}>
-                            <Text style={styles.addressLabel}>{order.order_type === 'delivery' ? 'Giao đến' : 'Nhận tại'}</Text>
-                            <Text style={styles.addressValue}>
-                                {order.order_type === 'delivery' ? order.delivery_address : order.locations?.name}
-                            </Text>
-                        </View>
-                    </View>
+                    <View style={styles.addressContainer}><Ionicons name={order.order_type === 'delivery' ? "home-outline" : "bag-handle-outline"} size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{order.order_type === 'delivery' ? 'Giao đến' : 'Nhận tại'}</Text><Text style={styles.addressValue}>{order.order_type === 'delivery' ? order.delivery_address : order.locations?.name}</Text></View></View>
                 </View>
-
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
                     <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
                     <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
-
                 {showCancelButton && (
                     <View style={styles.cancelContainer}>
-                        <TouchableOpacity
-                            style={[styles.cancelButton, !canCancel && styles.disabledButton]}
-                            onPress={handleCancelOrder}
-                            disabled={!canCancel || updating}
-                        >
-                            {updating ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.cancelButtonText}>
-                                    {canCancel ? 'Hủy đơn hàng' : 'Không thể hủy đơn'}
-                                </Text>
-                            )}
+                        <TouchableOpacity style={[styles.cancelButton, !canCancel && styles.disabledButton]} onPress={handleCancelOrder} disabled={!canCancel || updating}>
+                            {updating ? <ActivityIndicator color="#fff" /> : <Text style={styles.cancelButtonText}>{canCancel ? 'Hủy đơn hàng' : 'Không thể hủy đơn'}</Text>}
                         </TouchableOpacity>
                     </View>
                 )}
@@ -282,22 +216,8 @@ const styles = StyleSheet.create({
     addressLabel: { fontSize: 14, color: '#666' },
     addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
     addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
-    cancelContainer: {
-        paddingHorizontal: 16,
-        marginTop: 24,
-    },
-    cancelButton: {
-        backgroundColor: '#ef4444',
-        paddingVertical: 16,
-        borderRadius: 30,
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    disabledButton: {
-        backgroundColor: '#ccc',
-    },
+    cancelContainer: { paddingHorizontal: 16, marginTop: 24 },
+    cancelButton: { backgroundColor: '#ef4444', paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
+    cancelButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    disabledButton: { backgroundColor: '#ccc' },
 });
