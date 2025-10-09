@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
-import { getAnonymousId } from '@/src/utils/anonymousId';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -41,29 +40,30 @@ export default function OrderDetailScreen() {
     const router = useRouter();
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
-    const [updating, setUpdating] = useState(false);
-
-    const fetchOrderDetails = async () => {
-        if (!id) return;
-        setLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`*, order_items (quantity, price, products (*)), locations (*)`)
-                .eq('id', id)
-                .single();
-            if (error) throw error;
-            setOrder(data as any);
-        } catch (error) {
-            console.error('Error fetching order details:', error);
-            setOrder(null);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
+        if (!id) return;
+
+        const fetchOrderDetails = async () => {
+            setLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select(`*, order_items (quantity, price, products (*)), locations (*)`)
+                    .eq('id', id)
+                    .single();
+                if (error) throw error;
+                setOrder(data as any);
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                setOrder(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchOrderDetails();
+
         const channel = supabase
             .channel(`customer-order-${id}`)
             .on<OrderDetails>(
@@ -79,56 +79,6 @@ export default function OrderDetailScreen() {
         return () => { supabase.removeChannel(channel); };
     }, [id]);
 
-    const handleCancelOrder = () => {
-        // Bước 1: Kiểm tra điều kiện. Nếu không thỏa mãn, không làm gì cả.
-        if (!order || (order.status !== 'Đang xử lý' && order.status !== 'Dang xu ly')) {
-            console.log("Điều kiện hủy đơn không được thỏa mãn.");
-            return;
-        }
-
-        // Bước 2: Hiển thị popup xác nhận NGAY LẬP TỨC.
-        // Toàn bộ logic gọi Supabase nằm trong callback 'onPress' của nút "Hủy đơn".
-        Alert.alert(
-            "Xác nhận hủy đơn",
-            "Bạn có chắc chắn muốn hủy đơn hàng này không?",
-            [
-                { text: "Không", style: "cancel" },
-                {
-                    text: "Hủy đơn",
-                    style: "destructive",
-                    // Bước 3: Chỉ khi người dùng bấm "Hủy đơn", hàm async này mới được thực thi.
-                    onPress: async () => {
-                        setUpdating(true);
-                        try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            let query = supabase
-                                .from('orders')
-                                .update({ status: 'Đã hủy' })
-                                .eq('id', order.id);
-
-                            if (!user) {
-                                const anonymousId = await getAnonymousId();
-                                query = query.eq('anonymous_device_id', anonymousId);
-                            }
-
-                            const { error } = await query;
-                            if (error) throw error;
-
-                            Alert.alert('Thành công', 'Đơn hàng của bạn đã được hủy.');
-                            // Cập nhật giao diện ngay lập tức
-                            setOrder(currentOrder => currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null);
-                        } catch (err: any) {
-                            console.error("Lỗi khi hủy đơn:", err);
-                            Alert.alert('Lỗi', err.message || 'Không thể hủy đơn hàng. Vui lòng thử lại.');
-                        } finally {
-                            setUpdating(false);
-                        }
-                    },
-                },
-            ]
-        );
-    };
-
     if (loading) {
         return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color="#73509c" /></SafeAreaView>;
     }
@@ -139,8 +89,6 @@ export default function OrderDetailScreen() {
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const deliveryFee = order.total - subtotal;
-    const canCancel = order.status === 'Đang xử lý' || order.status === 'Dang xu ly';
-    const showCancelButton = ['Đang xử lý', 'Dang xu ly', 'Đang làm', 'Đang giao', 'Sẵn sàng'].includes(order.status);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -180,13 +128,6 @@ export default function OrderDetailScreen() {
                     <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
-                {showCancelButton && (
-                    <View style={styles.cancelContainer}>
-                        <TouchableOpacity style={[styles.cancelButton, !canCancel && styles.disabledButton]} onPress={handleCancelOrder} disabled={!canCancel || updating}>
-                            {updating ? <ActivityIndicator color="#fff" /> : <Text style={styles.cancelButtonText}>{canCancel ? 'Hủy đơn hàng' : 'Không thể hủy đơn'}</Text>}
-                        </TouchableOpacity>
-                    </View>
-                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -216,8 +157,4 @@ const styles = StyleSheet.create({
     addressLabel: { fontSize: 14, color: '#666' },
     addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
     addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
-    cancelContainer: { paddingHorizontal: 16, marginTop: 24 },
-    cancelButton: { backgroundColor: '#ef4444', paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
-    cancelButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-    disabledButton: { backgroundColor: '#ccc' },
 });
