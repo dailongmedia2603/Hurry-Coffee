@@ -119,8 +119,8 @@ export default function OrderDetailScreen() {
                                 .update({ status: 'Đã hủy' })
                                 .eq('id', order.id);
 
-                            // **SỬA LỖI QUAN TRỌNG**
-                            // Nếu là người dùng ẩn danh, phải gửi kèm mã định danh thiết bị
+                            // **ĐÂY LÀ PHẦN SỬA LỖI QUAN TRỌNG**
+                            // Nếu là người dùng ẩn danh, chúng ta phải gửi kèm mã định danh thiết bị
                             // để chứng minh quyền sở hữu và vượt qua RLS.
                             if (!user) {
                                 const anonymousId = await getAnonymousId();
