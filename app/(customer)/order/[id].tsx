@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
+import { getAnonymousId } from '@/src/utils/anonymousId';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -40,6 +41,7 @@ export default function OrderDetailScreen() {
     const router = useRouter();
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -78,6 +80,45 @@ export default function OrderDetailScreen() {
             .subscribe();
         return () => { supabase.removeChannel(channel); };
     }, [id]);
+
+    const handleCancelOrder = async () => {
+        Alert.alert(
+            "Xác nhận hủy",
+            "Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.",
+            [
+                { text: "Ở lại", style: "cancel" },
+                {
+                    text: "Xác nhận hủy",
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsCancelling(true);
+                        try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            const body: { order_id: string, anonymous_device_id?: string } = { order_id: id! };
+
+                            if (!user) {
+                                body.anonymous_device_id = await getAnonymousId();
+                            }
+
+                            const { error } = await supabase.functions.invoke('cancel-order', { body });
+
+                            if (error) {
+                                throw new Error(error.message);
+                            }
+
+                            Alert.alert("Thành công", "Đơn hàng của bạn đã được hủy.");
+                            setOrder(prevOrder => prevOrder ? { ...prevOrder, status: 'Đã hủy' } : null);
+
+                        } catch (error: any) {
+                            Alert.alert("Lỗi", error.message || "Không thể hủy đơn hàng. Vui lòng thử lại.");
+                        } finally {
+                            setIsCancelling(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     if (loading) {
         return <SafeAreaView style={styles.centered}><ActivityIndicator size="large" color="#73509c" /></SafeAreaView>;
@@ -128,6 +169,18 @@ export default function OrderDetailScreen() {
                     <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
+
+                {order.status === 'Đang xử lý' && (
+                    <View style={styles.actionContainer}>
+                        <TouchableOpacity style={styles.cancelButton} onPress={handleCancelOrder} disabled={isCancelling}>
+                            {isCancelling ? (
+                                <ActivityIndicator color="#D50000" />
+                            ) : (
+                                <Text style={styles.cancelButtonText}>Hủy đơn hàng</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -157,4 +210,21 @@ const styles = StyleSheet.create({
     addressLabel: { fontSize: 14, color: '#666' },
     addressValue: { fontSize: 16, fontWeight: '500', color: '#333' },
     addressSeparator: { height: 20, width: 1, backgroundColor: '#E0E0E0', marginLeft: 12, marginVertical: 8 },
+    actionContainer: {
+        marginHorizontal: 16,
+        marginTop: 24,
+    },
+    cancelButton: {
+        backgroundColor: '#FFEBEE',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#D50000',
+    },
+    cancelButtonText: {
+        color: '#D50000',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
