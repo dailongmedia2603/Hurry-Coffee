@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/integrations/supabase/client';
-import { useCart } from '@/src/providers/CartProvider';
+import { useCart } from '@/providers/CartProvider';
 import Toast from 'react-native-toast-message';
 
 export const useCancelOrder = (orderId: string) => {
@@ -48,7 +48,7 @@ export const useCancelOrder = (orderId: string) => {
         text2: 'Đơn hàng của bạn đã được hủy.',
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       Toast.show({
         type: 'error',
         text1: 'Lỗi',
