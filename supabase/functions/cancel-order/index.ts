@@ -66,7 +66,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
-    const { data: { user } } = await userSupabaseClient.auth.getUser();
+    const { data: { user }, error: authUserError } = await userSupabaseClient.auth.getUser();
+    if (authUserError) {
+        console.error("[cancel-order] Error fetching authenticated user:", authUserError);
+        // Continue to check anonymous_device_id if user is not found
+    }
 
     let isOwner = false;
     if (user) {
@@ -97,6 +101,7 @@ serve(async (req) => {
       .eq('id', order_id);
 
     if (updateError) {
+      console.error(`[cancel-order] Error updating order status for ID: ${order_id}`, updateError);
       throw updateError;
     }
 
