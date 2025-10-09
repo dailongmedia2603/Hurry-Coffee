@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../providers/AuthProvider';
+import { supabase } from '@/src/integrations/supabase/client';
+import { useAuth } from '@/src/providers/AuthProvider';
 import { useFocusEffect } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { Location } from '@/types';
