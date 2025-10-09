@@ -127,7 +127,8 @@ const CategoryManagerModal = ({ visible, onClose }: { visible: boolean; onClose:
         visible={!!deletingCategory}
         onClose={() => setDeletingCategory(null)}
         onConfirm={handleDeleteCategory}
-        itemName={deletingCategory?.name || ''}
+        title="Xoá phân loại"
+        message={`Bạn có chắc chắn muốn xoá "${deletingCategory?.name || ''}" không?`}
       />
       <IconPickerModal 
         visible={isIconPickerVisible} 

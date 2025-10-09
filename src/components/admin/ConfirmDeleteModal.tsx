@@ -5,10 +5,11 @@ export type ConfirmDeleteModalProps = {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  itemName: string;
+  title: string;
+  message: string;
 };
 
-const ConfirmDeleteModal = ({ visible, onClose, onConfirm, itemName }: ConfirmDeleteModalProps) => {
+const ConfirmDeleteModal = ({ visible, onClose, onConfirm, title, message }: ConfirmDeleteModalProps) => {
   return (
     <Modal
       transparent={true}
@@ -18,10 +19,8 @@ const ConfirmDeleteModal = ({ visible, onClose, onConfirm, itemName }: ConfirmDe
     >
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>Xác nhận xoá</Text>
-          <Text style={styles.modalText}>
-            Bạn có chắc chắn muốn xoá "{itemName}" không? Hành động này không thể hoàn tác.
-          </Text>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalText}>{message}</Text>
           <View style={styles.buttonContainer}>
             <Pressable
               style={[styles.button, styles.buttonCancel]}
@@ -33,7 +32,7 @@ const ConfirmDeleteModal = ({ visible, onClose, onConfirm, itemName }: ConfirmDe
               style={[styles.button, styles.buttonConfirm]}
               onPress={onConfirm}
             >
-              <Text style={styles.textStyle}>Xoá</Text>
+              <Text style={styles.textStyle}>Xác nhận</Text>
             </Pressable>
           </View>
         </View>

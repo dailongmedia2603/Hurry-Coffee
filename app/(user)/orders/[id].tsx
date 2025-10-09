@@ -3,8 +3,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order } from '@/types';
-import OrderListItem from '@/components/OrderListItem';
-import OrderItemListItem from '@/components/OrderItemListItem';
+import OrderListItem from '@/src/components/OrderListItem';
+import OrderItemListItem from '@/src/components/OrderItemListItem';
 import { cancelOrder } from '@/lib/order';
 
 const OrderDetailsScreen = () => {
@@ -92,8 +92,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 10,
-    gap: 20,
-    paddingBottom: 40,
+    gap: 10,
   },
   errorText: {
     flex: 1,
@@ -106,7 +105,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
   },
   cancelButtonText: {
     color: 'white',
