@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/src/integrations/supabase/client';
 import { Alert } from 'react-native';
 
 /**
@@ -27,12 +27,11 @@ export const cancelOrder = (orderId: string, onSuccess: () => void) => {
               .eq('id', orderId);
 
             if (error) {
-              // If RLS fails or another DB error occurs, it will be caught here.
               throw error;
             }
 
             Alert.alert("Thành công", "Đã huỷ đơn hàng thành công.");
-            onSuccess(); // Refresh the UI
+            onSuccess();
           } catch (error: any) {
             console.error("Error cancelling order:", error);
             Alert.alert("Lỗi", "Không thể huỷ đơn hàng. Vui lòng thử lại.");

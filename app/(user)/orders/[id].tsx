@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, FlatList } from 'react-native';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/src/integrations/supabase/client';
 import { Order } from '@/types';
-import OrderListItem from '@/components/OrderListItem';
-import OrderItemListItem from '@/components/OrderItemListItem';
+import OrderListItem from '@/src/components/OrderListItem';
+import OrderItemListItem from '@/src/components/OrderItemListItem';
 import { cancelOrder } from '@/lib/order';
 
 const OrderDetailsScreen = () => {
@@ -49,9 +49,7 @@ const OrderDetailsScreen = () => {
 
   const handleCancelOrder = () => {
     if (!order) return;
-    // Call the new, separated function
     cancelOrder(order.id, () => {
-      // On success, refetch the order to update the status on screen
       fetchOrder();
     });
   };
@@ -63,7 +61,6 @@ const OrderDetailsScreen = () => {
     return <Text style={styles.errorText}>Không tìm thấy đơn hàng hoặc đã có lỗi xảy ra.</Text>;
   }
 
-  // Only show the cancel button if the order status is 'Đang xử lý'
   const isCancellable = order.status === 'Đang xử lý';
 
   return (
