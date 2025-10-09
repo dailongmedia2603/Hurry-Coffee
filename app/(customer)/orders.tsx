@@ -1,33 +1,67 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import LocationCard from '@/src/components/LocationCard';
 import { Location } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
+import { useAuth } from "@/src/context/AuthContext";
+import { useFocusEffect } from "expo-router";
 
 export default function LocationsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [locations, setLocations] = useState<Location[]>([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
-    useEffect(() => {
-        const fetchLocations = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
+    const fetchLocations = useCallback(async () => {
+        setLoading(true);
+
+        let defaultAddress: { latitude: number | null, longitude: number | null } | null = null;
+
+        if (user) {
+            const { data: addressData } = await supabase
+                .from('user_addresses')
+                .select('latitude, longitude')
+                .eq('user_id', user.id)
+                .eq('is_default', true)
+                .single();
+            
+            if (addressData && addressData.latitude && addressData.longitude) {
+                defaultAddress = addressData;
+            }
+        }
+
+        let data, error;
+
+        if (defaultAddress) {
+            const { data: rpcData, error: rpcError } = await supabase.rpc('get_locations_with_distance', {
+                p_lat: defaultAddress.latitude,
+                p_lon: defaultAddress.longitude,
+            });
+            data = rpcData;
+            error = rpcError;
+        } else {
+            const { data: selectData, error: selectError } = await supabase
                 .from('locations')
                 .select('*')
                 .order('created_at', { ascending: true });
+            data = selectData;
+            error = selectError;
+        }
 
-            if (error) {
-                console.error('Error fetching locations:', error);
-            } else {
-                setLocations(data || []);
-            }
-            setLoading(false);
-        };
+        if (error) {
+            console.error('Error fetching locations:', error);
+        } else {
+            setLocations(data || []);
+        }
+        setLoading(false);
+    }, [user]);
 
-        fetchLocations();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchLocations();
+        }, [fetchLocations])
+    );
 
     const filteredLocations = useMemo(() => {
         if (!searchQuery) {

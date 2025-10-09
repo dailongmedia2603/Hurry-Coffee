@@ -33,6 +33,9 @@ export interface Location {
   image_url: string;
   opening_hours: string;
   google_maps_url: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance?: number;
 }
 
 export interface UserAddress {
