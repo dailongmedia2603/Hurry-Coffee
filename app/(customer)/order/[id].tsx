@@ -99,8 +99,13 @@ export default function OrderDetailScreen() {
     }, [id]);
 
     const handleCancelOrder = () => {
-        if (!order || (order.status !== 'Đang xử lý' && order.status !== 'Dang xu ly')) return;
+        if (!order || (order.status !== 'Đang xử lý' && order.status !== 'Dang xu ly')) {
+            // Nếu điều kiện không thỏa, không làm gì cả.
+            // Nút bấm đã được vô hiệu hóa nên trường hợp này ít khi xảy ra.
+            return;
+        }
 
+        // Hiển thị popup xác nhận ngay lập tức
         Alert.alert(
             "Xác nhận hủy đơn",
             "Bạn có chắc chắn muốn hủy đơn hàng này không?",
@@ -119,9 +124,7 @@ export default function OrderDetailScreen() {
                                 .update({ status: 'Đã hủy' })
                                 .eq('id', order.id);
 
-                            // **ĐÂY LÀ PHẦN SỬA LỖI QUAN TRỌNG**
-                            // Nếu là người dùng ẩn danh, chúng ta phải gửi kèm mã định danh thiết bị
-                            // để chứng minh quyền sở hữu và vượt qua RLS.
+                            // Nếu là người dùng ẩn danh, gửi kèm mã định danh thiết bị để xác thực
                             if (!user) {
                                 const anonymousId = await getAnonymousId();
                                 query = query.eq('anonymous_device_id', anonymousId);
