@@ -1,105 +1,75 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Product } from '@/types';
 import MenuItemCard from '@/src/components/MenuItemCard';
-import { Ionicons } from '@expo/vector-icons';
 
-export default function CategoryScreen() {
-  const { name } = useLocalSearchParams<{ name: string }>();
-  const router = useRouter();
+const CategoryScreen = () => {
+  const { name: categoryName } = useLocalSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!name) return;
-
     const fetchProducts = async () => {
+      if (!categoryName) return;
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', name);
+        .eq('category', categoryName);
 
-      if (error) {
-        console.error('Error fetching products by category:', error);
-      } else {
-        setProducts(data || []);
+      if (data) {
+        setProducts(data);
       }
       setLoading(false);
     };
 
     fetchProducts();
-  }, [name]);
+  }, [categoryName]);
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#73509c" />
-      </SafeAreaView>
-    );
+    return <ActivityIndicator style={styles.centered} size="large" />;
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{name}</Text>
-        <View style={{ width: 24 }} /> 
-      </View>
+    <View style={styles.container}>
+      <Stack.Screen options={{ title: `Phân loại: ${categoryName}` }} />
       <FlatList
         data={products}
-        renderItem={({ item }) => (
-          <View style={styles.cardContainer}>
-            <MenuItemCard product={item} style={{ width: '100%', marginRight: 0 }} />
-          </View>
-        )}
+        renderItem={({ item }) => <MenuItemCard product={item} />}
         keyExtractor={(item) => item.id}
         numColumns={2}
         contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={styles.row}
+        ListEmptyComponent={<Text style={styles.emptyText}>Không có sản phẩm nào trong phân loại này.</Text>}
       />
-    </SafeAreaView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#f5f5f5',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   listContainer: {
-    paddingHorizontal: 8,
-    paddingBottom: 100, // Thêm khoảng đệm cho thanh menu
+    padding: 10,
   },
-  cardContainer: {
-    flex: 1/2,
-    padding: 8,
+  row: {
+    justifyContent: 'space-between',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 16,
+    color: '#666',
   },
 });
+
+export default CategoryScreen;
