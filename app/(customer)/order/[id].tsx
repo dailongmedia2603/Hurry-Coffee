@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { getAnonymousId } from '@/src/utils/anonymousId';
+import ConfirmModal from '@/src/components/ConfirmModal';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -42,6 +43,7 @@ export default function OrderDetailScreen() {
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -81,43 +83,35 @@ export default function OrderDetailScreen() {
         return () => { supabase.removeChannel(channel); };
     }, [id]);
 
-    const handleCancelOrder = async () => {
-        Alert.alert(
-            "Xác nhận hủy",
-            "Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.",
-            [
-                { text: "Ở lại", style: "cancel" },
-                {
-                    text: "Xác nhận hủy",
-                    style: "destructive",
-                    onPress: async () => {
-                        setIsCancelling(true);
-                        try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            const body: { order_id: string, anonymous_device_id?: string } = { order_id: id! };
+    const handleCancelOrder = () => {
+        setConfirmModalVisible(true);
+    };
 
-                            if (!user) {
-                                body.anonymous_device_id = await getAnonymousId();
-                            }
+    const confirmCancellation = async () => {
+        setConfirmModalVisible(false);
+        setIsCancelling(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const body: { order_id: string, anonymous_device_id?: string } = { order_id: id! };
 
-                            const { error } = await supabase.functions.invoke('cancel-order', { body });
+            if (!user) {
+                body.anonymous_device_id = await getAnonymousId();
+            }
 
-                            if (error) {
-                                throw new Error(error.message);
-                            }
+            const { error } = await supabase.functions.invoke('cancel-order', { body });
 
-                            Alert.alert("Thành công", "Đơn hàng của bạn đã được hủy.");
-                            setOrder(prevOrder => prevOrder ? { ...prevOrder, status: 'Đã hủy' } : null);
+            if (error) {
+                throw new Error(error.message);
+            }
 
-                        } catch (error: any) {
-                            Alert.alert("Lỗi", error.message || "Không thể hủy đơn hàng. Vui lòng thử lại.");
-                        } finally {
-                            setIsCancelling(false);
-                        }
-                    },
-                },
-            ]
-        );
+            Alert.alert("Thành công", "Đơn hàng của bạn đã được hủy.");
+            setOrder(prevOrder => prevOrder ? { ...prevOrder, status: 'Đã hủy' } : null);
+
+        } catch (error: any) {
+            Alert.alert("Lỗi", error.message || "Không thể hủy đơn hàng. Vui lòng thử lại.");
+        } finally {
+            setIsCancelling(false);
+        }
     };
 
     if (loading) {
@@ -182,6 +176,15 @@ export default function OrderDetailScreen() {
                     </View>
                 )}
             </ScrollView>
+            <ConfirmModal
+                visible={isConfirmModalVisible}
+                onClose={() => setConfirmModalVisible(false)}
+                onConfirm={confirmCancellation}
+                title="Xác nhận hủy"
+                message="Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác."
+                confirmText="Xác nhận hủy"
+                cancelText="Ở lại"
+            />
         </SafeAreaView>
     );
 }
