@@ -25,6 +25,8 @@ const getStatusStyle = (status: OrderStatus) => {
       return { color: '#FF9100', backgroundColor: '#FFF3E0', text: 'Sẵn sàng' };
     case 'Đã hủy':
       return { color: '#D50000', backgroundColor: '#FFEBEE', text: 'Đã hủy' };
+    case 'Không liên hệ được':
+      return { color: '#D50000', backgroundColor: '#FFEBEE', text: 'Không liên hệ được' };
     default:
       return { color: '#666', backgroundColor: '#F5F5F5', text: 'Không rõ' };
   }

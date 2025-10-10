@@ -120,20 +120,20 @@ export default function StaffOrderDetailScreen() {
             [
                 { text: "Không", style: "cancel" },
                 {
-                    text: "Hủy đơn",
+                    text: "Xác nhận",
                     style: "destructive",
                     onPress: async () => {
                         setUpdating(true);
                         const { error } = await supabase
                             .from('orders')
-                            .update({ status: 'Đã hủy' })
+                            .update({ status: 'Không liên hệ được' })
                             .eq('id', id);
                         
                         if (error) {
                             Alert.alert('Lỗi', 'Không thể hủy đơn hàng.');
                         } else {
                             setOrder(currentOrder => 
-                                currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null
+                                currentOrder ? { ...currentOrder, status: 'Không liên hệ được' } : null
                             );
                         }
                         setUpdating(false);
@@ -186,7 +186,7 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        const canCancel = !order.is_phone_verified && !['Hoàn thành', 'Đã hủy'].includes(order.status);
+        const canCancel = !order.is_phone_verified && !['Hoàn thành', 'Đã hủy', 'Không liên hệ được'].includes(order.status);
         const cancelButton = canCancel ? (
             <TouchableOpacity 
                 style={[styles.cancelButton, mainActionButton ? { marginTop: 12 } : {}]} 
