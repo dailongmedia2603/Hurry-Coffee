@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
+import * as Linking from 'expo-linking';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -104,12 +105,42 @@ export default function StaffOrderDetailScreen() {
             setUpdating(false);
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
         } else {
-            // Cập nhật trạng thái cục bộ ngay lập tức để cải thiện trải nghiệm người dùng
             setOrder(currentOrder => 
                 currentOrder ? { ...currentOrder, status: newStatus } : null
             );
             setUpdating(false);
         }
+    };
+
+    const handleCancelOrder = async () => {
+        if (!order) return;
+        Alert.alert(
+            "Xác nhận hủy đơn",
+            "Bạn có chắc chắn muốn hủy đơn hàng này vì không liên hệ được với khách?",
+            [
+                { text: "Không", style: "cancel" },
+                {
+                    text: "Hủy đơn",
+                    style: "destructive",
+                    onPress: async () => {
+                        setUpdating(true);
+                        const { error } = await supabase
+                            .from('orders')
+                            .update({ status: 'Đã hủy' })
+                            .eq('id', id);
+                        
+                        if (error) {
+                            Alert.alert('Lỗi', 'Không thể hủy đơn hàng.');
+                        } else {
+                            setOrder(currentOrder => 
+                                currentOrder ? { ...currentOrder, status: 'Đã hủy' } : null
+                            );
+                        }
+                        setUpdating(false);
+                    }
+                }
+            ]
+        );
     };
 
     const renderActionButtons = () => {
@@ -145,17 +176,35 @@ export default function StaffOrderDetailScreen() {
         };
 
         const nextStatus = getNextStatus();
-        if (!nextStatus) return null;
+        const mainActionButton = nextStatus ? (
+            <TouchableOpacity 
+                style={styles.actionButton} 
+                onPress={() => handleUpdateStatus(nextStatus)}
+                disabled={updating}
+            >
+                {updating ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionButtonText}>{getButtonText()}</Text>}
+            </TouchableOpacity>
+        ) : null;
+
+        const canCancel = !order.is_phone_verified && !['Hoàn thành', 'Đã hủy'].includes(order.status);
+        const cancelButton = canCancel ? (
+            <TouchableOpacity 
+                style={[styles.cancelButton, mainActionButton ? { marginTop: 12 } : {}]} 
+                onPress={handleCancelOrder}
+                disabled={updating}
+            >
+                {updating ? <ActivityIndicator color="#ef4444" /> : <Text style={styles.cancelButtonText}>Không liên hệ được</Text>}
+            </TouchableOpacity>
+        ) : null;
+
+        if (!mainActionButton && !cancelButton) {
+            return null;
+        }
 
         return (
             <View style={styles.actionContainer}>
-                <TouchableOpacity 
-                    style={styles.actionButton} 
-                    onPress={() => handleUpdateStatus(nextStatus)}
-                    disabled={updating}
-                >
-                    {updating ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionButtonText}>{getButtonText()}</Text>}
-                </TouchableOpacity>
+                {mainActionButton}
+                {cancelButton}
             </View>
         );
     };
@@ -203,7 +252,14 @@ export default function StaffOrderDetailScreen() {
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Thông tin</Text>
                     <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
-                    <InfoRow label="Số điện thoại" value={formatDisplayPhone(order.customer_phone) || 'Không có'} />
+                    <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Số điện thoại</Text>
+                        <TouchableOpacity onPress={() => order.customer_phone && Linking.openURL(`tel:${order.customer_phone}`)}>
+                            <Text style={[styles.infoValue, styles.phoneLink]}>
+                                {formatDisplayPhone(order.customer_phone) || 'Không có'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                     <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
                     <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
                 </View>
@@ -254,6 +310,23 @@ const styles = StyleSheet.create({
     },
     actionButtonText: { 
         color: '#fff', 
+        fontSize: 16, 
+        fontWeight: 'bold' 
+    },
+    phoneLink: {
+        color: '#3b82f6',
+        textDecorationLine: 'underline',
+    },
+    cancelButton: { 
+        backgroundColor: '#fee2e2', 
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#ef4444',
+    },
+    cancelButtonText: { 
+        color: '#ef4444', 
         fontSize: 16, 
         fontWeight: 'bold' 
     },
