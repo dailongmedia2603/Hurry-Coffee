@@ -12,10 +12,10 @@
       "themeColor": "#73509c",
       "backgroundColor": "#ffffff",
       "display": "standalone",
-      "favicon": "./assets/images/logohurry.png",
-      "icon": "./assets/images/logohurry.png",
+      "favicon": "./assets/images/logo-app-PWA.png",
+      "icon": "./assets/images/logo-app-PWA.png",
       "splash": {
-        "image": "./assets/images/logohurry.png",
+        "image": "./assets/images/logo-app-PWA.png",
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
       }
