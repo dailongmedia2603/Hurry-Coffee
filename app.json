@@ -14,7 +14,7 @@
       "display": "standalone",
       "orientation": "portrait",
       "startUrl": "/",
-      "favicon": "./public/icons/icon-192.png",
+      "favicon": "./assets/images/logo-app-PWA.png",
       "icon": "./assets/images/logo-app-PWA.png",
       "splash": {
         "image": "./assets/images/logo-app-PWA.png",
