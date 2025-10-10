@@ -1,7 +1,7 @@
 module.exports = {
-  globDirectory: 'dist/web/',
+  globDirectory: 'dist/',
   globPatterns: ['**/*.{js,css,html,ico,png,svg,json,ttf,woff2}'],
-  swDest: 'dist/web/sw.js',
+  swDest: 'dist/sw.js',
   navigateFallback: '/offline.html',
   runtimeCaching: [
     {
