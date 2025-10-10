@@ -29,9 +29,7 @@ const useOrderNotifications = () => {
     const handleNewOrder = (payload: { new: Order }) => {
       if (Notification.permission === 'granted') {
         // Phát âm thanh
-        // Lưu ý: Bạn cần đặt file notification.mp3 vào thư mục public/assets/sounds/
-        // Hoặc đảm bảo Expo phục vụ nó đúng cách.
-        const audio = new Audio('/assets/sounds/notification.mp3');
+        const audio = new Audio('/assets/sounds/codon.mp3');
         audio.play().catch(error => console.log("Lỗi phát âm thanh:", error));
 
         // Hiển thị thông báo
