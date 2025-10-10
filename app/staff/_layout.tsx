@@ -15,14 +15,30 @@ const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
 
   const handleUnlock = () => {
     setUnlocking(true);
-    // Cố gắng phát một đoạn âm thanh trống để kích hoạt quyền
-    const audio = new Audio();
-    audio.play().catch(() => {}); // Bỏ qua lỗi nếu có
     
-    // Đợi một chút để đảm bảo trình duyệt xử lý xong
-    setTimeout(() => {
+    // Tạo một đối tượng audio với file âm thanh thật
+    const audio = new Audio('/assets/sounds/codon.mp3');
+    
+    // Cố gắng phát nó. Đây là hành động quan trọng do người dùng khởi xướng.
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // Nếu phát thành công, dừng lại ngay lập tức.
+        // Trình duyệt đã ghi nhận quyền phát âm thanh cho trang này.
+        audio.pause();
+        console.log("Audio unlocked successfully.");
+      }).catch(error => {
+        // Nếu bị lỗi, ghi lại để gỡ lỗi.
+        console.error("Audio could not be unlocked automatically:", error);
+      }).finally(() => {
+        // Dù thành công hay thất bại, vẫn tiếp tục vào app.
+        setTimeout(() => onUnlocked(), 100);
+      });
+    } else {
+      // Fallback cho trình duyệt cũ không hỗ trợ promise
       onUnlocked();
-    }, 200);
+    }
   };
 
   return (
@@ -47,7 +63,7 @@ export default function StaffLayout() {
   const { session, profile, loading, signOut } = useAuth();
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   
-  // Kích hoạt hook thông báo chỉ sau khi âm thanh đã được mở khóa
+  // Kích hoạt hook thông báo
   useOrderNotifications();
 
   if (loading) {
