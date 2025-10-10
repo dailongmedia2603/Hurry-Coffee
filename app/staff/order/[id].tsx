@@ -7,6 +7,7 @@ import { Order, OrderStatus, Product, Location } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import * as Linking from 'expo-linking';
+import ConfirmModal from '@/src/components/ConfirmModal';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -43,6 +44,7 @@ export default function StaffOrderDetailScreen() {
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
+    const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -112,35 +114,29 @@ export default function StaffOrderDetailScreen() {
         }
     };
 
-    const handleCancelOrder = async () => {
+    const handleUncontactable = () => {
         if (!order) return;
-        Alert.alert(
-            "Xác nhận hủy đơn",
-            "Bạn có chắc chắn muốn hủy đơn hàng này vì không liên hệ được với khách?",
-            [
-                { text: "Không", style: "cancel" },
-                {
-                    text: "Xác nhận",
-                    style: "destructive",
-                    onPress: async () => {
-                        setUpdating(true);
-                        const { error } = await supabase
-                            .from('orders')
-                            .update({ status: 'Không liên hệ được' })
-                            .eq('id', id);
-                        
-                        if (error) {
-                            Alert.alert('Lỗi', 'Không thể hủy đơn hàng.');
-                        } else {
-                            setOrder(currentOrder => 
-                                currentOrder ? { ...currentOrder, status: 'Không liên hệ được' } : null
-                            );
-                        }
-                        setUpdating(false);
-                    }
-                }
-            ]
-        );
+        setConfirmModalVisible(true);
+    };
+
+    const confirmUncontactable = async () => {
+        setConfirmModalVisible(false);
+        if (!order) return;
+
+        setUpdating(true);
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: 'Không liên hệ được' })
+            .eq('id', id);
+        
+        if (error) {
+            Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+        } else {
+            setOrder(currentOrder => 
+                currentOrder ? { ...currentOrder, status: 'Không liên hệ được' } : null
+            );
+        }
+        setUpdating(false);
     };
 
     const renderActionButtons = () => {
@@ -190,7 +186,7 @@ export default function StaffOrderDetailScreen() {
         const cancelButton = canCancel ? (
             <TouchableOpacity 
                 style={[styles.cancelButton, mainActionButton ? { marginTop: 12 } : {}]} 
-                onPress={handleCancelOrder}
+                onPress={handleUncontactable}
                 disabled={updating}
             >
                 {updating ? <ActivityIndicator color="#ef4444" /> : <Text style={styles.cancelButtonText}>Không liên hệ được</Text>}
@@ -270,6 +266,17 @@ export default function StaffOrderDetailScreen() {
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
             </ScrollView>
+            <ConfirmModal
+                visible={isConfirmModalVisible}
+                onClose={() => setConfirmModalVisible(false)}
+                onConfirm={confirmUncontactable}
+                title="Xác nhận trạng thái"
+                message="Bạn có muốn cập nhật trạng thái đơn hàng này thành 'Không liên hệ được' không?"
+                confirmText="Xác nhận"
+                cancelText="Hủy"
+                icon="call-outline"
+                iconColor="#ef4444"
+            />
         </SafeAreaView>
     );
 }
