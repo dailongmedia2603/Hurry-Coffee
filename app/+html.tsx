@@ -1,4 +1,3 @@
-import { ScrollView, Style, Scripts } from "@expo/html-elements";
 import React, { ReactNode } from "react";
 
 export default function Html({ children }: { children: ReactNode }) {
@@ -19,11 +18,13 @@ export default function Html({ children }: { children: ReactNode }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
 
-        <Style />
-        <Scripts />
+        {/* 
+          The `Style` and `Scripts` components are automatically injected by Expo Router.
+          Do not add them manually.
+        */}
       </head>
       <body>
-        <ScrollView>{children}</ScrollView>
+        {children}
         <script
           dangerouslySetInnerHTML={{
             __html: `
