@@ -4,12 +4,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { View, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
+import useOrderNotifications from "@/src/hooks/useOrderNotifications";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
 
 export default function StaffLayout() {
   const { session, profile, loading, signOut } = useAuth();
+  
+  // Kích hoạt hook thông báo
+  useOrderNotifications();
 
   if (loading) {
     return (
