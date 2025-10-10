@@ -12,13 +12,20 @@
       "themeColor": "#73509c",
       "backgroundColor": "#ffffff",
       "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
       "favicon": "./assets/images/logo-app-PWA.png",
       "icon": "./assets/images/logo-app-PWA.png",
       "splash": {
         "image": "./assets/images/logo-app-PWA.png",
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent"
+      },
+      "bundler": "metro"
     }
   }
 }
