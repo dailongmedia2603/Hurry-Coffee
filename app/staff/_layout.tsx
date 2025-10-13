@@ -22,7 +22,6 @@ const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          // THÊM MỚI: Phát âm thanh thành công để người dùng biết
           console.log("Audio unlocked and played successfully.");
         })
         .catch(error => {
