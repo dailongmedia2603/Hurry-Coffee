@@ -1,18 +1,20 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { Product } from '@/types';
+import { Product, Topping } from '@/types';
 
 export interface CartItem {
+  id: string; // Composite key: product.id-size-sorted_topping_ids
   product: Product;
   quantity: number;
   size: string;
+  toppings: Topping[];
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity: number, size: string) => void;
-  decreaseItem: (productId: string, size: string) => void;
+  addItem: (product: Product, quantity: number, size: string, toppings: Topping[]) => void;
+  decreaseItem: (itemId: string) => void;
+  decreaseLastAddedItemForProduct: (productId: string) => void;
   clearCart: () => void;
-  getItemQuantity: (productId: string, size: string) => number;
   getProductQuantity: (productId: string) => number;
   totalItems: number;
   totalPrice: number;
@@ -31,36 +33,52 @@ export const useCart = () => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = (product: Product, quantity: number, size: string) => {
+  const addItem = (product: Product, quantity: number, size: string, toppings: Topping[]) => {
     setItems(prevItems => {
-      const existingItemIndex = prevItems.findIndex(
-        item => item.product.id === product.id && item.size === size
-      );
+      const toppingsKey = toppings.map(t => t.id).sort().join(',');
+      const itemId = `${product.id}-${size}-${toppingsKey}`;
+
+      const existingItemIndex = prevItems.findIndex(item => item.id === itemId);
 
       if (existingItemIndex > -1) {
         const newItems = [...prevItems];
         newItems[existingItemIndex].quantity += quantity;
         return newItems;
       } else {
-        return [...prevItems, { product, quantity, size }];
+        return [...prevItems, { id: itemId, product, quantity, size, toppings }];
       }
     });
   };
 
-  const decreaseItem = (productId: string, size: string) => {
+  const decreaseItem = (itemId: string) => {
     setItems(prevItems => {
-      const existingItemIndex = prevItems.findIndex(
-        item => item.product.id === productId && item.size === size
-      );
+      const newItems = [...prevItems];
+      const existingItemIndex = newItems.findIndex(item => item.id === itemId);
 
       if (existingItemIndex > -1) {
-        const newItems = [...prevItems];
         if (newItems[existingItemIndex].quantity > 1) {
           newItems[existingItemIndex].quantity -= 1;
-          return newItems;
         } else {
-          return newItems.filter((_, index) => index !== existingItemIndex);
+          newItems.splice(existingItemIndex, 1);
         }
+        return newItems;
+      }
+      return prevItems;
+    });
+  };
+
+  const decreaseLastAddedItemForProduct = (productId: string) => {
+    setItems(prevItems => {
+      const newItems = [...prevItems];
+      const lastItemVariantIndex = newItems.findLastIndex(item => item.product.id === productId);
+
+      if (lastItemVariantIndex > -1) {
+        if (newItems[lastItemVariantIndex].quantity > 1) {
+          newItems[lastItemVariantIndex].quantity -= 1;
+        } else {
+          newItems.splice(lastItemVariantIndex, 1);
+        }
+        return newItems;
       }
       return prevItems;
     });
@@ -70,13 +88,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setItems([]);
   };
 
-  const getItemQuantity = (productId: string, size: string) => {
-    const item = items.find(
-      item => item.product.id === productId && item.size === size
-    );
-    return item ? item.quantity : 0;
-  };
-
   const getProductQuantity = (productId: string) => {
     return items
       .filter(item => item.product.id === productId)
@@ -84,10 +95,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  
+  const totalPrice = items.reduce((sum, item) => {
+    const toppingsPrice = item.toppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
+    const itemPrice = item.product.price + toppingsPrice;
+    return sum + itemPrice * item.quantity;
+  }, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, decreaseItem, clearCart, getItemQuantity, getProductQuantity, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, addItem, decreaseItem, decreaseLastAddedItemForProduct, clearCart, getProductQuantity, totalItems, totalPrice }}>
       {children}
     </CartContext.Provider>
   );

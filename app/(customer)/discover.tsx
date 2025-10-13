@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/src/integrations/supabase/client";
-import { Product, ProductCategory } from "@/types";
+import { Product, ProductCategory, Topping } from "@/types";
 import { useRouter } from "expo-router";
 import { useCart } from "@/src/context/CartContext";
 import ProductOptionsModal from "@/src/components/ProductOptionsModal";
@@ -90,7 +90,7 @@ export default function DiscoverScreen() {
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { addItem, decreaseItem, getProductQuantity, totalItems, totalPrice } = useCart();
+  const { addItem, decreaseLastAddedItemForProduct, getProductQuantity, totalItems, totalPrice } = useCart();
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,11 +119,11 @@ export default function DiscoverScreen() {
   }, []);
 
   const handleAddToCart = (product: Product) => {
-    addItem(product, 1, "M");
+    addItem(product, 1, "M", []);
   };
 
   const handleDecreaseFromCart = (product: Product) => {
-    decreaseItem(product.id, "M");
+    decreaseLastAddedItemForProduct(product.id);
   };
 
   const handleOpenOptions = (product: Product) => {
@@ -136,8 +136,8 @@ export default function DiscoverScreen() {
     setSelectedProduct(null);
   };
 
-  const handleAddToCartFromModal = (product: Product, quantity: number, size: string) => {
-    addItem(product, quantity, size);
+  const handleAddToCartFromModal = (product: Product, quantity: number, size: string, toppings: Topping[]) => {
+    addItem(product, quantity, size, toppings);
     handleCloseModal();
   };
 

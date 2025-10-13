@@ -39,7 +39,6 @@ export default function CheckoutScreen() {
             notes: notes,
             order_type: details.orderType,
             delivery_address: details.orderType === 'delivery' ? details.address : null,
-            // Nếu là đơn pickup thì gán luôn, delivery thì để trống chờ function xử lý
             pickup_location_id: details.orderType === 'pickup' ? details.locationId : null,
             customer_name: details.name,
             customer_phone: details.phone,
@@ -64,10 +63,7 @@ export default function CheckoutScreen() {
 
       if (itemsError) throw itemsError;
 
-      // *** BẮT ĐẦU THAY ĐỔI ***
-      // Nếu là đơn giao hàng, gọi Edge Function để tự động gán cửa hàng
       if (details.orderType === 'delivery' && details.address) {
-        // Chạy ngầm, không cần await để không block UI
         supabase.functions.invoke('assign-order-to-location', {
           body: {
             order_id: newOrder.id,
@@ -75,12 +71,10 @@ export default function CheckoutScreen() {
           },
         }).then(({ error }) => {
           if (error) {
-            // Ghi lại lỗi ở console để debug, không cần báo cho người dùng
             console.error('Lỗi khi tự động phân phối đơn hàng:', error);
           }
         });
       }
-      // *** KẾT THÚC THAY ĐỔI ***
 
       setModalVisible(false);
       clearCart();
@@ -116,21 +110,26 @@ export default function CheckoutScreen() {
       ) : (
         <FlatList
             data={items}
-            keyExtractor={(item) => `${item.product.id}-${item.size}`}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
                 <View style={styles.cartItem}>
                     <Image source={{ uri: item.product.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
                     <View style={styles.itemDetails}>
                         <Text style={styles.itemName}>{item.product.name}</Text>
                         <Text style={styles.itemSize}>Size: {item.size}</Text>
+                        {item.toppings.length > 0 && (
+                            <Text style={styles.itemToppings}>
+                                + {item.toppings.map(t => t.name).join(', ')}
+                            </Text>
+                        )}
                         <Text style={styles.itemPrice}>{formatPrice(item.product.price)}</Text>
                     </View>
                     <View style={styles.quantityControl}>
-                        <TouchableOpacity onPress={() => decreaseItem(item.product.id, item.size)}>
+                        <TouchableOpacity onPress={() => decreaseItem(item.id)}>
                             <Ionicons name="remove-circle-outline" size={28} color="#73509c" />
                         </TouchableOpacity>
                         <Text style={styles.quantityText}>{item.quantity}</Text>
-                        <TouchableOpacity onPress={() => addItem(item.product, 1, item.size)}>
+                        <TouchableOpacity onPress={() => addItem(item.product, 1, item.size, item.toppings)}>
                             <Ionicons name="add-circle-outline" size={28} color="#73509c" />
                         </TouchableOpacity>
                     </View>
@@ -188,8 +187,9 @@ const styles = StyleSheet.create({
     itemImage: { width: 70, height: 70, borderRadius: 8, marginRight: 12 },
     itemDetails: { flex: 1 },
     itemName: { fontSize: 16, fontWeight: 'bold' },
-    itemSize: { fontSize: 14, color: '#666', marginVertical: 4 },
-    itemPrice: { fontSize: 16, fontWeight: '500', color: '#73509c' },
+    itemSize: { fontSize: 14, color: '#666', marginVertical: 2 },
+    itemToppings: { fontSize: 12, color: '#666', fontStyle: 'italic', marginVertical: 2 },
+    itemPrice: { fontSize: 16, fontWeight: '500', color: '#73509c', marginTop: 2 },
     quantityControl: { flexDirection: 'row', alignItems: 'center' },
     quantityText: { fontSize: 18, fontWeight: 'bold', marginHorizontal: 12 },
     footer: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E0E0E0', padding: 16, paddingBottom: 34 },

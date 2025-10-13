@@ -10,9 +10,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Product } from '@/types';
+import { Product, Topping } from '@/types';
+import { supabase } from '@/src/integrations/supabase/client';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -25,7 +27,7 @@ type ProductOptionsModalProps = {
   visible: boolean;
   product: Product | null;
   onClose: () => void;
-  onAddToCart: (product: Product, quantity: number, size: string) => void;
+  onAddToCart: (product: Product, quantity: number, size: string, toppings: Topping[]) => void;
 };
 
 const SIZES = ['S', 'M', 'L'];
@@ -34,12 +36,28 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('M');
   const [notes, setNotes] = useState('');
+  const [toppings, setToppings] = useState<Topping[]>([]);
+  const [loadingToppings, setLoadingToppings] = useState(false);
+  const [selectedToppings, setSelectedToppings] = useState<Topping[]>([]);
 
   useEffect(() => {
     if (product) {
       setQuantity(1);
       setSelectedSize('M');
       setNotes('');
+      setSelectedToppings([]);
+
+      const fetchToppings = async () => {
+        setLoadingToppings(true);
+        const { data, error } = await supabase.from('toppings').select('*').order('price');
+        if (error) {
+          console.error('Error fetching toppings:', error);
+        } else {
+          setToppings(data || []);
+        }
+        setLoadingToppings(false);
+      };
+      fetchToppings();
     }
   }, [product]);
 
@@ -47,11 +65,23 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
     return null;
   }
 
-  const handleAddToCartPress = () => {
-    onAddToCart(product, quantity, selectedSize);
+  const handleToggleTopping = (topping: Topping) => {
+    setSelectedToppings(prev => {
+      const isSelected = prev.some(t => t.id === topping.id);
+      if (isSelected) {
+        return prev.filter(t => t.id !== topping.id);
+      } else {
+        return [...prev, topping];
+      }
+    });
   };
 
-  const totalPrice = product.price * quantity;
+  const handleAddToCartPress = () => {
+    onAddToCart(product, quantity, selectedSize, selectedToppings);
+  };
+
+  const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
+  const totalPrice = (product.price + toppingsPrice) * quantity;
 
   return (
     <Modal
@@ -91,6 +121,18 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
                 </TouchableOpacity>
               ))}
             </View>
+
+            <Text style={styles.sectionTitle}>Topping</Text>
+            {loadingToppings ? <ActivityIndicator color="#73509c" /> : toppings.map(topping => {
+                const isSelected = selectedToppings.some(t => t.id === topping.id);
+                return (
+                    <TouchableOpacity key={topping.id} style={styles.toppingRow} onPress={() => handleToggleTopping(topping)}>
+                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                        <Text style={styles.toppingName}>{topping.name}</Text>
+                        <Text style={styles.toppingPrice}>+{formatPrice(topping.price)}</Text>
+                    </TouchableOpacity>
+                )
+            })}
 
             <Text style={styles.sectionTitle}>Ghi chú</Text>
             <TextInput
@@ -182,6 +224,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
+    marginTop: 12,
   },
   sizeContainer: {
     flexDirection: 'row',
@@ -206,6 +249,22 @@ const styles = StyleSheet.create({
   },
   sizeTextSelected: {
     color: '#fff',
+  },
+  toppingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  toppingName: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 12,
+  },
+  toppingPrice: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   notesInput: {
     borderWidth: 1,

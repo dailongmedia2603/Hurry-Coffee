@@ -1,3 +1,10 @@
+export interface Topping {
+  id: string;
+  name: string;
+  price: number;
+  created_at: string;
+}
+
 export interface Product {
   id: string;
   name: string;
