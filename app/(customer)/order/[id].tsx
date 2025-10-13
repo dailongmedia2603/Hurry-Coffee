@@ -168,7 +168,7 @@ export default function OrderDetailScreen() {
                 </View>
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Thông tin giao hàng</Text>
-                    <View style={styles.addressContainer}><Ionicons name="storefront-outline" size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>Nhà hàng</Text><Text style={styles.addressValue}>Nhà hàng Hurry Coffee</Text></View></View>
+                    <View style={styles.addressContainer}><Ionicons name="storefront-outline" size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>Địa điểm</Text><Text style={styles.addressValue}>{order.locations?.name || 'Đang xác định...'}</Text></View></View>
                     <View style={styles.addressSeparator} />
                     <View style={styles.addressContainer}><Ionicons name={order.order_type === 'delivery' ? "home-outline" : "bag-handle-outline"} size={24} color="#73509c" /><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{order.order_type === 'delivery' ? 'Giao đến' : 'Nhận tại'}</Text><Text style={styles.addressValue}>{order.order_type === 'delivery' ? order.delivery_address : order.locations?.name}</Text></View></View>
                 </View>
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#1f2937' },
     customizationsWrapper: {
         marginTop: 8,
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#fee2e2',
         borderRadius: 8,
         padding: 10,
     },

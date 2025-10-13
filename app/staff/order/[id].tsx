@@ -272,6 +272,7 @@ export default function StaffOrderDetailScreen() {
                         </TouchableOpacity>
                     </View>
                     <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
+                    <InfoRow label="Địa điểm" value={order.locations?.name || 'Đang xác định...'} />
                     <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
                 </View>
                 <View style={styles.card}>
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#1f2937' },
     customizationsWrapper: {
         marginTop: 8,
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#fee2e2',
         borderRadius: 8,
         padding: 10,
     },
