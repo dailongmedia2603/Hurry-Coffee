@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
@@ -48,28 +48,30 @@ export default function StaffOrdersScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchOrders(true);
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders(true);
 
-    const channel = supabase
-      .channel('public:orders')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('New order received, refetching and playing sound:', payload);
-          const audio = new Audio(require('@/assets/sounds/codon.mp3'));
-          audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
-          
-          fetchOrders(false);
-        }
-      )
-      .subscribe();
+      const channel = supabase
+        .channel('public:orders')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'orders' },
+          (payload) => {
+            console.log('New order received, refetching and playing sound:', payload);
+            const audio = new Audio(require('@/assets/sounds/codon.mp3'));
+            audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
+            
+            fetchOrders(false);
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchOrders]);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }, [fetchOrders])
+  );
 
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
