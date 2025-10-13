@@ -67,7 +67,7 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
         setDescription(existingProduct.description || '');
         setCategory(existingProduct.category || '');
         setImageUrl(existingProduct.image_url || '');
-        setSizes(existingProduct.sizes?.map(s => ({ name: s.name, price: formatCurrency(s.price.toString()) })) || [{ name: 'M', price: '' }]);
+        setSizes(existingProduct.sizes?.map(s => ({ name: s.name, price: formatCurrency(s.price.toString()) })) || [{ name: 'M', price: formatCurrency(existingProduct.price.toString()) }]);
         setAvailableOptions(existingProduct.available_options || []);
         
         supabase.from('product_toppings').select('topping_id').eq('product_id', existingProduct.id)
@@ -141,10 +141,13 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
       setUploading(false);
     }
 
+    const basePrice = sizes.length > 0 ? parseFloat(parseCurrency(sizes[0].price)) : 0;
+
     const productData = {
       id: existingProduct?.id,
       name,
       description,
+      price: basePrice,
       category,
       image_url: finalImageUrl,
       sizes: sizes.map(s => ({ name: s.name, price: parseFloat(parseCurrency(s.price)) })),

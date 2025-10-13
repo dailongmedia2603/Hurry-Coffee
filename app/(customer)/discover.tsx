@@ -137,8 +137,8 @@ export default function DiscoverScreen() {
     setSelectedProduct(null);
   };
 
-  const handleAddToCartFromModal = (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => {
-    addItem(product, quantity, size, toppings, options);
+  const handleAddToCartFromModal = (product: Product, quantity: number, size: { name: string; price: number }, toppings: Topping[], options: string[]) => {
+    addItem(product, quantity, size as any, toppings, options);
     handleCloseModal();
   };
 
@@ -234,7 +234,7 @@ export default function DiscoverScreen() {
         visible={isModalVisible}
         product={selectedProduct}
         onClose={handleCloseModal}
-        onAddToCart={handleAddToCartFromModal}
+        onAddToCart={handleAddToCartFromModal as any}
       />
     </SafeAreaView>
   );

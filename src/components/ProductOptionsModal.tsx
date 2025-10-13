@@ -27,21 +27,14 @@ type ProductOptionsModalProps = {
   visible: boolean;
   product: Product | null;
   onClose: () => void;
-  onAddToCart: (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => void;
+  onAddToCart: (product: Product, quantity: number, size: { name: string; price: number }, toppings: Topping[], options: string[]) => void;
 };
-
-const SIZES = [
-  { name: 'S', priceModifier: 0 },
-  { name: 'M', priceModifier: 5000 },
-  { name: 'L', priceModifier: 10000 },
-];
-const OPTIONS = ['Ít ngọt', 'Không đá', 'Đá riêng', 'Đá chung'];
 
 const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: ProductOptionsModalProps) => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState(SIZES[1]);
+  const [selectedSize, setSelectedSize] = useState<{ name: string; price: number } | null>(null);
   const [notes, setNotes] = useState('');
-  const [toppings, setToppings] = useState<Topping[]>([]);
+  const [availableToppings, setAvailableToppings] = useState<Topping[]>([]);
   const [loadingToppings, setLoadingToppings] = useState(false);
   const [selectedToppings, setSelectedToppings] = useState<Topping[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -49,18 +42,26 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
   useEffect(() => {
     if (product) {
       setQuantity(1);
-      setSelectedSize(SIZES[1]);
+      setSelectedSize(product.sizes && product.sizes.length > 0 ? product.sizes[0] : null);
       setNotes('');
       setSelectedToppings([]);
       setSelectedOptions([]);
 
       const fetchToppings = async () => {
         setLoadingToppings(true);
-        const { data, error } = await supabase.from('toppings').select('*').order('price');
+        const { data, error } = await supabase
+          .from('product_toppings')
+          .select('toppings(*)')
+          .eq('product_id', product.id);
+        
         if (error) {
-          console.error('Error fetching toppings:', error);
-        } else {
-          setToppings(data || []);
+          console.error('Error fetching toppings for product:', error);
+          setAvailableToppings([]);
+        } else if (data) {
+          const fetchedToppings: Topping[] = data
+            .map(item => item.toppings)
+            .filter((t): t is Topping => t != null);
+          setAvailableToppings(fetchedToppings);
         }
         setLoadingToppings(false);
       };
@@ -95,12 +96,13 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
   };
 
   const handleAddToCartPress = () => {
-    onAddToCart(product, quantity, selectedSize, selectedToppings, selectedOptions);
+    if (selectedSize) {
+      onAddToCart(product, quantity, selectedSize, selectedToppings, selectedOptions);
+    }
   };
 
-  const basePrice = product.price + selectedSize.priceModifier;
   const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
-  const totalPrice = (basePrice + toppingsPrice) * quantity;
+  const totalPrice = selectedSize ? (selectedSize.price + toppingsPrice) * quantity : 0;
 
   return (
     <Modal
@@ -128,42 +130,54 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
 
             <View style={styles.separator} />
 
-            <Text style={styles.sectionTitle}>Chọn size</Text>
-            <View>
-              {SIZES.map(size => {
-                const isSelected = selectedSize.name === size.name;
-                return (
-                  <TouchableOpacity key={size.name} style={styles.optionRow} onPress={() => setSelectedSize(size)}>
-                    <Text style={styles.optionName}>{`Size ${size.name}`}</Text>
-                    <Text style={styles.optionPrice}>{formatPrice(product.price + size.priceModifier)}</Text>
-                    <Ionicons name={isSelected ? 'radio-button-on' : 'radio-button-off'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
-                  </TouchableOpacity>
-                )
-              })}
-            </View>
+            {product.sizes && product.sizes.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Chọn size</Text>
+                <View>
+                  {product.sizes.map(size => {
+                    const isSelected = selectedSize?.name === size.name;
+                    return (
+                      <TouchableOpacity key={size.name} style={styles.optionRow} onPress={() => setSelectedSize(size)}>
+                        <Text style={styles.optionName}>{`Size ${size.name}`}</Text>
+                        <Text style={styles.optionPrice}>{formatPrice(size.price)}</Text>
+                        <Ionicons name={isSelected ? 'radio-button-on' : 'radio-button-off'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+              </>
+            )}
 
-            <Text style={styles.sectionTitle}>Tuỳ chọn</Text>
-            {OPTIONS.map(option => {
-                const isSelected = selectedOptions.includes(option);
-                return (
-                    <TouchableOpacity key={option} style={styles.optionRow} onPress={() => handleToggleOption(option)}>
-                        <Text style={styles.optionName}>{option}</Text>
-                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
-                    </TouchableOpacity>
-                )
-            })}
+            {product.available_options && product.available_options.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Tuỳ chọn</Text>
+                {product.available_options.map(option => {
+                    const isSelected = selectedOptions.includes(option);
+                    return (
+                        <TouchableOpacity key={option} style={styles.optionRow} onPress={() => handleToggleOption(option)}>
+                            <Text style={styles.optionName}>{option}</Text>
+                            <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                        </TouchableOpacity>
+                    )
+                })}
+              </>
+            )}
 
-            <Text style={styles.sectionTitle}>Topping</Text>
-            {loadingToppings ? <ActivityIndicator color="#73509c" /> : toppings.map(topping => {
-                const isSelected = selectedToppings.some(t => t.id === topping.id);
-                return (
-                    <TouchableOpacity key={topping.id} style={styles.optionRow} onPress={() => handleToggleTopping(topping)}>
-                        <Text style={styles.optionName}>{topping.name}</Text>
-                        <Text style={styles.optionPrice}>+{formatPrice(topping.price)}</Text>
-                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
-                    </TouchableOpacity>
-                )
-            })}
+            {availableToppings.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Topping</Text>
+                {loadingToppings ? <ActivityIndicator color="#73509c" /> : availableToppings.map(topping => {
+                    const isSelected = selectedToppings.some(t => t.id === topping.id);
+                    return (
+                        <TouchableOpacity key={topping.id} style={styles.optionRow} onPress={() => handleToggleTopping(topping)}>
+                            <Text style={styles.optionName}>{topping.name}</Text>
+                            <Text style={styles.optionPrice}>+{formatPrice(topping.price)}</Text>
+                            <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                        </TouchableOpacity>
+                    )
+                })}
+              </>
+            )}
 
             <Text style={styles.sectionTitle}>Ghi chú</Text>
             <TextInput
