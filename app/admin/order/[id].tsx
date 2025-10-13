@@ -3,13 +3,16 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Act
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Order, OrderStatus, Product, Location } from '@/types';
+import { Order, OrderStatus, Product, Location, Topping } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 
 type OrderItemWithProduct = {
   quantity: number;
   price: number;
+  size: string | null;
+  toppings: Topping[] | null;
+  options: string[] | null;
   products: Product | null;
 };
 
@@ -50,7 +53,7 @@ export default function AdminOrderDetailScreen() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('orders')
-                .select(`*, order_items (quantity, price, products (*)), locations (*)`)
+                .select(`*, order_items (quantity, price, size, toppings, options, products (*)), locations (*)`)
                 .eq('id', id)
                 .single();
 
@@ -188,7 +191,16 @@ export default function AdminOrderDetailScreen() {
                     {order.order_items.map((item, index) => (
                         <View key={index} style={styles.itemContainer}>
                             <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
-                            <View style={styles.itemDetails}><Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text></View>
+                            <View style={styles.itemDetails}>
+                                <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
+                                {item.size && <Text style={styles.itemCustomization}>Size: {item.size}</Text>}
+                                {item.toppings && item.toppings.length > 0 && (
+                                    <Text style={styles.itemCustomization}>Topping: {item.toppings.map(t => t.name).join(', ')}</Text>
+                                )}
+                                {item.options && item.options.length > 0 && (
+                                    <Text style={styles.itemCustomization}>Tùy chọn: {item.options.join(', ')}</Text>
+                                )}
+                            </View>
                             <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
                         </View>
                     ))}
@@ -231,6 +243,7 @@ const styles = StyleSheet.create({
     itemImage: { width: 50, height: 50, borderRadius: 8, marginRight: 12 },
     itemDetails: { flex: 1 },
     itemName: { fontSize: 16, fontWeight: '500' },
+    itemCustomization: { fontSize: 12, color: '#666', marginTop: 2 },
     itemPrice: { fontSize: 16, fontWeight: 'bold' },
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },

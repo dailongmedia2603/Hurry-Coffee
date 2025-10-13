@@ -52,12 +52,20 @@ export default function CheckoutScreen() {
 
       const newOrder = newOrderData;
 
-      const orderItems = items.map(item => ({
-        order_id: newOrder.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        price: item.product.price,
-      }));
+      const orderItems = items.map(item => {
+        const toppingsPrice = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
+        const singleItemPrice = item.product.price + item.size.priceModifier + toppingsPrice;
+
+        return {
+          order_id: newOrder.id,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          price: singleItemPrice,
+          size: item.size.name,
+          toppings: item.toppings,
+          options: item.options,
+        };
+      });
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
