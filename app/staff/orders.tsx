@@ -80,8 +80,8 @@ export default function StaffOrdersScreen() {
         ? `Đơn ghé lấy #${item.id.substring(0, 8)}` 
         : `Đơn giao hàng #${item.id.substring(0, 8)}`;
 
-    // MỘT ĐƠN HÀNG LÀ "MỚI" NẾU: được tạo trong 5 phút VÀ trạng thái vẫn là "Đang xử lý"
-    const isNew = new Date().getTime() - new Date(item.created_at).getTime() < 5 * 60 * 1000 && item.status === 'Đang xử lý';
+    // MỘT ĐƠN HÀNG LÀ "MỚI" NẾU trạng thái vẫn là "Đang xử lý"
+    const isNew = item.status === 'Đang xử lý';
 
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/staff/order/${item.id}`)}>
