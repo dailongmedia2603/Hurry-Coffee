@@ -6,7 +6,6 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import AttentionView from '@/src/components/AttentionView';
-import NewOrderNotificationModal from '@/src/components/NewOrderNotificationModal';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -29,7 +28,6 @@ type OrderWithItemCount = Order & { items_count: number };
 export default function StaffOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newOrderForModal, setNewOrderForModal] = useState<Order | null>(null);
   const router = useRouter();
 
   const fetchOrders = useCallback(async (isInitialLoad = false) => {
@@ -53,26 +51,6 @@ export default function StaffOrdersScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchOrders(true);
-
-      const channel = supabase
-        .channel('public:orders')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'orders' },
-          (payload) => {
-            console.log('New order received, showing popup and playing sound:', payload);
-            const audio = new Audio(require('@/assets/sounds/codon.mp3'));
-            audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
-            
-            setNewOrderForModal(payload.new as Order);
-            fetchOrders(false);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }, [fetchOrders])
   );
 
@@ -83,7 +61,6 @@ export default function StaffOrdersScreen() {
         ? `Đơn ghé lấy #${item.id.substring(0, 8)}` 
         : `Đơn giao hàng #${item.id.substring(0, 8)}`;
 
-    // MỘT ĐƠN HÀNG LÀ "MỚI" NẾU trạng thái vẫn là "Đang xử lý"
     const isNew = item.status === 'Đang xử lý';
 
     return (
@@ -142,15 +119,6 @@ export default function StaffOrdersScreen() {
           refreshing={loading}
         />
       )}
-      <NewOrderNotificationModal
-        visible={!!newOrderForModal}
-        order={newOrderForModal}
-        onClose={() => setNewOrderForModal(null)}
-        onViewOrder={(orderId) => {
-          setNewOrderForModal(null);
-          router.push(`/staff/order/${orderId}`);
-        }}
-      />
     </SafeAreaView>
   );
 }

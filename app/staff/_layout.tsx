@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Tabs, Redirect } from "expo-router";
+import { Tabs, Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { View, ActivityIndicator, StyleSheet, TouchableOpacity, Text } from "react-native";
 import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
 import { storage } from "@/src/utils/storage";
+import { supabase } from "@/src/integrations/supabase/client";
+import { Order } from "@/types";
+import NewOrderNotificationModal from "@/src/components/NewOrderNotificationModal";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
@@ -15,7 +18,6 @@ const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
 
   const handleUnlock = () => {
     setUnlocking(true);
-    // SỬA LỖI: Sử dụng require để bundler có thể tìm thấy file âm thanh
     const audio = new Audio(require('@/assets/sounds/codon.mp3'));
     const playPromise = audio.play();
 
@@ -53,6 +55,8 @@ export default function StaffLayout() {
   const { session, profile, loading, signOut } = useAuth();
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [checkingStorage, setCheckingStorage] = useState(true);
+  const [newOrderForModal, setNewOrderForModal] = useState<Order | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const checkAudioStatus = async () => {
@@ -64,6 +68,31 @@ export default function StaffLayout() {
     };
     checkAudioStatus();
   }, []);
+
+  useEffect(() => {
+    if (!session || !profile || profile.role !== 'staff') {
+      return;
+    }
+
+    const channel = supabase
+      .channel('public:orders_staff')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('New order received, showing popup and playing sound:', payload);
+          const audio = new Audio(require('@/assets/sounds/codon.mp3'));
+          audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
+          
+          setNewOrderForModal(payload.new as Order);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session, profile]);
 
   const handleAudioUnlocked = () => {
     storage.setItem(AUDIO_UNLOCKED_KEY, 'true');
@@ -91,48 +120,59 @@ export default function StaffLayout() {
   }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerStyle: { backgroundColor: "#FFFFFF" },
-        headerTintColor: "#111827",
-        headerTitleStyle: { fontWeight: "bold" },
-        tabBarActiveTintColor: ACTIVE_COLOR,
-        tabBarInactiveTintColor: INACTIVE_COLOR,
-        tabBarStyle: { backgroundColor: "#FFFFFF", borderTopColor: "#e5e7eb" },
-        tabBarLabelStyle: { fontWeight: "500" },
-        headerRight: () => (
-          <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-            <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-          </TouchableOpacity>
-        ),
-      }}
-    >
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: "Đơn hàng",
-          headerTitle: "Đơn hàng của khách",
-          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
+    <>
+      <Tabs
+        screenOptions={{
+          headerStyle: { backgroundColor: "#FFFFFF" },
+          headerTintColor: "#111827",
+          headerTitleStyle: { fontWeight: "bold" },
+          tabBarActiveTintColor: ACTIVE_COLOR,
+          tabBarInactiveTintColor: INACTIVE_COLOR,
+          tabBarStyle: { backgroundColor: "#FFFFFF", borderTopColor: "#e5e7eb" },
+          tabBarLabelStyle: { fontWeight: "500" },
+          headerRight: () => (
+            <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
+              <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+            </TouchableOpacity>
+          ),
+        }}
+      >
+        <Tabs.Screen
+          name="orders"
+          options={{
+            title: "Đơn hàng",
+            headerTitle: "Đơn hàng của khách",
+            tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Hồ sơ",
+            headerTitle: "Hồ sơ nhân viên",
+            tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />,
+          }}
+        />
+        <Tabs.Screen name="index" options={{ href: null }} />
+        <Tabs.Screen
+          name="order/[id]"
+          options={{
+            href: null,
+            tabBarStyle: { display: 'none' },
+            headerTitle: "Chi tiết đơn hàng",
+          }}
+        />
+      </Tabs>
+      <NewOrderNotificationModal
+        visible={!!newOrderForModal}
+        order={newOrderForModal}
+        onClose={() => setNewOrderForModal(null)}
+        onViewOrder={(orderId) => {
+          setNewOrderForModal(null);
+          router.push(`/staff/order/${orderId}`);
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Hồ sơ",
-          headerTitle: "Hồ sơ nhân viên",
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen
-        name="order/[id]"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-          headerTitle: "Chi tiết đơn hàng",
-        }}
-      />
-    </Tabs>
+    </>
   );
 }
 
