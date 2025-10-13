@@ -57,8 +57,8 @@ export default function StaffOrdersScreen() {
         { event: 'INSERT', schema: 'public', table: 'orders' },
         (payload) => {
           console.log('New order received, refetching and playing sound:', payload);
-          // Phát âm thanh
-          const audio = new Audio('/assets/sounds/codon.mp3');
+          // SỬA LỖI: Sử dụng require để bundler có thể tìm thấy file âm thanh
+          const audio = new Audio(require('@/assets/sounds/codon.mp3'));
           audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
           
           // Tải lại danh sách đơn hàng

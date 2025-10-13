@@ -15,18 +15,22 @@ const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
 
   const handleUnlock = () => {
     setUnlocking(true);
-    const audio = new Audio('/assets/sounds/codon.mp3');
+    // SỬA LỖI: Sử dụng require để bundler có thể tìm thấy file âm thanh
+    const audio = new Audio(require('@/assets/sounds/codon.mp3'));
     const playPromise = audio.play();
 
     if (playPromise !== undefined) {
-      playPromise.then(() => {
-        audio.pause();
-        console.log("Audio unlocked successfully.");
-      }).catch(error => {
-        console.error("Audio could not be unlocked automatically:", error);
-      }).finally(() => {
-        onUnlocked();
-      });
+      playPromise
+        .then(() => {
+          // THÊM MỚI: Phát âm thanh thành công để người dùng biết
+          console.log("Audio unlocked and played successfully.");
+        })
+        .catch(error => {
+          console.error("Audio could not be unlocked or played:", error);
+        })
+        .finally(() => {
+          onUnlocked();
+        });
     } else {
       onUnlocked();
     }
