@@ -96,7 +96,7 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
       >
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
         <View style={styles.modalContainer}>
-          <ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
               <Image source={{ uri: product.image_url || 'https://via.placeholder.com/150' }} style={styles.productImage} />
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -127,9 +127,9 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
                 const isSelected = selectedToppings.some(t => t.id === topping.id);
                 return (
                     <TouchableOpacity key={topping.id} style={styles.toppingRow} onPress={() => handleToggleTopping(topping)}>
-                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                         <Text style={styles.toppingName}>{topping.name}</Text>
                         <Text style={styles.toppingPrice}>+{formatPrice(topping.price)}</Text>
+                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                     </TouchableOpacity>
                 )
             })}
@@ -260,11 +260,11 @@ const styles = StyleSheet.create({
   toppingName: {
     flex: 1,
     fontSize: 16,
-    marginLeft: 12,
   },
   toppingPrice: {
     fontSize: 16,
     fontWeight: '500',
+    marginRight: 16,
   },
   notesInput: {
     borderWidth: 1,
