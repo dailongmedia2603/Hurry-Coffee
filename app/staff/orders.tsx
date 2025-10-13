@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
 import { formatDisplayPhone } from '@/src/utils/formatters';
+import BlinkingView from '@/src/components/BlinkingView';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -57,11 +58,9 @@ export default function StaffOrdersScreen() {
         { event: 'INSERT', schema: 'public', table: 'orders' },
         (payload) => {
           console.log('New order received, refetching and playing sound:', payload);
-          // SỬA LỖI: Sử dụng require để bundler có thể tìm thấy file âm thanh
           const audio = new Audio(require('@/assets/sounds/codon.mp3'));
           audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
           
-          // Tải lại danh sách đơn hàng
           fetchOrders(false);
         }
       )
@@ -79,6 +78,8 @@ export default function StaffOrdersScreen() {
         ? `Đơn ghé lấy #${item.id.substring(0, 8)}` 
         : `Đơn giao hàng #${item.id.substring(0, 8)}`;
 
+    const isNew = new Date().getTime() - new Date(item.created_at).getTime() < 5 * 60 * 1000; // 5 minutes
+
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/staff/order/${item.id}`)}>
         {needsVerification && (
@@ -89,8 +90,16 @@ export default function StaffOrdersScreen() {
         )}
         <View style={styles.itemHeader}>
           <Text style={styles.itemName}>{orderTitle}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-            <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
+          <View style={styles.headerRight}>
+            {isNew && (
+              <BlinkingView style={styles.newOrderBadge}>
+                <Ionicons name="sparkles" size={14} color="#b91c1c" />
+                <Text style={styles.newOrderText}>Đơn mới</Text>
+              </BlinkingView>
+            )}
+            <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
+              <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
+            </View>
           </View>
         </View>
         <View style={styles.itemInfoRow}>
@@ -136,9 +145,27 @@ const styles = StyleSheet.create({
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContainer: { padding: 16 },
   itemCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  itemName: { fontSize: 16, fontWeight: 'bold' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  itemName: { fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 8 },
+  headerRight: { alignItems: 'flex-end' },
+  newOrderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    marginBottom: 6,
+  },
+  newOrderText: {
+    color: '#b91c1c',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-end' },
   statusText: { fontSize: 12, fontWeight: '500' },
   itemInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   itemInfoText: { fontSize: 14, color: '#374151', marginLeft: 8 },
