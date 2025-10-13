@@ -2,16 +2,17 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Product, Topping } from '@/types';
 
 export interface CartItem {
-  id: string; // Composite key: product.id-size-sorted_topping_ids
+  id: string;
   product: Product;
   quantity: number;
-  size: string;
+  size: { name: string; priceModifier: number };
   toppings: Topping[];
+  options: string[];
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity: number, size: string, toppings: Topping[]) => void;
+  addItem: (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => void;
   decreaseItem: (itemId: string) => void;
   decreaseLastAddedItemForProduct: (productId: string) => void;
   clearCart: () => void;
@@ -33,10 +34,11 @@ export const useCart = () => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = (product: Product, quantity: number, size: string, toppings: Topping[]) => {
+  const addItem = (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => {
     setItems(prevItems => {
       const toppingsKey = toppings.map(t => t.id).sort().join(',');
-      const itemId = `${product.id}-${size}-${toppingsKey}`;
+      const optionsKey = options.sort().join(',');
+      const itemId = `${product.id}-${size.name}-${toppingsKey}-${optionsKey}`;
 
       const existingItemIndex = prevItems.findIndex(item => item.id === itemId);
 
@@ -45,7 +47,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         newItems[existingItemIndex].quantity += quantity;
         return newItems;
       } else {
-        return [...prevItems, { id: itemId, product, quantity, size, toppings }];
+        return [...prevItems, { id: itemId, product, quantity, size, toppings, options }];
       }
     });
   };
@@ -98,7 +100,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   
   const totalPrice = items.reduce((sum, item) => {
     const toppingsPrice = item.toppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
-    const itemPrice = item.product.price + toppingsPrice;
+    const itemPrice = item.product.price + item.size.priceModifier + toppingsPrice;
     return sum + itemPrice * item.quantity;
   }, 0);
 

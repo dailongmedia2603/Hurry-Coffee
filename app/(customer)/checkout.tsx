@@ -113,17 +113,22 @@ export default function CheckoutScreen() {
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => {
                 const toppingsPrice = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
-                const singleItemPrice = item.product.price + toppingsPrice;
+                const singleItemPrice = item.product.price + item.size.priceModifier + toppingsPrice;
 
                 return (
                     <View style={styles.cartItem}>
                         <Image source={{ uri: item.product.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
                         <View style={styles.itemDetails}>
                             <Text style={styles.itemName}>{item.product.name}</Text>
-                            <Text style={styles.itemSize}>Size: {item.size}</Text>
+                            <Text style={styles.itemOptions}>Size: {item.size.name}</Text>
                             {item.toppings.length > 0 && (
-                                <Text style={styles.itemToppings}>
-                                    + {item.toppings.map(t => t.name).join(', ')}
+                                <Text style={styles.itemOptions}>
+                                    Topping: {item.toppings.map(t => t.name).join(', ')}
+                                </Text>
+                            )}
+                            {item.options.length > 0 && (
+                                <Text style={styles.itemOptions}>
+                                    Tuỳ chọn: {item.options.join(', ')}
                                 </Text>
                             )}
                             <Text style={styles.itemPrice}>{formatPrice(singleItemPrice)}</Text>
@@ -133,7 +138,7 @@ export default function CheckoutScreen() {
                                 <Ionicons name="remove-circle-outline" size={28} color="#73509c" />
                             </TouchableOpacity>
                             <Text style={styles.quantityText}>{item.quantity}</Text>
-                            <TouchableOpacity onPress={() => addItem(item.product, 1, item.size, item.toppings)}>
+                            <TouchableOpacity onPress={() => addItem(item.product, 1, item.size, item.toppings, item.options)}>
                                 <Ionicons name="add-circle-outline" size={28} color="#73509c" />
                             </TouchableOpacity>
                         </View>
@@ -192,9 +197,8 @@ const styles = StyleSheet.create({
     itemImage: { width: 70, height: 70, borderRadius: 8, marginRight: 12 },
     itemDetails: { flex: 1 },
     itemName: { fontSize: 16, fontWeight: 'bold' },
-    itemSize: { fontSize: 14, color: '#666', marginVertical: 2 },
-    itemToppings: { fontSize: 12, color: '#666', fontStyle: 'italic', marginVertical: 2 },
-    itemPrice: { fontSize: 16, fontWeight: '500', color: '#73509c', marginTop: 2 },
+    itemOptions: { fontSize: 14, color: '#666', marginVertical: 2 },
+    itemPrice: { fontSize: 16, fontWeight: '500', color: '#73509c', marginTop: 4 },
     quantityControl: { flexDirection: 'row', alignItems: 'center' },
     quantityText: { fontSize: 18, fontWeight: 'bold', marginHorizontal: 12 },
     footer: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E0E0E0', padding: 16, paddingBottom: 34 },

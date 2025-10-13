@@ -27,25 +27,32 @@ type ProductOptionsModalProps = {
   visible: boolean;
   product: Product | null;
   onClose: () => void;
-  onAddToCart: (product: Product, quantity: number, size: string, toppings: Topping[]) => void;
+  onAddToCart: (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => void;
 };
 
-const SIZES = ['S', 'M', 'L'];
+const SIZES = [
+  { name: 'S', priceModifier: 0 },
+  { name: 'M', priceModifier: 5000 },
+  { name: 'L', priceModifier: 10000 },
+];
+const OPTIONS = ['Ít ngọt', 'Không đá', 'Đá riêng', 'Đá chung'];
 
 const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: ProductOptionsModalProps) => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState('M');
+  const [selectedSize, setSelectedSize] = useState(SIZES[1]);
   const [notes, setNotes] = useState('');
   const [toppings, setToppings] = useState<Topping[]>([]);
   const [loadingToppings, setLoadingToppings] = useState(false);
   const [selectedToppings, setSelectedToppings] = useState<Topping[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
   useEffect(() => {
     if (product) {
       setQuantity(1);
-      setSelectedSize('M');
+      setSelectedSize(SIZES[1]);
       setNotes('');
       setSelectedToppings([]);
+      setSelectedOptions([]);
 
       const fetchToppings = async () => {
         setLoadingToppings(true);
@@ -76,12 +83,24 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
     });
   };
 
-  const handleAddToCartPress = () => {
-    onAddToCart(product, quantity, selectedSize, selectedToppings);
+  const handleToggleOption = (option: string) => {
+    setSelectedOptions(prev => {
+      const isSelected = prev.includes(option);
+      if (isSelected) {
+        return prev.filter(o => o !== option);
+      } else {
+        return [...prev, option];
+      }
+    });
   };
 
+  const handleAddToCartPress = () => {
+    onAddToCart(product, quantity, selectedSize, selectedToppings, selectedOptions);
+  };
+
+  const basePrice = product.price + selectedSize.priceModifier;
   const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
-  const totalPrice = (product.price + toppingsPrice) * quantity;
+  const totalPrice = (basePrice + toppingsPrice) * quantity;
 
   return (
     <Modal
@@ -110,26 +129,38 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
             <View style={styles.separator} />
 
             <Text style={styles.sectionTitle}>Chọn size</Text>
-            <View style={styles.sizeContainer}>
-              {SIZES.map(size => (
-                <TouchableOpacity
-                  key={size}
-                  style={[styles.sizeOption, selectedSize === size && styles.sizeOptionSelected]}
-                  onPress={() => setSelectedSize(size)}
-                >
-                  <Text style={[styles.sizeText, selectedSize === size && styles.sizeTextSelected]}>{size}</Text>
-                </TouchableOpacity>
-              ))}
+            <View>
+              {SIZES.map(size => {
+                const isSelected = selectedSize.name === size.name;
+                return (
+                  <TouchableOpacity key={size.name} style={styles.optionRow} onPress={() => setSelectedSize(size)}>
+                    <Ionicons name={isSelected ? 'radio-button-on' : 'radio-button-off'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                    <Text style={styles.optionName}>{`Size ${size.name}`}</Text>
+                    <Text style={styles.optionPrice}>{formatPrice(product.price + size.priceModifier)}</Text>
+                  </TouchableOpacity>
+                )
+              })}
             </View>
+
+            <Text style={styles.sectionTitle}>Tuỳ chọn</Text>
+            {OPTIONS.map(option => {
+                const isSelected = selectedOptions.includes(option);
+                return (
+                    <TouchableOpacity key={option} style={styles.optionRow} onPress={() => handleToggleOption(option)}>
+                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                        <Text style={styles.optionName}>{option}</Text>
+                    </TouchableOpacity>
+                )
+            })}
 
             <Text style={styles.sectionTitle}>Topping</Text>
             {loadingToppings ? <ActivityIndicator color="#73509c" /> : toppings.map(topping => {
                 const isSelected = selectedToppings.some(t => t.id === topping.id);
                 return (
-                    <TouchableOpacity key={topping.id} style={styles.toppingRow} onPress={() => handleToggleTopping(topping)}>
-                        <Text style={styles.toppingName}>{topping.name}</Text>
-                        <Text style={styles.toppingPrice}>+{formatPrice(topping.price)}</Text>
+                    <TouchableOpacity key={topping.id} style={styles.optionRow} onPress={() => handleToggleTopping(topping)}>
                         <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
+                        <Text style={styles.optionName}>{topping.name}</Text>
+                        <Text style={styles.optionPrice}>+{formatPrice(topping.price)}</Text>
                     </TouchableOpacity>
                 )
             })}
@@ -173,148 +204,28 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    maxHeight: '80%',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  productImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 16,
-    marginTop: -80,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: -70,
-    right: 10,
-  },
-  productName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  productDescription: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginVertical: 8,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    marginTop: 12,
-  },
-  sizeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  sizeOption: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-  },
-  sizeOptionSelected: {
-    backgroundColor: '#73509c',
-    borderColor: '#73509c',
-  },
-  sizeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  sizeTextSelected: {
-    color: '#fff',
-  },
-  toppingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  toppingName: {
-    flex: 1,
-    fontSize: 16,
-  },
-  toppingPrice: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginRight: 16,
-  },
-  notesInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    height: 80,
-    textAlignVertical: 'top',
-    fontSize: 16,
-  },
-  footer: {
-    marginTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 16,
-  },
-  priceAndQuantity: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  totalPrice: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  quantityControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quantityButton: {
-    padding: 4,
-  },
-  quantityText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginHorizontal: 16,
-  },
-  addToCartButton: {
-    backgroundColor: '#73509c',
-    padding: 16,
-    borderRadius: 30,
-    alignItems: 'center',
-  },
-  addToCartButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20, maxHeight: '85%' },
+  header: { alignItems: 'center', marginBottom: 16 },
+  productImage: { width: '100%', height: 200, borderRadius: 16, marginTop: -80 },
+  closeButton: { position: 'absolute', top: -70, right: 10 },
+  productName: { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
+  productDescription: { fontSize: 16, color: '#666', textAlign: 'center', marginVertical: 8 },
+  separator: { height: 1, backgroundColor: '#eee', marginVertical: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, marginTop: 12 },
+  optionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  optionName: { flex: 1, fontSize: 16, marginLeft: 12 },
+  optionPrice: { fontSize: 16, fontWeight: '500' },
+  notesInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, height: 80, textAlignVertical: 'top', fontSize: 16 },
+  footer: { marginTop: 24, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 16 },
+  priceAndQuantity: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  totalPrice: { fontSize: 22, fontWeight: 'bold', color: '#333' },
+  quantityControl: { flexDirection: 'row', alignItems: 'center' },
+  quantityButton: { padding: 4 },
+  quantityText: { fontSize: 20, fontWeight: 'bold', marginHorizontal: 16 },
+  addToCartButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center' },
+  addToCartButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
 
 export default ProductOptionsModal;

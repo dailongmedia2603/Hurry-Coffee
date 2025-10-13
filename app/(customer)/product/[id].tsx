@@ -14,14 +14,19 @@ const formatPrice = (price: number) => {
   }).format(price);
 };
 
+const SIZES = [
+  { name: 'S', priceModifier: 0 },
+  { name: 'M', priceModifier: 5000 },
+  { name: 'L', priceModifier: 10000 },
+];
+
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState('M');
-  const sizes = ['S', 'M', 'L'];
+  const [selectedSize, setSelectedSize] = useState(SIZES[1]);
   const { addItem } = useCart();
 
   useEffect(() => {
@@ -48,7 +53,7 @@ export default function ProductDetailScreen() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addItem(product, quantity, selectedSize, []);
+    addItem(product, quantity, selectedSize, [], []);
   };
 
   if (loading) {
@@ -67,7 +72,7 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const totalPrice = product.price * quantity;
+  const totalPrice = (product.price + selectedSize.priceModifier) * quantity;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -103,22 +108,22 @@ export default function ProductDetailScreen() {
 
           <Text style={styles.sectionTitle}>Size</Text>
           <View style={styles.sizeSelectorContainer}>
-            {sizes.map((size) => (
+            {SIZES.map((size) => (
               <TouchableOpacity
-                key={size}
+                key={size.name}
                 style={[
                   styles.sizeButton,
-                  selectedSize === size && styles.sizeButtonSelected,
+                  selectedSize.name === size.name && styles.sizeButtonSelected,
                 ]}
                 onPress={() => setSelectedSize(size)}
               >
                 <Text
                   style={[
                     styles.sizeButtonText,
-                    selectedSize === size && styles.sizeButtonTextSelected,
+                    selectedSize.name === size.name && styles.sizeButtonTextSelected,
                   ]}
                 >
-                  {size}
+                  {size.name}
                 </Text>
               </TouchableOpacity>
             ))}

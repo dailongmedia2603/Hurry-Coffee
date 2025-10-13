@@ -119,7 +119,8 @@ export default function DiscoverScreen() {
   }, []);
 
   const handleAddToCart = (product: Product) => {
-    addItem(product, 1, "M", []);
+    const defaultSize = { name: 'M', priceModifier: 5000 };
+    addItem(product, 1, defaultSize, [], []);
   };
 
   const handleDecreaseFromCart = (product: Product) => {
@@ -136,8 +137,8 @@ export default function DiscoverScreen() {
     setSelectedProduct(null);
   };
 
-  const handleAddToCartFromModal = (product: Product, quantity: number, size: string, toppings: Topping[]) => {
-    addItem(product, quantity, size, toppings);
+  const handleAddToCartFromModal = (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => {
+    addItem(product, quantity, size, toppings, options);
     handleCloseModal();
   };
 
