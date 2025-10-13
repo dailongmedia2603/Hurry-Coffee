@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', marginHorizontal: 8 },
     scrollContainer: { paddingBottom: 40, backgroundColor: '#FAFAFA' },
     card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 0 },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
     itemContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
