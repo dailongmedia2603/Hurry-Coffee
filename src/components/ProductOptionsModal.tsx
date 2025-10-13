@@ -59,7 +59,7 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
           setAvailableToppings([]);
         } else if (data) {
           const fetchedToppings: Topping[] = data
-            .map(item => item.toppings)
+            .flatMap(item => item.toppings)
             .filter((t): t is Topping => t != null);
           setAvailableToppings(fetchedToppings);
         }
