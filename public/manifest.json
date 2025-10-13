@@ -1,9 +1,0 @@
-{
-  "name": "Hurry Coffee",
-  "short_name": "Hurry",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "theme_color": "#73509c",
-  "background_color": "#ffffff"
-}
