@@ -140,19 +140,22 @@ export default function OrderDetailScreen() {
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
                     {order.order_items.map((item, index) => (
-                        <View key={index} style={styles.itemContainer}>
+                        <View key={index} style={[styles.itemContainer, index === order.order_items.length - 1 && { borderBottomWidth: 0 }]}>
                             <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
                             <View style={styles.itemDetails}>
-                                <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
-                                {item.size && <Text style={styles.itemCustomization}>Size: {item.size}</Text>}
-                                {item.toppings && item.toppings.length > 0 && (
-                                    <Text style={styles.itemCustomization}>Topping: {item.toppings.map(t => t.name).join(', ')}</Text>
-                                )}
-                                {item.options && item.options.length > 0 && (
-                                    <Text style={styles.itemCustomization}>Tùy chọn: {item.options.join(', ')}</Text>
+                                <View style={styles.itemHeaderRow}>
+                                    <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
+                                    <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
+                                </View>
+                                
+                                {(item.size || (item.toppings && item.toppings.length > 0) || (item.options && item.options.length > 0)) && (
+                                    <View style={styles.customizationsWrapper}>
+                                        {item.size && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Size:</Text> {item.size}</Text>}
+                                        {item.toppings && item.toppings.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Topping:</Text> {item.toppings.map(t => t.name).join(', ')}</Text>}
+                                        {item.options && item.options.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Tuỳ chọn:</Text> {item.options.join(', ')}</Text>}
+                                    </View>
                                 )}
                             </View>
-                            <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
                         </View>
                     ))}
                 </View>
@@ -209,13 +212,38 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', marginHorizontal: 8 },
     scrollContainer: { paddingBottom: 40, backgroundColor: '#FAFAFA' },
     card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-    itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    itemImage: { width: 50, height: 50, borderRadius: 8, marginRight: 12 },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 0 },
+    itemContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    itemImage: { width: 60, height: 60, borderRadius: 8, marginRight: 12 },
     itemDetails: { flex: 1 },
-    itemName: { fontSize: 16, fontWeight: '500' },
-    itemCustomization: { fontSize: 12, color: '#666', marginTop: 2 },
-    itemPrice: { fontSize: 16, fontWeight: 'bold' },
+    itemHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    itemName: { fontSize: 16, fontWeight: '600', color: '#1f2937', flex: 1, marginRight: 8 },
+    itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#1f2937' },
+    customizationsWrapper: {
+        marginTop: 8,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 8,
+        padding: 10,
+    },
+    customizationText: {
+        fontSize: 14,
+        color: '#374151',
+        lineHeight: 20,
+    },
+    customizationLabel: {
+        fontWeight: '600',
+        color: '#111827',
+    },
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500' },
