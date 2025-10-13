@@ -30,7 +30,6 @@ export default function StaffOrdersScreen() {
   const router = useRouter();
 
   const fetchOrders = useCallback(async () => {
-    // Không set loading ở đây nữa để tránh giật màn hình khi real-time update
     const { data, error } = await supabase.rpc('get_staff_orders');
 
     if (error) {
@@ -40,28 +39,25 @@ export default function StaffOrdersScreen() {
     } else {
         setOrders((data as OrderWithItemCount[]) || []);
     }
-    setLoading(false); // Chỉ set loading false sau lần tải đầu tiên
-  }, []);
+    if (loading) setLoading(false);
+  }, [loading]);
 
   useEffect(() => {
-    // Tải dữ liệu ban đầu
     fetchOrders();
 
-    // Thiết lập kênh lắng nghe các đơn hàng mới
     const channel = supabase
-      .channel('staff-orders-realtime-channel')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('New order received, refetching staff orders:', payload);
-          // Khi có đơn hàng mới, tải lại toàn bộ danh sách để đảm bảo tính nhất quán
+      .channel('new_order_notifications')
+      .on('broadcast', { event: 'new_order' }, (payload) => {
+          console.log('New order broadcast received on staff screen, refetching orders:', payload);
           fetchOrders();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Staff orders screen successfully subscribed to new_order broadcast channel.');
+        }
+      });
 
-    // Dọn dẹp kênh khi component bị unmount
     return () => {
       supabase.removeChannel(channel);
     };
