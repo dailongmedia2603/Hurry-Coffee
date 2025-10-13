@@ -53,7 +53,11 @@ export default function ProductDetailScreen() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addItem(product, quantity, selectedSize, [], []);
+    const sizePayload = {
+        name: selectedSize.name,
+        price: product.price + selectedSize.priceModifier
+    };
+    addItem(product, quantity, sizePayload, [], []);
   };
 
   if (loading) {

@@ -5,14 +5,14 @@ export interface CartItem {
   id: string;
   product: Product;
   quantity: number;
-  size: { name: string; priceModifier: number };
+  size: { name: string; price: number };
   toppings: Topping[];
   options: string[];
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => void;
+  addItem: (product: Product, quantity: number, size: { name: string; price: number }, toppings: Topping[], options: string[]) => void;
   decreaseItem: (itemId: string) => void;
   decreaseLastAddedItemForProduct: (productId: string) => void;
   clearCart: () => void;
@@ -34,7 +34,7 @@ export const useCart = () => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = (product: Product, quantity: number, size: { name: string; priceModifier: number }, toppings: Topping[], options: string[]) => {
+  const addItem = (product: Product, quantity: number, size: { name: string; price: number }, toppings: Topping[], options: string[]) => {
     setItems(prevItems => {
       const toppingsKey = toppings.map(t => t.id).sort().join(',');
       const optionsKey = options.sort().join(',');
@@ -100,7 +100,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   
   const totalPrice = items.reduce((sum, item) => {
     const toppingsPrice = item.toppings.reduce((toppingSum, topping) => toppingSum + topping.price, 0);
-    const itemPrice = item.product.price + item.size.priceModifier + toppingsPrice;
+    const itemPrice = item.size.price + toppingsPrice;
     return sum + itemPrice * item.quantity;
   }, 0);
 

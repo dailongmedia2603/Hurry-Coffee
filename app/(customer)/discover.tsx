@@ -28,14 +28,10 @@ const formatPrice = (price: number) => {
 
 const MenuItem = ({
   product,
-  onAddToCart,
-  onDecreaseFromCart,
   onOpenOptions,
   quantity,
 }: {
   product: Product;
-  onAddToCart: (product: Product) => void;
-  onDecreaseFromCart: (product: Product) => void;
   onOpenOptions: (product: Product) => void;
   quantity: number;
 }) => {
@@ -43,7 +39,7 @@ const MenuItem = ({
   return (
     <TouchableOpacity
       style={styles.menuItemContainer}
-      onPress={() => router.push(`/product/${product.id}`)}
+      onPress={() => onOpenOptions(product)}
     >
       <Image
         source={{ uri: product.image_url || "https://via.placeholder.com/100" }}
@@ -57,20 +53,8 @@ const MenuItem = ({
         <Text style={styles.menuItemPrice}>{formatPrice(product.price)}</Text>
       </View>
       {quantity > 0 ? (
-        <View style={styles.quantityControl}>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => onDecreaseFromCart(product)}
-          >
-            <Ionicons name="remove" size={20} color="#73509c" />
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{quantity}</Text>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => onAddToCart(product)}
-          >
-            <Ionicons name="add" size={20} color="#73509c" />
-          </TouchableOpacity>
+        <View style={styles.quantityBadge}>
+          <Text style={styles.quantityBadgeText}>{quantity}</Text>
         </View>
       ) : (
         <TouchableOpacity
@@ -90,7 +74,7 @@ export default function DiscoverScreen() {
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { addItem, decreaseLastAddedItemForProduct, getProductQuantity, totalItems, totalPrice } = useCart();
+  const { addItem, getProductQuantity, totalItems, totalPrice } = useCart();
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -118,15 +102,6 @@ export default function DiscoverScreen() {
     fetchData();
   }, []);
 
-  const handleAddToCart = (product: Product) => {
-    const defaultSize = { name: 'M', priceModifier: 5000 };
-    addItem(product, 1, defaultSize, [], []);
-  };
-
-  const handleDecreaseFromCart = (product: Product) => {
-    decreaseLastAddedItemForProduct(product.id);
-  };
-
   const handleOpenOptions = (product: Product) => {
     setSelectedProduct(product);
     setModalVisible(true);
@@ -138,7 +113,7 @@ export default function DiscoverScreen() {
   };
 
   const handleAddToCartFromModal = (product: Product, quantity: number, size: { name: string; price: number }, toppings: Topping[], options: string[]) => {
-    addItem(product, quantity, size as any, toppings, options);
+    addItem(product, quantity, size, toppings, options);
     handleCloseModal();
   };
 
@@ -205,8 +180,6 @@ export default function DiscoverScreen() {
               <MenuItem
                 key={product.id}
                 product={product}
-                onAddToCart={handleAddToCart}
-                onDecreaseFromCart={handleDecreaseFromCart}
                 onOpenOptions={handleOpenOptions}
                 quantity={getProductQuantity(product.id)}
               />
@@ -217,24 +190,24 @@ export default function DiscoverScreen() {
           )}
         </View>
       </ScrollView>
-      <View style={styles.footer}>
-          <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/checkout")}>
-              <Ionicons name="cart-outline" size={28} color="#333" />
-              {totalItems > 0 && (
+      {totalItems > 0 && (
+        <View style={styles.footer}>
+            <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/checkout")}>
+                <Ionicons name="cart-outline" size={28} color="#333" />
                 <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>
-              )}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/checkout")}>
-              <Text style={styles.buyNowButtonText}>
-                {totalItems > 0 ? `Xem giỏ hàng - ${formatPrice(totalPrice)}` : 'Xem giỏ hàng'}
-              </Text>
-          </TouchableOpacity>
-      </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/checkout")}>
+                <Text style={styles.buyNowButtonText}>
+                  Xem giỏ hàng - {formatPrice(totalPrice)}
+                </Text>
+            </TouchableOpacity>
+        </View>
+      )}
       <ProductOptionsModal
         visible={isModalVisible}
         product={selectedProduct}
         onClose={handleCloseModal}
-        onAddToCart={handleAddToCartFromModal as any}
+        onAddToCart={handleAddToCartFromModal}
       />
     </SafeAreaView>
   );
@@ -281,9 +254,24 @@ const styles = StyleSheet.create({
   menuItemDescription: { fontSize: 12, color: "#666", marginVertical: 4 },
   menuItemPrice: { fontSize: 14, fontWeight: "bold", color: "#73509c", marginTop: 4 },
   addButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#F0EBF8", justifyContent: "center", alignItems: "center" },
-  quantityControl: { flexDirection: "row", alignItems: "center", backgroundColor: "#F0EBF8", borderRadius: 20 },
-  quantityButton: { width: 36, height: 36, justifyContent: "center", alignItems: "center" },
-  quantityText: { fontSize: 16, fontWeight: "bold", color: "#73509c", minWidth: 20, textAlign: "center" },
+  quantityBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#73509c',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  quantityBadgeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 20, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f0f0f0", paddingBottom: Platform.OS === "ios" ? 34 : 12 },
   cartButton: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: "#e0e0e0", justifyContent: "center", alignItems: "center", position: "relative", backgroundColor: "#fff" },
   cartBadge: { position: "absolute", top: 0, right: 0, backgroundColor: "#FF6C44", borderRadius: 10, width: 20, height: 20, justifyContent: "center", alignItems: "center" },

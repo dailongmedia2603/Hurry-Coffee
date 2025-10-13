@@ -54,7 +54,7 @@ export default function CheckoutScreen() {
 
       const orderItems = items.map(item => {
         const toppingsPrice = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
-        const singleItemPrice = item.product.price + item.size.priceModifier + toppingsPrice;
+        const singleItemPrice = item.size.price + toppingsPrice;
 
         return {
           order_id: newOrder.id,
@@ -121,7 +121,7 @@ export default function CheckoutScreen() {
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => {
                 const toppingsPrice = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
-                const singleItemPrice = item.product.price + item.size.priceModifier + toppingsPrice;
+                const singleItemPrice = item.size.price + toppingsPrice;
 
                 return (
                     <View style={styles.cartItem}>
