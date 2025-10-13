@@ -134,9 +134,9 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
                 const isSelected = selectedSize.name === size.name;
                 return (
                   <TouchableOpacity key={size.name} style={styles.optionRow} onPress={() => setSelectedSize(size)}>
-                    <Ionicons name={isSelected ? 'radio-button-on' : 'radio-button-off'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                     <Text style={styles.optionName}>{`Size ${size.name}`}</Text>
                     <Text style={styles.optionPrice}>{formatPrice(product.price + size.priceModifier)}</Text>
+                    <Ionicons name={isSelected ? 'radio-button-on' : 'radio-button-off'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                   </TouchableOpacity>
                 )
               })}
@@ -147,8 +147,8 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
                 const isSelected = selectedOptions.includes(option);
                 return (
                     <TouchableOpacity key={option} style={styles.optionRow} onPress={() => handleToggleOption(option)}>
-                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                         <Text style={styles.optionName}>{option}</Text>
+                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                     </TouchableOpacity>
                 )
             })}
@@ -158,9 +158,9 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
                 const isSelected = selectedToppings.some(t => t.id === topping.id);
                 return (
                     <TouchableOpacity key={topping.id} style={styles.optionRow} onPress={() => handleToggleTopping(topping)}>
-                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                         <Text style={styles.optionName}>{topping.name}</Text>
                         <Text style={styles.optionPrice}>+{formatPrice(topping.price)}</Text>
+                        <Ionicons name={isSelected ? 'checkbox' : 'square-outline'} size={24} color={isSelected ? "#73509c" : "#ccc"} />
                     </TouchableOpacity>
                 )
             })}
@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
   separator: { height: 1, backgroundColor: '#eee', marginVertical: 16 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, marginTop: 12 },
   optionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  optionName: { flex: 1, fontSize: 16, marginLeft: 12 },
-  optionPrice: { fontSize: 16, fontWeight: '500' },
+  optionName: { flex: 1, fontSize: 16 },
+  optionPrice: { fontSize: 16, fontWeight: '500', marginRight: 16 },
   notesInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, height: 80, textAlignVertical: 'top', fontSize: 16 },
   footer: { marginTop: 24, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 16 },
   priceAndQuantity: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
