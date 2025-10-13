@@ -14,6 +14,8 @@ export interface Product {
   image_url: string | null;
   category: string | null;
   created_at: string;
+  sizes?: { name: string; price: number }[] | null;
+  available_options?: string[] | null;
 }
 
 export type OrderStatus = 'Đang xử lý' | 'Dang xu ly' | 'Đang làm' | 'Đang giao' | 'Sẵn sàng' | 'Hoàn thành' | 'Đã hủy' | 'Không liên hệ được';
