@@ -4,7 +4,7 @@ export default function Html({ children }: { children: ReactNode }) {
   return (
     <html lang="vi">
       <head>
-        <meta charSet="utf-t-8" />
+        <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
@@ -12,17 +12,23 @@ export default function Html({ children }: { children: ReactNode }) {
         />
         
         {/* 
-          Expo Router sẽ tự động chèn các thẻ PWA cần thiết (manifest, theme-color, apple-touch-icon, etc.)
-          dựa trên cấu hình trong app.json. Không cần thêm thủ công ở đây.
+          Expo Router automatically injects the PWA manifest link based on app.json.
+          The following meta tags are crucial for a native-like experience on iOS.
         */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Hurry Coffee" />
         
         {/* 
           The `Style` and `Scripts` components are automatically injected by Expo Router.
-          Do not add them manually.
         */}
       </head>
       <body>
         {children}
+        {/* 
+          This script registers the service worker. It's placed here to run
+          as soon as the page loads.
+        */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

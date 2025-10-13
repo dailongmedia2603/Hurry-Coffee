@@ -1,19 +1,20 @@
 {
   "expo": {
-    "name": "dyad-react-native-expo-template",
+    "name": "Hurry Coffee & Tea",
     "slug": "dyad-react-native-expo-template",
     "plugins": ["expo-router"],
     "experiments": { "typedRoutes": false },
     "web": {
-      "name": "Hurry Coffee Admin",
-      "shortName": "Hurry Admin",
-      "description": "Bảng quản lý dành cho Admin và Nhân viên của Hurry Coffee.",
+      "name": "Hurry Coffee & Tea",
+      "shortName": "Hurry",
+      "description": "Ứng dụng đặt hàng và giao hàng của Hurry Coffee & Tea.",
       "lang": "vi-VN",
       "themeColor": "#73509c",
       "backgroundColor": "#ffffff",
       "display": "standalone",
       "orientation": "portrait",
       "startUrl": "/",
+      "scope": "/",
       "favicon": "./assets/images/logo-app-PWA.png",
       "icon": "./assets/images/logo-app-PWA.png",
       "splash": {
