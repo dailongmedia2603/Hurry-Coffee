@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
 import { formatDisplayPhone } from '@/src/utils/formatters';
-import BlinkingView from '@/src/components/BlinkingView';
+import AttentionView from '@/src/components/AttentionView';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -92,10 +92,10 @@ export default function StaffOrdersScreen() {
           <Text style={styles.itemName}>{orderTitle}</Text>
           <View style={styles.headerRight}>
             {isNew && (
-              <BlinkingView style={styles.newOrderBadge}>
+              <AttentionView style={styles.newOrderBadge}>
                 <Ionicons name="sparkles" size={14} color="#b91c1c" />
                 <Text style={styles.newOrderText}>Đơn mới</Text>
-              </BlinkingView>
+              </AttentionView>
             )}
             <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
               <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
