@@ -111,30 +111,35 @@ export default function CheckoutScreen() {
         <FlatList
             data={items}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-                <View style={styles.cartItem}>
-                    <Image source={{ uri: item.product.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
-                    <View style={styles.itemDetails}>
-                        <Text style={styles.itemName}>{item.product.name}</Text>
-                        <Text style={styles.itemSize}>Size: {item.size}</Text>
-                        {item.toppings.length > 0 && (
-                            <Text style={styles.itemToppings}>
-                                + {item.toppings.map(t => t.name).join(', ')}
-                            </Text>
-                        )}
-                        <Text style={styles.itemPrice}>{formatPrice(item.product.price)}</Text>
+            renderItem={({ item }) => {
+                const toppingsPrice = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
+                const singleItemPrice = item.product.price + toppingsPrice;
+
+                return (
+                    <View style={styles.cartItem}>
+                        <Image source={{ uri: item.product.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+                        <View style={styles.itemDetails}>
+                            <Text style={styles.itemName}>{item.product.name}</Text>
+                            <Text style={styles.itemSize}>Size: {item.size}</Text>
+                            {item.toppings.length > 0 && (
+                                <Text style={styles.itemToppings}>
+                                    + {item.toppings.map(t => t.name).join(', ')}
+                                </Text>
+                            )}
+                            <Text style={styles.itemPrice}>{formatPrice(singleItemPrice)}</Text>
+                        </View>
+                        <View style={styles.quantityControl}>
+                            <TouchableOpacity onPress={() => decreaseItem(item.id)}>
+                                <Ionicons name="remove-circle-outline" size={28} color="#73509c" />
+                            </TouchableOpacity>
+                            <Text style={styles.quantityText}>{item.quantity}</Text>
+                            <TouchableOpacity onPress={() => addItem(item.product, 1, item.size, item.toppings)}>
+                                <Ionicons name="add-circle-outline" size={28} color="#73509c" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                    <View style={styles.quantityControl}>
-                        <TouchableOpacity onPress={() => decreaseItem(item.id)}>
-                            <Ionicons name="remove-circle-outline" size={28} color="#73509c" />
-                        </TouchableOpacity>
-                        <Text style={styles.quantityText}>{item.quantity}</Text>
-                        <TouchableOpacity onPress={() => addItem(item.product, 1, item.size, item.toppings)}>
-                            <Ionicons name="add-circle-outline" size={28} color="#73509c" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            )}
+                );
+            }}
             contentContainerStyle={styles.listContainer}
             ListFooterComponent={
               <View style={styles.notesSection}>
