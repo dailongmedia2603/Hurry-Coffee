@@ -29,7 +29,10 @@ export default function StaffOrdersScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setLoading(true);
+    }
     const { data, error } = await supabase.rpc('get_staff_orders');
 
     if (error) {
@@ -39,25 +42,30 @@ export default function StaffOrdersScreen() {
     } else {
         setOrders((data as OrderWithItemCount[]) || []);
     }
-    if (loading) setLoading(false);
-  }, [loading]);
+    if (isInitialLoad) {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchOrders();
+    // Tải dữ liệu lần đầu khi component được mount
+    fetchOrders(true);
 
+    // Thiết lập kênh lắng nghe thời gian thực
     const channel = supabase
-      .channel('new_order_notifications')
-      .on('broadcast', { event: 'new_order' }, (payload) => {
-          console.log('New order broadcast received on staff screen, refetching orders:', payload);
-          fetchOrders();
+      .channel('public:orders')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('New order received, refetching orders:', payload);
+          // Khi có đơn hàng mới, gọi lại hàm fetchOrders để cập nhật danh sách
+          fetchOrders(false);
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Staff orders screen successfully subscribed to new_order broadcast channel.');
-        }
-      });
+      .subscribe();
 
+    // Dọn dẹp khi component unmount
     return () => {
       supabase.removeChannel(channel);
     };
@@ -114,7 +122,7 @@ export default function StaffOrdersScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderOrderItem}
           contentContainerStyle={styles.listContainer}
-          onRefresh={fetchOrders}
+          onRefresh={() => fetchOrders(true)}
           refreshing={loading}
         />
       )}
