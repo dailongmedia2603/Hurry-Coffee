@@ -1,42 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { View, ActivityIndicator, StyleSheet, TouchableOpacity, Text } from "react-native";
 import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
-import useOrderNotifications from "@/src/hooks/useOrderNotifications";
+import { storage } from "@/src/utils/storage";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
+const AUDIO_UNLOCKED_KEY = 'audio_unlocked';
 
-// Component mới để "mở khóa" âm thanh
 const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
   const [unlocking, setUnlocking] = useState(false);
 
   const handleUnlock = () => {
     setUnlocking(true);
-    
-    // Tạo một đối tượng audio với file âm thanh thật
     const audio = new Audio('/assets/sounds/codon.mp3');
-    
-    // Cố gắng phát nó. Đây là hành động quan trọng do người dùng khởi xướng.
     const playPromise = audio.play();
 
     if (playPromise !== undefined) {
       playPromise.then(() => {
-        // Nếu phát thành công, dừng lại ngay lập tức.
-        // Trình duyệt đã ghi nhận quyền phát âm thanh cho trang này.
         audio.pause();
         console.log("Audio unlocked successfully.");
       }).catch(error => {
-        // Nếu bị lỗi, ghi lại để gỡ lỗi.
         console.error("Audio could not be unlocked automatically:", error);
       }).finally(() => {
-        // Dù thành công hay thất bại, vẫn tiếp tục vào app.
-        setTimeout(() => onUnlocked(), 100);
+        onUnlocked();
       });
     } else {
-      // Fallback cho trình duyệt cũ không hỗ trợ promise
       onUnlocked();
     }
   };
@@ -49,11 +40,7 @@ const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
         Nhấn "Sẵn sàng" để đảm bảo bạn nghe được chuông báo khi có đơn hàng mới.
       </Text>
       <TouchableOpacity style={styles.unlockButton} onPress={handleUnlock} disabled={unlocking}>
-        {unlocking ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.unlockButtonText}>Sẵn sàng</Text>
-        )}
+        {unlocking ? <ActivityIndicator color="#fff" /> : <Text style={styles.unlockButtonText}>Sẵn sàng</Text>}
       </TouchableOpacity>
     </View>
   );
@@ -62,11 +49,25 @@ const AudioUnlocker = ({ onUnlocked }: { onUnlocked: () => void }) => {
 export default function StaffLayout() {
   const { session, profile, loading, signOut } = useAuth();
   const [audioUnlocked, setAudioUnlocked] = useState(false);
-  
-  // Kích hoạt hook thông báo
-  useOrderNotifications();
+  const [checkingStorage, setCheckingStorage] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const checkAudioStatus = async () => {
+      const status = await storage.getItem(AUDIO_UNLOCKED_KEY);
+      if (status === 'true') {
+        setAudioUnlocked(true);
+      }
+      setCheckingStorage(false);
+    };
+    checkAudioStatus();
+  }, []);
+
+  const handleAudioUnlocked = () => {
+    storage.setItem(AUDIO_UNLOCKED_KEY, 'true');
+    setAudioUnlocked(true);
+  };
+
+  if (loading || checkingStorage) {
     return <View style={styles.centered}><ActivityIndicator size="large" color="#73509c" /></View>;
   }
 
@@ -82,9 +83,8 @@ export default function StaffLayout() {
     return <Redirect href={profile.role === 'admin' ? '/admin' : '/(customer)'} />;
   }
 
-  // Hiển thị màn hình mở khóa âm thanh trước
   if (!audioUnlocked) {
-    return <AudioUnlocker onUnlocked={() => setAudioUnlocked(true)} />;
+    return <AudioUnlocker onUnlocked={handleAudioUnlocked} />;
   }
 
   return (

@@ -48,24 +48,25 @@ export default function StaffOrdersScreen() {
   }, []);
 
   useEffect(() => {
-    // Tải dữ liệu lần đầu khi component được mount
     fetchOrders(true);
 
-    // Thiết lập kênh lắng nghe thời gian thực
     const channel = supabase
       .channel('public:orders')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log('New order received, refetching orders:', payload);
-          // Khi có đơn hàng mới, gọi lại hàm fetchOrders để cập nhật danh sách
+          console.log('New order received, refetching and playing sound:', payload);
+          // Phát âm thanh
+          const audio = new Audio('/assets/sounds/codon.mp3');
+          audio.play().catch(error => console.error("Lỗi phát âm thanh:", error));
+          
+          // Tải lại danh sách đơn hàng
           fetchOrders(false);
         }
       )
       .subscribe();
 
-    // Dọn dẹp khi component unmount
     return () => {
       supabase.removeChannel(channel);
     };
