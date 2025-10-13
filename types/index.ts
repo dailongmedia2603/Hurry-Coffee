@@ -29,6 +29,7 @@ export interface Order {
   restaurant_name: string;
   restaurant_image_url: string;
   order_type: 'delivery' | 'pickup';
+  pickup_location_id: string | null;
   locations: Location | null;
   customer_name: string | null;
   customer_phone: string | null;
