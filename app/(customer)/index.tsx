@@ -1,160 +1,138 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
+  SafeAreaView,
   View,
   ScrollView,
+  Image,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
+  Platform,
   TextInput,
-  Image,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { supabase } from "@/src/integrations/supabase/client";
-import { Product, ProductCategory } from "@/types";
-import MenuItemCard from "@/src/components/MenuItemCard";
+import { Product, ProductCategory, Topping } from "@/types";
+import { useRouter } from "expo-router";
+import { useCart } from "@/src/context/CartContext";
+import ProductOptionsModal from "@/src/components/ProductOptionsModal";
 import CategoryChip from "@/src/components/CategoryChip";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "@/src/context/AuthContext";
 
-export default function CustomerHomeScreen() {
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price);
+};
+
+const MenuItem = ({
+  product,
+  onOpenOptions,
+  quantity,
+}: {
+  product: Product;
+  onOpenOptions: (product: Product) => void;
+  quantity: number;
+}) => {
   const router = useRouter();
-  const { user, profile } = useAuth();
+  return (
+    <TouchableOpacity
+      style={styles.menuItemContainer}
+      onPress={() => onOpenOptions(product)}
+    >
+      <Image
+        source={{ uri: product.image_url || "https://via.placeholder.com/100" }}
+        style={styles.menuItemImage}
+      />
+      <View style={styles.menuItemDetails}>
+        <Text style={styles.menuItemName}>{product.name}</Text>
+        <Text style={styles.menuItemDescription} numberOfLines={2}>
+          {product.description || "Mô tả món ăn đang được cập nhật."}
+        </Text>
+        <Text style={styles.menuItemPrice}>{formatPrice(product.price)}</Text>
+      </View>
+      {quantity > 0 ? (
+        <View style={styles.quantityBadge}>
+          <Text style={styles.quantityBadgeText}>{quantity}</Text>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => onOpenOptions(product)}
+        >
+          <Ionicons name="add" size={24} color="#73509c" />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+export default function DiscoverScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { addItem, getProductQuantity, totalItems, totalPrice } = useCart();
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Tất cả");
-  const [promoImageUrl, setPromoImageUrl] = useState<string | null>(null);
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('product_categories')
+        .select('*')
+        .order('name');
 
-      // Fetch promo image URL
-      const { data: settingsData } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'promo_image_url')
-        .single();
-      
-      if (settingsData?.value) {
-        setPromoImageUrl(settingsData.value);
+      if (categoryError) {
+        console.error("Error fetching categories:", categoryError);
+      } else if (categoryData) {
+        setCategories([{ id: 'all', name: "All Menu", icon_name: "grid-outline", created_at: '' }, ...categoryData]);
+        setActiveCategory("All Menu");
       }
 
-      const { data: productData, error: productError } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (productError) {
-        console.error("Error fetching products:", productError);
-        setLoading(false);
-        return;
-      }
-      
-      const allProducts = productData || [];
-      setProducts(allProducts);
-
-      const categoriesWithProducts = [...new Set(allProducts.map(p => p.category).filter(Boolean))] as string[];
-
-      if (categoriesWithProducts.length > 0) {
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('product_categories')
-          .select('*')
-          .in('name', categoriesWithProducts)
-          .order('name');
-        
-        if (categoryError) {
-          console.error("Error fetching categories:", categoryError);
-          setCategories([{ id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }]);
-        } else {
-          setCategories([
-            { id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }, 
-            ...(categoryData || [])
-          ]);
-        }
-      } else {
-        setCategories([{ id: 'all', name: "Tất cả", icon_name: "grid-outline", created_at: '' }]);
-      }
-
-      setActiveCategory("Tất cả");
+      const { data: productData, error: productError } = await supabase.from("products").select("*");
+      if (productError) console.error("Error fetching products:", productError);
+      else setProducts(productData || []);
       setLoading(false);
     };
-
     fetchData();
   }, []);
 
-  const categoryFilteredProducts = useMemo(() => {
-    if (!activeCategory || activeCategory === "Tất cả") {
-      return products;
+  const handleOpenOptions = (product: Product) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedProduct(null);
+  };
+
+  const handleAddToCartFromModal = (product: Product, quantity: number, size: { name: string; price: number }, toppings: Topping[], options: string[]) => {
+    addItem(product, quantity, size, toppings, options);
+    handleCloseModal();
+  };
+
+  const productsToShow = useMemo(() => {
+    let filtered = products;
+    if (activeCategory !== "All Menu") {
+      filtered = filtered.filter((product) => product.category === activeCategory);
     }
-    return products.filter((product) => product.category === activeCategory);
-  }, [activeCategory, products]);
-
-  const searchedProducts = useMemo(() => {
-    if (!searchQuery) {
-      return [];
+    if (searchQuery) {
+      filtered = filtered.filter((product) =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery, products]);
-
-  const recommendedProducts = products.slice(0, 10);
-
-  const renderHeader = () => (
-    <LinearGradient
-      colors={["#402c75", "#73509c"]}
-      style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}
-    >
-      <View style={styles.topBar}>
-        <View style={styles.userInfoContainer}>
-          <Ionicons name="person-circle-outline" size={32} color="#fff" style={{ marginRight: 8 }} />
-          <View>
-            {user && profile ? (
-              <>
-                <Text style={styles.userName}>{profile.full_name || 'Người dùng'}</Text>
-                <Text style={styles.userPhone}>{user.phone}</Text>
-              </>
-            ) : (
-              <Text style={styles.userName}>Chưa đăng nhập</Text>
-            )}
-          </View>
-        </View>
-        <Ionicons name="notifications-outline" size={28} color="#fff" />
-      </View>
-      <Image
-        source={{ uri: promoImageUrl || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }}
-        style={styles.promoImage}
-        resizeMode="cover"
-      />
-    </LinearGradient>
-  );
-
-  const renderSearchBar = () => (
-    <View style={styles.searchContainer}>
-      <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Tìm món nhanh"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-    </View>
-  );
+    return filtered;
+  }, [activeCategory, products, searchQuery]);
 
   const renderCategories = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.categoriesContainer}
-    >
-      {categories.map((cat) => (
+    <View style={styles.categoriesContainer}>
+      {categories.slice(0, 4).map((cat) => (
         <CategoryChip
           key={cat.id}
           label={cat.name}
@@ -163,133 +141,83 @@ export default function CustomerHomeScreen() {
           onPress={() => setActiveCategory(cat.name)}
         />
       ))}
-    </ScrollView>
+    </View>
   );
 
-  const renderProductSection = (title: string, data: Product[], isSearchResult = false) => {
-    if (loading && !isSearchResult) {
-      return <ActivityIndicator size="large" color="#73509c" style={{ marginTop: 20 }} />;
-    }
-    if (data.length === 0 && !loading) {
-      if (isSearchResult) {
-        return <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>;
-      }
-      return null;
-    }
-    const isRecommendedSection = title === "Món ngon cho bạn";
-    return (
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          {!isRecommendedSection && !isSearchResult && (
-            <TouchableOpacity onPress={() => router.push(`/category/${title}`)}>
-              <Text style={styles.seeMore}>Tất cả</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <FlatList
-          data={data}
-          renderItem={({ item }) => <MenuItemCard product={item} />}
-          keyExtractor={(item) => item.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
-        />
-      </View>
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        {renderHeader()}
-        <View style={styles.contentContainer}>
-          {renderSearchBar()}
-          {searchQuery ? (
-            renderProductSection("Kết quả tìm kiếm", searchedProducts, true)
-          ) : (
-            <>
-              {renderCategories()}
-              {activeCategory === "Tất cả" ? (
-                <>
-                  {renderProductSection("Món ngon cho bạn", recommendedProducts)}
-                  {categories
-                    .filter((cat) => cat.name !== "Tất cả")
-                    .map((cat) => {
-                      const categoryProducts = products.filter((p) => p.category === cat.name);
-                      if (categoryProducts.length === 0) return null;
-                      return (
-                        <View key={cat.id}>
-                          {renderProductSection(
-                            cat.name,
-                            categoryProducts
-                          )}
-                        </View>
-                      )
-                    })}
-                </>
-              ) : (
-                renderProductSection(activeCategory, categoryFilteredProducts)
-              )}
-            </>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack?.()) {
+                router.back();
+              } else {
+                router.replace('/(customer)');
+              }
+            }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#161616" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{"Đặt món"}</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm món nhanh"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        {renderCategories()}
+        <View style={styles.menuContainer}>
+          {loading ? <ActivityIndicator size="large" color="#73509c" /> : (
+            productsToShow.map((product) => (
+              <MenuItem
+                key={product.id}
+                product={product}
+                onOpenOptions={handleOpenOptions}
+                quantity={getProductQuantity(product.id)}
+              />
+            ))
+          )}
+          {productsToShow.length === 0 && !loading && (
+            <Text style={styles.placeholderText}>Không tìm thấy món ăn nào.</Text>
           )}
         </View>
       </ScrollView>
-    </View>
+      {totalItems > 0 && (
+        <View style={styles.footer}>
+            <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/checkout")}>
+                <Ionicons name="cart-outline" size={28} color="#333" />
+                <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{totalItems}</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buyNowButton} onPress={() => router.push("/checkout")}>
+                <Text style={styles.buyNowButtonText}>
+                  Xem giỏ hàng - {formatPrice(totalPrice)}
+                </Text>
+            </TouchableOpacity>
+        </View>
+      )}
+      <ProductOptionsModal
+        visible={isModalVisible}
+        product={selectedProduct}
+        onClose={handleCloseModal}
+        onAddToCart={handleAddToCartFromModal}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#402c75",
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-  },
-  headerContainer: {
-    paddingBottom: 60,
-    paddingHorizontal: 16,
-  },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  userInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  userName: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  userPhone: {
-    color: '#E0E0E0',
-    fontSize: 12,
-  },
-  promoImage: {
-    width: '100%',
-    height: 140,
-    borderRadius: 16,
-    alignSelf: 'center',
-    marginTop: 20,
-  },
-  contentContainer: {
-    backgroundColor: "#F5F5F5",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -40,
-    paddingTop: 20,
-    paddingBottom: 100,
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
+  headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -314,28 +242,42 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: 8,
     marginBottom: 20,
   },
-  sectionContainer: {
-    marginBottom: 20,
+  menuContainer: { marginHorizontal: 16, paddingBottom: 120 },
+  menuItemContainer: { flexDirection: "row", backgroundColor: "#FFFFFF", borderRadius: 12, padding: 12, marginBottom: 12, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+  menuItemImage: { width: 80, height: 80, borderRadius: 8, marginRight: 12 },
+  menuItemDetails: { flex: 1, justifyContent: "center", marginRight: 12 },
+  menuItemName: { fontSize: 16, fontWeight: "bold" },
+  menuItemDescription: { fontSize: 12, color: "#666", marginVertical: 4 },
+  menuItemPrice: { fontSize: 14, fontWeight: "bold", color: "#73509c", marginTop: 4 },
+  addButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#F0EBF8", justifyContent: "center", alignItems: "center" },
+  quantityBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#73509c',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 12,
+  quantityBadgeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  seeMore: {
-    fontSize: 14,
-    color: "#73509c",
-    fontWeight: "500",
-  },
+  footer: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 20, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f0f0f0", paddingBottom: Platform.OS === "ios" ? 34 : 12 },
+  cartButton: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: "#e0e0e0", justifyContent: "center", alignItems: "center", position: "relative", backgroundColor: "#fff" },
+  cartBadge: { position: "absolute", top: 0, right: 0, backgroundColor: "#FF6C44", borderRadius: 10, width: 20, height: 20, justifyContent: "center", alignItems: "center" },
+  cartBadgeText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
+  buyNowButton: { flex: 1, backgroundColor: "#73509c", paddingVertical: 16, borderRadius: 30, alignItems: "center", marginLeft: 16 },
+  buyNowButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   placeholderText: {
     textAlign: 'center',
     marginTop: 20,

@@ -61,19 +61,6 @@ export default function CustomerLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: "Menu",
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? "restaurant" : "restaurant-outline"}
-                color={color}
-                size={size}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="discover"
-          options={{
             title: "Đặt Món",
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons
@@ -82,7 +69,6 @@ export default function CustomerLayout() {
                 size={size}
               />
             ),
-            tabBarStyle: { display: "none" },
           }}
         />
         <Tabs.Screen
