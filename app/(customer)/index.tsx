@@ -148,19 +148,7 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => {
-              if (router.canGoBack?.()) {
-                router.back();
-              } else {
-                router.replace('/(customer)');
-              }
-            }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#161616" />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>{"Đặt món"}</Text>
-          <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.searchContainer}>
@@ -216,8 +204,8 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
   scrollView: { flex: 1, backgroundColor: "#FAFAFA" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
-  headerTitle: { color: "#161616", fontSize: 16, fontWeight: "bold" },
+  header: { flexDirection: "row", justifyContent: "center", alignItems: "center", backgroundColor: "#FAFAFA", paddingVertical: 20, paddingHorizontal: 16 },
+  headerTitle: { color: "#161616", fontSize: 20, fontWeight: "bold" },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
