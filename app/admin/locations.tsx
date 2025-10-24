@@ -64,20 +64,17 @@ export default function ManageLocationsScreen() {
       // Mobile List Layout
       return (
         <View style={styles.mobileItemCard}>
-          <Image source={{ uri: item.image_url || 'https://via.placeholder.com/100' }} style={styles.mobileItemImage} />
           <View style={styles.mobileItemInfo}>
-            <View>
-              <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.itemAddress} numberOfLines={2}>{item.address}</Text>
-            </View>
-            <View style={styles.itemActions}>
-              <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
-                <Ionicons name="pencil" size={20} color="#3b82f6" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.itemAddress} numberOfLines={2}>{item.address}</Text>
+          </View>
+          <View style={styles.itemActions}>
+            <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+              <Ionicons name="pencil" size={20} color="#3b82f6" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+            </TouchableOpacity>
           </View>
         </View>
       );
@@ -91,7 +88,7 @@ export default function ManageLocationsScreen() {
           <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.itemAddress} numberOfLines={2}>{item.address}</Text>
         </View>
-        <View style={styles.itemActions}>
+        <View style={styles.desktopItemActions}>
           <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
             <Ionicons name="pencil" size={20} color="#3b82f6" />
           </TouchableOpacity>
@@ -173,7 +170,7 @@ const styles = StyleSheet.create({
   itemInfo: { padding: 12, flex: 1 },
   itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   itemAddress: { fontSize: 14, color: '#6b7280' },
-  itemActions: { 
+  desktopItemActions: { 
     flexDirection: 'row',
     justifyContent: 'flex-end',
     borderTopWidth: 1,
@@ -187,21 +184,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginVertical: 8,
     marginHorizontal: 16,
+    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
-    overflow: 'hidden',
-  },
-  mobileItemImage: {
-    width: 100,
-    height: 'auto',
-    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
   },
   mobileItemInfo: {
     flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
+    marginRight: 16,
+  },
+  itemActions: { 
+    flexDirection: 'row' 
   },
 });
