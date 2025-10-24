@@ -23,7 +23,6 @@ const StatusStep = ({ icon, label, isCompleted, isActive }: StatusStepProps) => 
 };
 
 const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderType: 'delivery' | 'pickup' }) => {
-  // Simplified status flow for both delivery and pickup
   const statuses: OrderStatus[] = ['Đang xử lý', 'Đang làm', 'Hoàn thành'];
   
   const currentIndex = statuses.indexOf(status);
@@ -32,8 +31,6 @@ const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderT
     switch (s) {
       case 'Đang xử lý': return 'receipt-outline';
       case 'Đang làm': return 'flame-outline';
-      case 'Đang giao': return 'bicycle-outline'; // Kept for icon mapping if needed elsewhere
-      case 'Sẵn sàng': return 'bag-handle-outline'; // Kept for icon mapping if needed elsewhere
       case 'Hoàn thành': return 'checkmark-done-circle-outline';
       default: return 'help-circle-outline';
     }
@@ -41,17 +38,22 @@ const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderT
 
   return (
     <View style={styles.container}>
-      {statuses.map((s, index) => (
-        <React.Fragment key={s}>
-          <StatusStep
-            label={s}
-            icon={getIconForStatus(s)}
-            isCompleted={index < currentIndex}
-            isActive={index === currentIndex}
-          />
-          {index < statuses.length - 1 && <View style={[styles.line, { backgroundColor: index < currentIndex ? '#73509c' : '#ccc' }]} />}
-        </React.Fragment>
-      ))}
+      {statuses.map((s, index) => {
+        const isCompleted = index < currentIndex || status === 'Hoàn thành';
+        const isActive = index === currentIndex && status !== 'Hoàn thành';
+        
+        return (
+          <React.Fragment key={s}>
+            <StatusStep
+              label={s}
+              icon={getIconForStatus(s)}
+              isCompleted={isCompleted}
+              isActive={isActive}
+            />
+            {index < statuses.length - 1 && <View style={[styles.line, { backgroundColor: isCompleted ? '#73509c' : '#ccc' }]} />}
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 };
