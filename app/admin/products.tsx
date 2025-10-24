@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
     overflow: 'hidden',
+    maxWidth: 264,
   },
   itemImage: { 
     width: '100%', 
