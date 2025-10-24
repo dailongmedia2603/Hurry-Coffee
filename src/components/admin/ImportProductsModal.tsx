@@ -144,7 +144,9 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
         } catch (err: any) {
           setImportStatus('error');
           let errorMessage = err.message;
-          if (err.context && err.context.error) {
+          if (err.context && err.context.json && err.context.json.error) {
+            errorMessage = err.context.json.error;
+          } else if (err.context && err.context.error) {
             errorMessage = err.context.error;
           }
           setImportResult(`Lỗi: ${errorMessage}`);

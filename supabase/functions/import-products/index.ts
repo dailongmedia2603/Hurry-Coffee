@@ -17,38 +17,55 @@ async function isAdmin(supabaseClient: SupabaseClient): Promise<boolean> {
 }
 
 serve(async (req) => {
+  console.log(`[import-products] Received request: ${req.method}`);
+
   if (req.method === 'OPTIONS') {
+    console.log('[import-products] Handling OPTIONS request.');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('[import-products] Verifying authorization...');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('[import-products] Authorization header is missing.');
+      return new Response(JSON.stringify({ error: 'Yêu cầu không được xác thực (thiếu header).' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const userSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('[import-products] Checking if user is admin...');
     const isCallerAdmin = await isAdmin(userSupabaseClient);
     if (!isCallerAdmin) {
-      return new Response(JSON.stringify({ error: 'Permission denied: User is not an admin.' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      console.warn('[import-products] Permission denied: User is not an admin.');
+      return new Response(JSON.stringify({ error: 'Bạn không có quyền thực hiện hành động này.' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log('[import-products] Admin check passed.');
 
+    console.log('[import-products] Parsing request body...');
     const { products } = await req.json();
     if (!Array.isArray(products)) {
-      return new Response(JSON.stringify({ error: 'Invalid payload: "products" must be an array.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      console.error('[import-products] Invalid payload: "products" is not an array.');
+      return new Response(JSON.stringify({ error: 'Payload không hợp lệ: "products" phải là một mảng.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    console.log(`[import-products] Received ${products.length} products to process.`);
 
     const adminSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('[import-products] Fetching existing categories and toppings...');
     const [catRes, topRes] = await Promise.all([
       adminSupabaseClient.from('product_categories').select('name'),
       adminSupabaseClient.from('toppings').select('id, name')
@@ -58,11 +75,13 @@ serve(async (req) => {
     
     const categoryNames = new Set(catRes.data.map(c => c.name));
     const toppingNameToIdMap = new Map(topRes.data.map(t => [t.name, t.id]));
+    console.log(`[import-products] Found ${categoryNames.size} categories and ${toppingNameToIdMap.size} toppings.`);
 
     const productsToUpsert = [];
-    const productToppingsMap = new Map(); // Map productName -> toppingIds
+    const productToppingsMap = new Map();
     const errors = [];
 
+    console.log('[import-products] Validating product data...');
     for (let i = 0; i < products.length; i++) {
       const row = products[i];
       const rowNum = i + 2;
@@ -127,23 +146,20 @@ serve(async (req) => {
         productToppingsMap.set(row.name, toppingIds);
       }
     }
+    console.log(`[import-products] Validation complete. ${productsToUpsert.length} valid products, ${errors.length} errors found.`);
 
     if (productsToUpsert.length > 0) {
+      console.log('[import-products] Upserting products...');
       const { data: savedProducts, error: upsertError } = await adminSupabaseClient
         .from('products')
         .upsert(productsToUpsert, { onConflict: 'name' })
         .select('id, name');
 
       if (upsertError) {
-        return new Response(JSON.stringify({ 
-          error: `Lỗi khi thêm/cập nhật sản phẩm: ${upsertError.message}`,
-          successCount: 0,
-          errorCount: products.length,
-          errors: [...errors, 'Tất cả sản phẩm hợp lệ đều không thể thêm. Có thể do tên sản phẩm bị trùng hoặc lỗi cấu trúc database.'],
-        }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-
-      if (savedProducts && savedProducts.length > 0) {
+        console.error('[import-products] Error upserting products:', upsertError);
+        errors.push(`Lỗi database khi thêm sản phẩm: ${upsertError.message}`);
+      } else if (savedProducts && savedProducts.length > 0) {
+        console.log(`[import-products] Upserted ${savedProducts.length} products. Now handling toppings.`);
         const productIds = savedProducts.map(p => p.id);
         
         const { error: deleteError } = await adminSupabaseClient
@@ -152,7 +168,7 @@ serve(async (req) => {
           .in('product_id', productIds);
         
         if (deleteError) {
-          console.error("Error clearing old toppings:", deleteError.message);
+          console.error("[import-products] Error clearing old toppings:", deleteError.message);
           errors.push(`Lỗi khi xóa topping cũ: ${deleteError.message}`);
         }
 
@@ -161,37 +177,36 @@ serve(async (req) => {
           if (productToppingsMap.has(product.name)) {
             const toppingIds = productToppingsMap.get(product.name);
             for (const toppingId of toppingIds) {
-              productToppingsToInsert.push({
-                product_id: product.id,
-                topping_id: toppingId,
-              });
+              productToppingsToInsert.push({ product_id: product.id, topping_id: toppingId });
             }
           }
         }
 
         if (productToppingsToInsert.length > 0) {
+          console.log(`[import-products] Inserting ${productToppingsToInsert.length} topping assignments...`);
           const { error: toppingInsertError } = await adminSupabaseClient
             .from('product_toppings')
             .insert(productToppingsToInsert);
           
           if (toppingInsertError) {
-            console.error("Error inserting new toppings:", toppingInsertError.message);
+            console.error("[import-products] Error inserting new toppings:", toppingInsertError.message);
             errors.push(`Lỗi khi gán topping mới: ${toppingInsertError.message}`);
           }
         }
       }
     }
 
+    console.log('[import-products] Process complete. Sending response.');
     return new Response(JSON.stringify({
       message: 'Import completed.',
       successCount: productsToUpsert.length,
-      errorCount: errors.length,
+      errorCount: products.length - productsToUpsert.length,
       errors,
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
-    console.error('Error in import-products function:', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+    console.error('CRITICAL ERROR in import-products function:', error);
+    return new Response(JSON.stringify({ error: `Lỗi máy chủ không xác định: ${error.message}` }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
