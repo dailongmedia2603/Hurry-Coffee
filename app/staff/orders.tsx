@@ -76,6 +76,7 @@ export default function StaffOrdersScreen() {
     useCallback(() => {
       fetchOrders(true);
       fetchAssignedLocations();
+      setIsFilterOpen(false); // Đảm bảo bộ lọc luôn đóng khi quay lại màn hình
     }, [fetchOrders, fetchAssignedLocations])
   );
 
