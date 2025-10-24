@@ -7,7 +7,7 @@ import { Order, OrderStatus, Product, Location, Topping } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import * as Linking from 'expo-linking';
-import ConfirmModal from '@/src/components/ConfirmModal';
+import CancelOrderModal from '@/src/components/CancelOrderModal';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -47,7 +47,7 @@ export default function StaffOrderDetailScreen() {
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
-    const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+    const [isCancelModalVisible, setCancelModalVisible] = useState(false);
 
     const fetchOrderDetails = async () => {
         if (!id) return;
@@ -116,28 +116,28 @@ export default function StaffOrderDetailScreen() {
         }
     };
 
-    const handleUncontactable = () => {
+    const handleCancelOrder = () => {
         if (!order) return;
-        setConfirmModalVisible(true);
+        setCancelModalVisible(true);
     };
 
-    const confirmUncontactable = async () => {
-        setConfirmModalVisible(false);
+    const confirmCancellation = async (reason: string) => {
         if (!order) return;
-
         setUpdating(true);
         const { error } = await supabase
             .from('orders')
-            .update({ status: 'Không gọi được' })
+            .update({ status: 'Đã hủy', notes: `Lý do hủy: ${reason}` })
             .eq('id', id);
         
         if (error) {
-            Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+            Alert.alert('Lỗi', 'Không thể hủy đơn hàng.');
         } else {
             setOrder(currentOrder => 
-                currentOrder ? { ...currentOrder, status: 'Không gọi được' } : null
+                currentOrder ? { ...currentOrder, status: 'Đã hủy', notes: `Lý do hủy: ${reason}` } : null
             );
+            Alert.alert('Thành công', 'Đơn hàng đã được hủy.');
         }
+        setCancelModalVisible(false);
         setUpdating(false);
     };
 
@@ -171,7 +171,7 @@ export default function StaffOrderDetailScreen() {
 
         const nextStatus = getNextStatus();
         const isCompleting = nextStatus === 'Hoàn thành';
-        const isActionable = !['Hoàn thành', 'Đã hủy', 'Không gọi được'].includes(order.status);
+        const isActionable = !['Hoàn thành', 'Đã hủy'].includes(order.status);
 
         const mainActionButton = nextStatus ? (
             <TouchableOpacity 
@@ -194,18 +194,18 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        const uncontactableButton = isActionable ? (
+        const cancelButton = isActionable ? (
             <TouchableOpacity 
                 style={[styles.secondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
-                onPress={handleUncontactable}
+                onPress={handleCancelOrder}
                 disabled={updating}
             >
                 <Ionicons name="close-circle-outline" size={20} color="#ef4444" />
-                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không gọi được</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Hủy đơn</Text>
             </TouchableOpacity>
         ) : null;
 
-        if (!mainActionButton && !uncontactableButton && !callButton) {
+        if (!mainActionButton && !cancelButton && !callButton) {
             return null;
         }
 
@@ -214,9 +214,9 @@ export default function StaffOrderDetailScreen() {
                 <View style={styles.mainActionsRow}>
                     {mainActionButton}
                 </View>
-                {(callButton || uncontactableButton) && (
+                {(callButton || cancelButton) && (
                     <View style={styles.secondaryActionsContainer}>
-                        {uncontactableButton}
+                        {cancelButton}
                         {callButton}
                     </View>
                 )}
@@ -298,16 +298,11 @@ export default function StaffOrderDetailScreen() {
                     <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
                 </View>
             </ScrollView>
-            <ConfirmModal
-                visible={isConfirmModalVisible}
-                onClose={() => setConfirmModalVisible(false)}
-                onConfirm={confirmUncontactable}
-                title="Xác nhận trạng thái"
-                message="Bạn có muốn cập nhật trạng thái đơn hàng này thành 'Không gọi được' không?"
-                confirmText="Xác nhận"
-                cancelText="Hủy"
-                icon="call-outline"
-                iconColor="#ef4444"
+            <CancelOrderModal
+                visible={isCancelModalVisible}
+                onClose={() => setCancelModalVisible(false)}
+                onConfirm={confirmCancellation}
+                loading={updating}
             />
         </SafeAreaView>
     );
