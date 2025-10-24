@@ -22,10 +22,6 @@ function CustomerLayoutContent() {
     );
   }
 
-  if (profile && (profile.role === 'admin' || profile.role === 'staff')) {
-    return <Redirect href="/" />;
-  }
-
   return (
     <Tabs
       screenOptions={{
