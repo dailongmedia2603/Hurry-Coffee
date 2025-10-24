@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import ConfirmationModal, { ConfirmationDetails } from '@/src/components/ConfirmationModal';
 import { getAnonymousId } from '@/src/utils/anonymousId';
+import VerifyPhoneModal from '@/src/components/VerifyPhoneModal';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -20,6 +21,8 @@ export default function CheckoutScreen() {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isVerifyModalVisible, setVerifyModalVisible] = useState(false);
+  const [phoneToVerify, setPhoneToVerify] = useState('');
 
   const handlePlaceOrder = async (details: ConfirmationDetails) => {
     setLoading(true);
@@ -86,8 +89,16 @@ export default function CheckoutScreen() {
 
       setModalVisible(false);
       clearCart();
-      router.replace('/(customer)/cart');
-      Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
+
+      if (!user) {
+        // Guest user, show verification modal
+        setPhoneToVerify(details.phone);
+        setVerifyModalVisible(true);
+      } else {
+        // Logged in user, show success and navigate
+        router.replace('/(customer)/cart');
+        Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
+      }
 
     } catch (error) {
       console.error("Chi tiết lỗi đặt hàng:", error);
@@ -99,6 +110,12 @@ export default function CheckoutScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseVerifyModal = () => {
+    setVerifyModalVisible(false);
+    router.replace('/(customer)/cart');
+    Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
   };
 
   return (
@@ -188,6 +205,11 @@ export default function CheckoutScreen() {
         onClose={() => setModalVisible(false)}
         onConfirm={handlePlaceOrder}
         loading={loading}
+      />
+      <VerifyPhoneModal
+        visible={isVerifyModalVisible}
+        phone={phoneToVerify}
+        onClose={handleCloseVerifyModal}
       />
     </SafeAreaView>
   );

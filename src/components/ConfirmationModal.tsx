@@ -53,53 +53,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
-  // State for OTP verification
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpError, setOtpError] = useState('');
-  const otpInputs = useRef<(TextInput | null)[]>([]);
-
   const isPhoneVerified = !!user;
-
-  const formatPhoneNumber = (phoneNumber: string) => {
-    const cleaned = phoneNumber.replace(/^(?:\+84|0)/, '');
-    return `+84${cleaned}`;
-  };
-
-  const handleVerifyOtp = useCallback(async () => {
-    if (otp.length !== 6) {
-      // This check is for the manual button press
-      setOtpError("Vui lòng nhập đủ 6 số của mã OTP.");
-      return;
-    }
-    if (otpLoading) return; // Prevent multiple submissions
-
-    setOtpLoading(true);
-    setOtpError('');
-    const formattedPhone = formatPhoneNumber(phone);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otp,
-      type: 'sms',
-    });
-
-    if (error) {
-      console.error("Lỗi xác thực OTP:", error);
-      setOtpError("Mã OTP không hợp lệ. Vui lòng thử lại.");
-    } else {
-      setOtpSent(false);
-      setOtp('');
-    }
-    setOtpLoading(false);
-  }, [otp, phone, otpLoading]);
-
-  // Effect to auto-submit OTP when it's complete
-  useEffect(() => {
-    if (otp.length === 6) {
-      handleVerifyOtp();
-    }
-  }, [otp, handleVerifyOtp]);
 
   useEffect(() => {
     const fetchAddresses = async (userId: string) => {
@@ -135,9 +89,6 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
         setSelectedAddress(null);
       }
       setCustomAddress('');
-      setOtpSent(false);
-      setOtp('');
-      setOtpError('');
     }
   }, [user, profile, visible]);
 
@@ -148,40 +99,6 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       setName(profile?.full_name || '');
     }
   }, [selectedAddress, userAddresses, profile, user]);
-
-  const handleSendOtp = async () => {
-    if (!phone) {
-      setOtpError("Vui lòng nhập số điện thoại.");
-      return;
-    }
-    setOtpLoading(true);
-    setOtpError('');
-    const formattedPhone = formatPhoneNumber(phone);
-    const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone });
-
-    if (error) {
-      console.error("Lỗi gửi OTP:", error);
-      setOtpError("Có lỗi xảy ra khi gửi OTP. Vui lòng thử lại.");
-    } else {
-      setOtpSent(true);
-    }
-    setOtpLoading(false);
-  };
-
-  const handleOtpChange = (text: string, index: number) => {
-    const newOtp = otp.split('');
-    newOtp[index] = text;
-    setOtp(newOtp.join(''));
-    if (text && index < 5) {
-      otpInputs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = ({ nativeEvent: { key } }: any, index: number) => {
-    if (key === 'Backspace' && !otp[index] && index > 0) {
-      otpInputs.current[index - 1]?.focus();
-    }
-  };
 
   const handleConfirm = () => {
     const isDelivery = orderType === 'delivery';
@@ -226,50 +143,27 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
     );
   };
 
-  const renderPhoneVerification = () => {
+  const renderPhoneInput = () => {
     if (isPhoneVerified) {
       return (
-        <View style={styles.verifiedBadge}>
-          <Ionicons name="checkmark-circle" size={20} color="#00C853" />
-          <Text style={styles.verifiedText}>Số điện thoại đã được xác thực</Text>
-        </View>
-      );
-    }
-
-    if (otpSent) {
-      return (
-        <View>
-          <Text style={styles.otpPrompt}>Nhập mã OTP được gửi đến số điện thoại của bạn.</Text>
-          <View style={styles.otpContainer}>
-            {[...Array(6)].map((_, index) => (
-              <TextInput
-                key={index}
-                ref={(el) => { otpInputs.current[index] = el; }}
-                style={[styles.otpInput, otp[index] ? styles.otpInputFilled : null]}
-                keyboardType="number-pad"
-                maxLength={1}
-                onChangeText={(text) => handleOtpChange(text, index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                value={otp[index] || ''}
-              />
-            ))}
+        <>
+          <View style={styles.inputContainer}>
+            <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} />
           </View>
-          <TouchableOpacity style={styles.otpButton} onPress={handleVerifyOtp} disabled={otpLoading}>
-            {otpLoading ? <ActivityIndicator color="#73509c" /> : <Text style={styles.otpButtonText}>Xác nhận OTP</Text>}
-          </TouchableOpacity>
-        </View>
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={20} color="#00C853" />
+            <Text style={styles.verifiedText}>Số điện thoại đã được xác thực</Text>
+          </View>
+        </>
       );
     }
-
-    if (phone.length >= 9) {
-      return (
-        <TouchableOpacity style={styles.otpButton} onPress={handleSendOtp} disabled={otpLoading}>
-          {otpLoading ? <ActivityIndicator color="#73509c" /> : <Text style={styles.otpButtonText}>Xác minh số điện thoại</Text>}
-        </TouchableOpacity>
-      );
-    }
-
-    return null;
+    return (
+      <View style={styles.inputContainer}>
+        <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+        <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} />
+      </View>
+    );
   };
 
   return (
@@ -285,9 +179,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
             {orderType === 'delivery' ? renderDeliveryAddressInput() : <TouchableOpacity style={styles.addressButton} onPress={() => setLocationPickerVisible(true)}><Ionicons name="storefront-outline" size={20} color="#666" style={styles.inputIcon} /><Text style={[styles.input, !selectedLocation && styles.placeholderText]}>{selectedLocation ? selectedLocation.name : 'Chọn một cửa hàng'}</Text><Ionicons name="chevron-forward" size={20} color="#666" /></TouchableOpacity>}
             <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
             <View style={styles.inputContainer}><Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} /><TextInput style={styles.input} placeholder="Tên người nhận" value={name} onChangeText={setName} /></View>
-            <View style={styles.inputContainer}><Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} /><TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} /></View>
-            {otpError ? <Text style={styles.errorText}>{otpError}</Text> : null}
-            {renderPhoneVerification()}
+            {renderPhoneInput()}
           </ScrollView>
           <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmButtonText}>Hoàn tất đặt hàng</Text>}
@@ -317,19 +209,12 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 16, color: '#333' },
   placeholderText: { color: '#999' },
-  otpButton: { backgroundColor: '#E8E4F2', paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8 },
-  otpButtonText: { color: '#73509c', fontSize: 14, fontWeight: 'bold' },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: 8 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: -4, marginBottom: 12 },
   verifiedText: { color: '#00C853', marginLeft: 8, fontWeight: '500' },
   confirmButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center', marginTop: 20 },
   confirmButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   addressNameText: { fontSize: 16, fontWeight: '500', color: '#333' },
   addressDetailText: { fontSize: 14, color: '#666' },
-  errorText: { color: 'red', marginTop: 8, textAlign: 'center' },
-  otpPrompt: { fontSize: 14, color: '#666', textAlign: 'center', marginVertical: 12 },
-  otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  otpInput: { width: 48, height: 56, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, textAlign: 'center', fontSize: 22, fontWeight: 'bold', color: '#333' },
-  otpInputFilled: { borderColor: '#73509c' },
 });
 
 export default ConfirmationModal;
