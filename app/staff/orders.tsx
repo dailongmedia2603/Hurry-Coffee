@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#f3f4f6',
     gap: 12,
+    zIndex: 10,
   },
   locationFilterWrapper: {
     flex: 1,
