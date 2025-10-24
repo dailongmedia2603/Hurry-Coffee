@@ -33,6 +33,7 @@ const ConfirmModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
         <View style={styles.modalContainer}>
           <Ionicons name={icon} size={48} color={iconColor} style={styles.icon} />
           <Text style={styles.title}>{title}</Text>
@@ -58,6 +59,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
   modalContainer: {
     width: '90%',
     maxWidth: 320,

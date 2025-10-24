@@ -95,6 +95,7 @@ const VerifyPhoneModal = ({ visible, phone, onClose }: VerifyPhoneModalProps) =>
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#333" />
@@ -145,6 +146,7 @@ const VerifyPhoneModal = ({ visible, phone, onClose }: VerifyPhoneModalProps) =>
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
   modalContainer: { width: '90%', maxWidth: 340, backgroundColor: 'white', borderRadius: 24, padding: 24, alignItems: 'center' },
   closeButton: { position: 'absolute', top: 16, right: 16 },
   icon: { marginBottom: 8 },

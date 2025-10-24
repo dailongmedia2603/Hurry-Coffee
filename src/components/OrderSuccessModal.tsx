@@ -11,6 +11,7 @@ const OrderSuccessModal = ({ visible, onClose }: OrderSuccessModalProps) => {
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
         <View style={styles.modalContainer}>
           <Ionicons name="checkmark-circle-outline" size={64} color="#00C853" style={styles.icon} />
           <Text style={styles.title}>Đặt đơn thành công!</Text>
@@ -26,6 +27,7 @@ const OrderSuccessModal = ({ visible, onClose }: OrderSuccessModalProps) => {
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
   modalContainer: { width: '90%', maxWidth: 340, backgroundColor: 'white', borderRadius: 24, padding: 24, alignItems: 'center' },
   icon: { marginBottom: 16 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' },
