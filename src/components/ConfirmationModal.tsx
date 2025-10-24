@@ -52,6 +52,9 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   const [phone, setPhone] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
+  
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const phoneInputRef = useRef<TextInput>(null);
 
   const isPhoneVerified = !!user;
 
@@ -78,6 +81,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
     };
 
     if (visible) {
+      setIsEditingPhone(false); // Reset phone editing state
       if (user) {
         const userPhone = formatDisplayPhone(user.phone);
         setPhone(userPhone);
@@ -145,11 +149,34 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   const renderPhoneInput = () => {
     if (isPhoneVerified) {
+      const isEditable = isEditingPhone;
       return (
         <>
-          <View style={styles.inputContainer}>
-            <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} />
+          <View style={styles.phoneInputWrapper}>
+            <View style={[styles.inputContainer, !isEditable && styles.disabledInputContainer]}>
+              <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                ref={phoneInputRef}
+                style={[styles.input, !isEditable && styles.disabledInputText]}
+                placeholder="Số điện thoại"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+                editable={isEditable}
+              />
+            </View>
+            {!isEditingPhone && (
+              <TouchableOpacity
+                style={styles.changePhoneButton}
+                onPress={() => {
+                  setIsEditingPhone(true);
+                  setPhone('');
+                  setTimeout(() => phoneInputRef.current?.focus(), 100);
+                }}
+              >
+                <Text style={styles.changePhoneButtonText}>Đổi SĐT</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={20} color="#00C853" />
@@ -161,7 +188,7 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
     return (
       <View style={styles.inputContainer}>
         <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-        <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={!isPhoneVerified} />
+        <TextInput style={styles.input} placeholder="Số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} editable={true} />
       </View>
     );
   };
@@ -205,16 +232,21 @@ const styles = StyleSheet.create({
   toggleButtonText: { fontSize: 14, fontWeight: '600', color: '#73509c', marginLeft: 8 },
   toggleButtonTextActive: { color: '#fff' },
   addressButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, minHeight: 50, paddingVertical: 8 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50, marginBottom: 12 },
+  inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50 },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 16, color: '#333' },
   placeholderText: { color: '#999' },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: -4, marginBottom: 12 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: 12 },
   verifiedText: { color: '#00C853', marginLeft: 8, fontWeight: '500' },
   confirmButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center', marginTop: 20 },
   confirmButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   addressNameText: { fontSize: 16, fontWeight: '500', color: '#333' },
   addressDetailText: { fontSize: 14, color: '#666' },
+  phoneInputWrapper: { flexDirection: 'row', alignItems: 'center', marginBottom: 0 },
+  disabledInputContainer: { backgroundColor: '#e5e7eb' },
+  disabledInputText: { color: '#6b7280' },
+  changePhoneButton: { marginLeft: 12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#eef2ff' },
+  changePhoneButtonText: { color: '#4f46e5', fontWeight: '600' },
 });
 
 export default ConfirmationModal;
