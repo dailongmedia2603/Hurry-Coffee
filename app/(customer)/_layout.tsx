@@ -4,14 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Platform, View, ActivityIndicator, StyleSheet } from "react-native";
 import { CartProvider } from "@/src/context/CartContext";
 import { useAuth } from "@/src/context/AuthContext";
+import { SettingsProvider, useSettings } from "@/src/context/SettingsContext";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#666";
 
-export default function CustomerLayout() {
-  const { profile, loading } = useAuth();
+// Component nội dung chính, chỉ render khi đã tải xong dữ liệu
+function CustomerLayoutContent() {
+  const { profile, loading: authLoading } = useAuth();
+  const { settings, loading: settingsLoading } = useSettings();
 
-  if (loading) {
+  if (authLoading || settingsLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#73509c" />
@@ -20,83 +23,80 @@ export default function CustomerLayout() {
   }
 
   if (profile && (profile.role === 'admin' || profile.role === 'staff')) {
-    // Nếu admin hoặc nhân viên vô tình vào trang khách hàng, chuyển hướng họ về trang chính.
     return <Redirect href="/" />;
   }
 
   return (
-    <CartProvider>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: ACTIVE_COLOR,
-          tabBarInactiveTintColor: INACTIVE_COLOR,
-          tabBarStyle: {
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: "#FFFFFF",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            height: Platform.OS === "ios" ? 90 : 70,
-            paddingTop: 10,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: -3,
-            },
-            shadowOpacity: 0.05,
-            shadowRadius: 4,
-            elevation: 10,
-            borderTopWidth: 0,
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: "500",
-            marginBottom: Platform.OS === "android" ? 10 : 0,
-          },
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: ACTIVE_COLOR,
+        tabBarInactiveTintColor: INACTIVE_COLOR,
+        tabBarStyle: {
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "#FFFFFF",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          height: Platform.OS === "ios" ? 90 : 70,
+          paddingTop: 10,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 10,
+          borderTopWidth: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "500",
+          marginBottom: Platform.OS === "android" ? 10 : 0,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Đặt Món",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "fast-food" : "fast-food-outline"}
+              color={color}
+              size={size}
+            />
+          ),
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Đặt Món",
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? "fast-food" : "fast-food-outline"}
-                color={color}
-                size={size}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="cart"
-          options={{
-            title: "Đơn Đặt",
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? "receipt" : "receipt-outline"}
-                color={color}
-                size={size}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="orders"
-          options={{
-            title: "Địa Điểm",
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? "location" : "location-outline"}
-                color={color}
-                size={size}
-              />
-            ),
-          }}
-        />
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: "Đơn Đặt",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "receipt" : "receipt-outline"}
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: "Địa Điểm",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "location" : "location-outline"}
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      {/* Chỉ hiển thị tab Profile nếu tính năng được bật */}
+      {settings.feature_profile_enabled && (
         <Tabs.Screen
           name="profile"
           options={{
@@ -110,46 +110,24 @@ export default function CustomerLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="category/[name]"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="product/[id]"
-          options={{
-            href: null,
-            headerShown: false,
-            tabBarStyle: { display: "none" },
-          } as any}
-        />
-        <Tabs.Screen
-          name="order/[id]"
-          options={{
-            href: null,
-            headerShown: false,
-            tabBarStyle: { display: "none" },
-          } as any}
-        />
-        <Tabs.Screen
-          name="checkout"
-          options={{
-            href: null,
-            headerShown: false,
-            tabBarStyle: { display: "none" },
-          } as any}
-        />
-        <Tabs.Screen
-          name="address"
-          options={{
-            href: null,
-            headerShown: false,
-            tabBarStyle: { display: "none" },
-          } as any}
-        />
-      </Tabs>
-    </CartProvider>
+      )}
+      <Tabs.Screen name="category/[name]" options={{ href: null }} />
+      <Tabs.Screen name="product/[id]" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="order/[id]" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="checkout" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="address" options={{ href: null, tabBarStyle: { display: "none" } }} />
+    </Tabs>
+  );
+}
+
+// Component layout chính, bao bọc bởi các Provider
+export default function CustomerLayout() {
+  return (
+    <SettingsProvider>
+      <CartProvider>
+        <CustomerLayoutContent />
+      </CartProvider>
+    </SettingsProvider>
   );
 }
 
