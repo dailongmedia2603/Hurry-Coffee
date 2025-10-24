@@ -7,6 +7,7 @@ import StaffFormModal from '@/src/components/admin/StaffFormModal';
 import AssignLocationModal from '@/src/components/admin/AssignLocationModal';
 import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
 import { useAuth } from '@/src/context/AuthContext';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 interface StaffProfile {
   id: string;
@@ -26,6 +27,9 @@ export default function ManageAccountsScreen() {
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const { user, profile } = useAuth();
+  const { width } = useScreenSize();
+
+  const numColumns = Math.min(4, Math.max(1, Math.floor((width - 32) / 350)));
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -96,13 +100,15 @@ export default function ManageAccountsScreen() {
       ) : (
         <FlatList
           data={staff}
+          key={numColumns}
+          numColumns={numColumns}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <>
               {profile && (
                 <View style={styles.currentUserSection}>
                   <Text style={styles.sectionTitle}>Đang đăng nhập với</Text>
-                  <View style={styles.itemCard}>
+                  <View style={styles.currentUserCard}>
                     <View style={styles.itemInfo}>
                       <Text style={styles.itemName}>{profile.full_name || 'Admin'}</Text>
                       <Text style={itemRole(profile.role || 'admin')}>{profile.role || 'admin'}</Text>
@@ -114,14 +120,28 @@ export default function ManageAccountsScreen() {
                   </View>
                 </View>
               )}
-              {staff.length > 0 && <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>Các tài khoản khác</Text>}
+              {staff.length > 0 && <Text style={styles.sectionTitle}>Các tài khoản khác</Text>}
             </>
           }
           renderItem={({ item }) => (
             <View style={styles.itemCard}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.full_name || 'Chưa có tên'}</Text>
-                <Text style={itemRole(item.role)}>{item.role}</Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardHeaderText}>
+                  <Text style={styles.itemName}>{item.full_name || 'Chưa có tên'}</Text>
+                  <Text style={itemRole(item.role)}>{item.role}</Text>
+                </View>
+                {item.role === 'staff' && (
+                  <View style={styles.itemActions}>
+                    <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+                      <Ionicons name="pencil" size={20} color="#3b82f6" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+              <View style={styles.cardBody}>
                 <TouchableOpacity style={styles.infoRow} onPress={() => openAssignModal(item.id)}>
                   <Ionicons name="storefront-outline" size={16} color="#6b7280" />
                   <Text style={locationText(!!item.location_name)}>
@@ -129,16 +149,6 @@ export default function ManageAccountsScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {item.role === 'staff' && (
-                <View style={styles.itemActions}>
-                  <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
-                    <Ionicons name="pencil" size={20} color="#3b82f6" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           )}
           contentContainerStyle={styles.listContainer}
@@ -201,13 +211,48 @@ const styles = StyleSheet.create({
   addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#73509c', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginLeft: 4 },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContainer: { paddingHorizontal: 16, paddingBottom: 16 },
+  listContainer: { padding: 8 },
   itemCard: { 
+    flex: 1,
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    margin: 8, 
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    maxWidth: 350,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardBody: {
+    padding: 16,
+  },
+  itemInfo: { flex: 1 },
+  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
+  itemActions: { flexDirection: 'row' },
+  actionButton: { padding: 4, marginLeft: 8 },
+  currentUserSection: {
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  currentUserCard: {
     flexDirection: 'row', 
     backgroundColor: '#fff', 
     padding: 16, 
     borderRadius: 12, 
-    marginBottom: 12, 
     alignItems: 'center',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -215,20 +260,12 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, alignSelf: 'flex-start' },
-  itemActions: { flexDirection: 'row' },
-  actionButton: { padding: 8, marginLeft: 8 },
-  currentUserSection: {
-    paddingTop: 16,
-    paddingHorizontal: 16,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#4b5563',
     marginBottom: 12,
+    paddingHorizontal: 8,
   },
   emailText: {
     marginLeft: 6,
