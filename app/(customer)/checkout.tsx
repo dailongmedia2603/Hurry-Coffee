@@ -8,6 +8,7 @@ import ConfirmationModal, { ConfirmationDetails } from '@/src/components/Confirm
 import { getAnonymousId } from '@/src/utils/anonymousId';
 import VerifyPhoneModal from '@/src/components/VerifyPhoneModal';
 import OrderSuccessModal from '@/src/components/OrderSuccessModal';
+import { useSettings } from '@/src/context/SettingsContext';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -19,6 +20,7 @@ const formatPrice = (price: number) => {
 export default function CheckoutScreen() {
   const router = useRouter();
   const { items, totalPrice, totalItems, addItem, decreaseItem, clearCart } = useCart();
+  const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
@@ -93,10 +95,12 @@ export default function CheckoutScreen() {
       setModalVisible(false);
       clearCart();
 
-      if (!user) {
+      // Chỉ hiển thị modal xác minh SĐT cho khách vãng lai NẾU tính năng được bật
+      if (!user && settings.feature_profile_enabled) {
         setPhoneToVerify(details.phone);
         setVerifyModalVisible(true);
       } else {
+        // Đối với người dùng đã đăng nhập, hoặc khi tính năng bị tắt, hiển thị modal thành công chung
         setSuccessOrderId(newOrder.id);
         setSuccessModalVisible(true);
       }
