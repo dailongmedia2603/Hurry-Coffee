@@ -8,7 +8,6 @@ import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import * as Linking from 'expo-linking';
 import ConfirmModal from '@/src/components/ConfirmModal';
-import TransferOrderModal from '@/src/components/TransferOrderModal';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -49,7 +48,6 @@ export default function StaffOrderDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
-    const [isTransferModalVisible, setTransferModalVisible] = useState(false);
 
     const fetchOrderDetails = async () => {
         if (!id) return;
@@ -143,21 +141,10 @@ export default function StaffOrderDetailScreen() {
         setUpdating(false);
     };
 
-    const handleTransferSuccess = () => {
-        setTransferModalVisible(false);
-        Alert.alert("Thành công", "Đơn hàng đã được chuyển. Đang tải lại danh sách.", [
-            { text: "OK", onPress: () => router.back() }
-        ]);
-    };
-
     const handleCallCustomer = () => {
         if (order && order.customer_phone) {
             Linking.openURL(`tel:${order.customer_phone}`);
         }
-    };
-
-    const handleOpenTransferModal = () => {
-        setTransferModalVisible(true);
     };
 
     const renderActionButtons = () => {
@@ -196,17 +183,6 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        const transferButton = isActionable ? (
-            <TouchableOpacity 
-                style={styles.transferButton} 
-                onPress={handleOpenTransferModal}
-                disabled={updating}
-            >
-                <Ionicons name="swap-horizontal-outline" size={20} color="#3b82f6" />
-                <Text style={styles.transferButtonText}>Chuyển</Text>
-            </TouchableOpacity>
-        ) : null;
-
         const callButton = isActionable && order.customer_phone ? (
             <TouchableOpacity 
                 style={[styles.smallSecondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
@@ -229,7 +205,7 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        if (!mainActionButton && !uncontactableButton && !callButton && !transferButton) {
+        if (!mainActionButton && !uncontactableButton && !callButton) {
             return null;
         }
 
@@ -237,7 +213,6 @@ export default function StaffOrderDetailScreen() {
             <View style={styles.actionContainer}>
                 <View style={styles.mainActionsRow}>
                     {mainActionButton}
-                    {transferButton}
                 </View>
                 {(callButton || uncontactableButton) && (
                     <View style={styles.secondaryActionsContainer}>
@@ -333,12 +308,6 @@ export default function StaffOrderDetailScreen() {
                 cancelText="Hủy"
                 icon="call-outline"
                 iconColor="#ef4444"
-            />
-            <TransferOrderModal
-                visible={isTransferModalVisible}
-                onClose={() => setTransferModalVisible(false)}
-                orderId={id}
-                onSuccess={handleTransferSuccess}
             />
         </SafeAreaView>
     );
