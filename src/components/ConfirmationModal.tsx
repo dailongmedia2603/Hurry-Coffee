@@ -152,19 +152,17 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
       const isEditable = isEditingPhone;
       return (
         <>
-          <View style={styles.phoneInputWrapper}>
-            <View style={[styles.inputContainer, !isEditable && styles.disabledInputContainer]}>
-              <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                ref={phoneInputRef}
-                style={[styles.input, !isEditable && styles.disabledInputText]}
-                placeholder="Số điện thoại"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                editable={isEditable}
-              />
-            </View>
+          <View style={[styles.inputContainer, { paddingRight: 8 }, !isEditable && styles.disabledInputContainer]}>
+            <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              ref={phoneInputRef}
+              style={[styles.input, !isEditable && styles.disabledInputText]}
+              placeholder="Số điện thoại"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              editable={isEditable}
+            />
             {!isEditingPhone && (
               <TouchableOpacity
                 style={styles.changePhoneButton}
@@ -232,17 +230,16 @@ const styles = StyleSheet.create({
   toggleButtonText: { fontSize: 14, fontWeight: '600', color: '#73509c', marginLeft: 8 },
   toggleButtonTextActive: { color: '#fff' },
   addressButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, minHeight: 50, paddingVertical: 8 },
-  inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50 },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 15, height: 50, marginBottom: 12 },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 16, color: '#333' },
   placeholderText: { color: '#999' },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: 12 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 10, borderRadius: 8, marginTop: 0, marginBottom: 12 },
   verifiedText: { color: '#00C853', marginLeft: 8, fontWeight: '500' },
   confirmButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center', marginTop: 20 },
   confirmButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   addressNameText: { fontSize: 16, fontWeight: '500', color: '#333' },
   addressDetailText: { fontSize: 14, color: '#666' },
-  phoneInputWrapper: { flexDirection: 'row', alignItems: 'center', marginBottom: 0 },
   disabledInputContainer: { backgroundColor: '#e5e7eb' },
   disabledInputText: { color: '#6b7280' },
   changePhoneButton: { marginLeft: 12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#eef2ff' },
