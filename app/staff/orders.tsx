@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, Location } from '@/types';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import AttentionView from '@/src/components/AttentionView';
 import TransferOrderModal from '@/src/components/TransferOrderModal';
+import { useAuth } from '@/src/context/AuthContext';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -32,6 +33,11 @@ export default function StaffOrdersScreen() {
   const router = useRouter();
   const [isTransferModalVisible, setTransferModalVisible] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  
+  const { user } = useAuth();
+  const [assignedLocations, setAssignedLocations] = useState<Location[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | 'all'>('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const fetchOrders = useCallback(async (isInitialLoad = false) => {
     if (isInitialLoad) {
@@ -51,11 +57,34 @@ export default function StaffOrdersScreen() {
     }
   }, []);
 
+  const fetchAssignedLocations = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('staff_locations')
+      .select('locations(*)')
+      .eq('staff_id', user.id);
+
+    if (error) {
+      console.error("Error fetching assigned locations:", error);
+    } else if (data) {
+      const locations = data.map(item => item.locations).filter(Boolean) as unknown as Location[];
+      setAssignedLocations(locations);
+    }
+  }, [user]);
+
   useFocusEffect(
     useCallback(() => {
       fetchOrders(true);
-    }, [fetchOrders])
+      fetchAssignedLocations();
+    }, [fetchOrders, fetchAssignedLocations])
   );
+
+  const filteredOrders = useMemo(() => {
+    if (selectedLocationId === 'all') {
+      return orders;
+    }
+    return orders.filter(order => order.pickup_location_id === selectedLocationId);
+  }, [orders, selectedLocationId]);
 
   const handleOpenTransferModal = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -127,17 +156,64 @@ export default function StaffOrdersScreen() {
     );
   };
 
+  const renderFilter = () => {
+    if (assignedLocations.length <= 1) {
+      return null;
+    }
+
+    const selectedLocationName = selectedLocationId === 'all'
+      ? 'Tất cả địa điểm'
+      : assignedLocations.find(loc => loc.id === selectedLocationId)?.name || 'Tất cả địa điểm';
+
+    return (
+      <View style={styles.filterContainer}>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setIsFilterOpen(!isFilterOpen)}>
+          <Ionicons name="storefront-outline" size={20} color="#6b7280" />
+          <Text style={styles.filterButtonText}>{selectedLocationName}</Text>
+          <Ionicons name={isFilterOpen ? "chevron-up-outline" : "chevron-down-outline"} size={20} color="#6b7280" />
+        </TouchableOpacity>
+
+        {isFilterOpen && (
+          <View style={styles.filterDropdown}>
+            <TouchableOpacity
+              style={styles.filterOption}
+              onPress={() => {
+                setSelectedLocationId('all');
+                setIsFilterOpen(false);
+              }}
+            >
+              <Text style={styles.filterOptionText}>Tất cả địa điểm</Text>
+            </TouchableOpacity>
+            {assignedLocations.map(location => (
+              <TouchableOpacity
+                key={location.id}
+                style={styles.filterOption}
+                onPress={() => {
+                  setSelectedLocationId(location.id);
+                  setIsFilterOpen(false);
+                }}
+              >
+                <Text style={styles.filterOptionText}>{location.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {renderFilter()}
       {loading ? (
         <ActivityIndicator size="large" color="#73509c" style={styles.loader} />
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Không có đơn hàng nào.</Text>
         </View>
       ) : (
         <FlatList
-          data={orders}
+          data={filteredOrders}
           keyExtractor={(item) => item.id}
           renderItem={renderOrderItem}
           contentContainerStyle={styles.listContainer}
@@ -158,7 +234,7 @@ export default function StaffOrdersScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContainer: { padding: 16 },
+  listContainer: { padding: 16, paddingTop: 0 },
   itemCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   itemName: { fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 8 },
@@ -178,4 +254,47 @@ const styles = StyleSheet.create({
   verificationText: { color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
   transferButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingVertical: 10, borderRadius: 8, marginTop: 12, borderWidth: 1, borderColor: '#dbeafe' },
   transferButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 6 },
+  filterContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: '#f3f4f6',
+    zIndex: 10,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  filterButtonText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  filterDropdown: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    position: 'absolute',
+    top: 65,
+    left: 16,
+    right: 16,
+  },
+  filterOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  filterOptionText: {
+    fontSize: 16,
+  },
 });
