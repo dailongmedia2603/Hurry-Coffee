@@ -128,14 +128,14 @@ export default function StaffOrderDetailScreen() {
         setUpdating(true);
         const { error } = await supabase
             .from('orders')
-            .update({ status: 'Không liên hệ được' })
+            .update({ status: 'Không gọi được' })
             .eq('id', id);
         
         if (error) {
             Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
         } else {
             setOrder(currentOrder => 
-                currentOrder ? { ...currentOrder, status: 'Không liên hệ được' } : null
+                currentOrder ? { ...currentOrder, status: 'Không gọi được' } : null
             );
         }
         setUpdating(false);
@@ -171,7 +171,7 @@ export default function StaffOrderDetailScreen() {
 
         const nextStatus = getNextStatus();
         const isCompleting = nextStatus === 'Hoàn thành';
-        const isActionable = !['Hoàn thành', 'Đã hủy', 'Không liên hệ được'].includes(order.status);
+        const isActionable = !['Hoàn thành', 'Đã hủy', 'Không gọi được'].includes(order.status);
 
         const mainActionButton = nextStatus ? (
             <TouchableOpacity 
@@ -185,7 +185,7 @@ export default function StaffOrderDetailScreen() {
 
         const callButton = isActionable && order.customer_phone ? (
             <TouchableOpacity 
-                style={[styles.smallSecondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
+                style={[styles.secondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
                 onPress={handleCallCustomer}
                 disabled={updating}
             >
@@ -196,12 +196,12 @@ export default function StaffOrderDetailScreen() {
 
         const uncontactableButton = isActionable ? (
             <TouchableOpacity 
-                style={[styles.largeSecondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
+                style={[styles.secondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
                 onPress={handleUncontactable}
                 disabled={updating}
             >
                 <Ionicons name="close-circle-outline" size={20} color="#ef4444" />
-                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không liên hệ được</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không gọi được</Text>
             </TouchableOpacity>
         ) : null;
 
@@ -303,7 +303,7 @@ export default function StaffOrderDetailScreen() {
                 onClose={() => setConfirmModalVisible(false)}
                 onConfirm={confirmUncontactable}
                 title="Xác nhận trạng thái"
-                message="Bạn có muốn cập nhật trạng thái đơn hàng này thành 'Không liên hệ được' không?"
+                message="Bạn có muốn cập nhật trạng thái đơn hàng này thành 'Không gọi được' không?"
                 confirmText="Xác nhận"
                 cancelText="Hủy"
                 icon="call-outline"
@@ -341,11 +341,8 @@ const styles = StyleSheet.create({
     actionButton: { flex: 1, backgroundColor: '#73509c', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4 },
     completeButton: { backgroundColor: '#00C853' },
     actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-    transferButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#3b82f6' },
-    transferButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 6, fontSize: 16 },
     secondaryActionsContainer: { flexDirection: 'row', gap: 12 },
-    largeSecondaryButton: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
-    smallSecondaryButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
+    secondaryButton: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
     secondaryButtonText: { fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
     phoneLink: { color: '#3b82f6', textDecorationLine: 'underline' },
 });

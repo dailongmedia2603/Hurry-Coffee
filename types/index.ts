@@ -18,7 +18,7 @@ export interface Product {
   available_options?: string[] | null;
 }
 
-export type OrderStatus = 'Đang xử lý' | 'Dang xu ly' | 'Đang làm' | 'Đang giao' | 'Sẵn sàng' | 'Hoàn thành' | 'Đã hủy' | 'Không liên hệ được';
+export type OrderStatus = 'Đang xử lý' | 'Dang xu ly' | 'Đang làm' | 'Đang giao' | 'Sẵn sàng' | 'Hoàn thành' | 'Đã hủy' | 'Không gọi được';
 
 export interface Order {
   id: string;
