@@ -1,36 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ActivityIndicator, Alert, ScrollView, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 
 const PROMO_IMAGE_KEY = 'promo_image_url';
+const PROFILE_FEATURE_KEY = 'feature_profile_enabled';
 
 export default function SettingsScreen() {
+  // State cho ảnh quảng cáo
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingImage, setLoadingImage] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  const fetchCurrentImage = async () => {
-    setLoading(true);
+  // State cho tính năng hồ sơ
+  const [isProfileFeatureEnabled, setIsProfileFeatureEnabled] = useState(true);
+  const [loadingFeatures, setLoadingFeatures] = useState(true);
+  const [savingFeatures, setSavingFeatures] = useState(false);
+
+  const fetchSettings = async () => {
+    setLoadingImage(true);
+    setLoadingFeatures(true);
+
     const { data, error } = await supabase
       .from('app_settings')
-      .select('value')
-      .eq('key', PROMO_IMAGE_KEY)
-      .single();
+      .select('key, value');
     
-    if (data?.value) {
-      setImageUrl(data.value);
+    if (error) {
+      Alert.alert('Lỗi', 'Không thể tải cài đặt ứng dụng.');
     } else {
-      setImageUrl(null);
+      const settingsMap = new Map(data.map(setting => [setting.key, setting.value]));
+      
+      // Xử lý ảnh quảng cáo
+      setImageUrl(settingsMap.get(PROMO_IMAGE_KEY) || null);
+
+      // Xử lý công tắc tính năng hồ sơ
+      const profileEnabledValue = settingsMap.get(PROFILE_FEATURE_KEY);
+      // Mặc định là true nếu chưa có cài đặt trong DB
+      setIsProfileFeatureEnabled(profileEnabledValue === 'true' || profileEnabledValue === undefined);
     }
-    setLoading(false);
+
+    setLoadingImage(false);
+    setLoadingFeatures(false);
   };
 
   useEffect(() => {
-    fetchCurrentImage();
+    fetchSettings();
   }, []);
 
   const pickImage = async () => {
@@ -54,7 +71,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveImage = async () => {
     if (!selectedImage) {
       Alert.alert('Chưa có thay đổi', 'Vui lòng chọn một ảnh mới trước khi lưu.');
       return;
@@ -95,6 +112,23 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleToggleProfileFeature = async (newValue: boolean) => {
+    setSavingFeatures(true);
+    // Cập nhật UI ngay lập tức để tạo cảm giác phản hồi nhanh
+    setIsProfileFeatureEnabled(newValue);
+
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: PROFILE_FEATURE_KEY, value: String(newValue) });
+
+    if (error) {
+      Alert.alert('Lỗi', 'Không thể lưu cài đặt. Vui lòng thử lại.');
+      // Nếu có lỗi, khôi phục lại trạng thái cũ
+      setIsProfileFeatureEnabled(!newValue);
+    }
+    setSavingFeatures(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -102,7 +136,7 @@ export default function SettingsScreen() {
         <Text style={styles.subtitle}>Ảnh này sẽ hiển thị ở đầu màn hình Menu của khách hàng.</Text>
         
         <View style={styles.imageContainer}>
-          {loading ? (
+          {loadingImage ? (
             <ActivityIndicator size="large" color="#73509c" />
           ) : (
             <Image 
@@ -117,7 +151,7 @@ export default function SettingsScreen() {
           <Text style={styles.changeButtonText}>Thay đổi ảnh</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={uploading || !selectedImage}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveImage} disabled={uploading || !selectedImage}>
           {uploading ? (
             <ActivityIndicator color="#fff" />
           ) : (
@@ -127,6 +161,29 @@ export default function SettingsScreen() {
             </>
           )}
         </TouchableOpacity>
+
+        <View style={styles.separator} />
+
+        <Text style={styles.title}>Quản lý tính năng</Text>
+        <Text style={styles.subtitle}>Bật hoặc tắt các tính năng cho người dùng cuối.</Text>
+
+        <View style={styles.featureRow}>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureLabel}>Hồ sơ & Xác thực SĐT</Text>
+            <Text style={styles.featureDescription}>Cho phép người dùng đăng nhập, quản lý hồ sơ và xác thực số điện thoại sau khi đặt hàng.</Text>
+          </View>
+          {loadingFeatures ? <ActivityIndicator color="#73509c" /> : (
+            <Switch
+              trackColor={{ false: "#d1d5db", true: "#a78bfa" }}
+              thumbColor={isProfileFeatureEnabled ? "#73509c" : "#f4f3f4"}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={handleToggleProfileFeature}
+              value={isProfileFeatureEnabled}
+              disabled={savingFeatures}
+            />
+          )}
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -169,4 +226,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+  separator: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 24,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+  },
+  featureInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  featureLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  featureDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 4,
+  },
 });
