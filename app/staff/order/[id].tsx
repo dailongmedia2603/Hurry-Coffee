@@ -8,6 +8,7 @@ import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import * as Linking from 'expo-linking';
 import ConfirmModal from '@/src/components/ConfirmModal';
+import TransferOrderModal from '@/src/components/TransferOrderModal';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -48,27 +49,27 @@ export default function StaffOrderDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+    const [isTransferModalVisible, setTransferModalVisible] = useState(false);
+
+    const fetchOrderDetails = async () => {
+        if (!id) return;
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`*, order_items (quantity, price, size, toppings, options, products (*)), locations (*)`)
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching order details:', error);
+            setOrder(null);
+        } else {
+            setOrder(data as any);
+        }
+        setLoading(false);
+    };
 
     useEffect(() => {
-        if (!id) return;
-
-        const fetchOrderDetails = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`*, order_items (quantity, price, size, toppings, options, products (*)), locations (*)`)
-                .eq('id', id)
-                .single();
-
-            if (error) {
-                console.error('Error fetching order details:', error);
-                setOrder(null);
-            } else {
-                setOrder(data as any);
-            }
-            setLoading(false);
-        };
-
         fetchOrderDetails();
 
         const channel = supabase
@@ -83,7 +84,7 @@ export default function StaffOrderDetailScreen() {
                 },
                 (payload) => {
                     setOrder((currentOrder) => {
-                        if (currentOrder && currentOrder.status !== payload.new.status) {
+                        if (currentOrder) {
                             return { ...currentOrder, ...payload.new };
                         }
                         return currentOrder;
@@ -142,6 +143,13 @@ export default function StaffOrderDetailScreen() {
         setUpdating(false);
     };
 
+    const handleTransferSuccess = () => {
+        setTransferModalVisible(false);
+        Alert.alert("Thành công", "Đơn hàng đã được chuyển. Đang tải lại danh sách.", [
+            { text: "OK", onPress: () => router.back() }
+        ]);
+    };
+
     const renderActionButtons = () => {
         if (!order) return null;
 
@@ -188,22 +196,35 @@ export default function StaffOrderDetailScreen() {
         const canCancel = !order.is_phone_verified && !['Hoàn thành', 'Đã hủy', 'Không liên hệ được'].includes(order.status);
         const cancelButton = canCancel ? (
             <TouchableOpacity 
-                style={[styles.cancelButton, mainActionButton ? { marginTop: 12 } : {}]} 
+                style={[styles.secondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
                 onPress={handleUncontactable}
                 disabled={updating}
             >
-                {updating ? <ActivityIndicator color="#ef4444" /> : <Text style={styles.cancelButtonText}>Không liên hệ được</Text>}
+                {updating ? <ActivityIndicator color="#ef4444" /> : <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không liên hệ được</Text>}
             </TouchableOpacity>
         ) : null;
 
-        if (!mainActionButton && !cancelButton) {
+        const transferButton = (
+            <TouchableOpacity 
+                style={[styles.secondaryButton, { backgroundColor: '#eef2ff', borderColor: '#3b82f6' }]} 
+                onPress={() => setTransferModalVisible(true)}
+                disabled={updating}
+            >
+                <Text style={[styles.secondaryButtonText, { color: '#3b82f6' }]}>Chuyển đơn</Text>
+            </TouchableOpacity>
+        );
+
+        if (!mainActionButton && !cancelButton && !transferButton) {
             return null;
         }
 
         return (
             <View style={styles.actionContainer}>
                 {mainActionButton}
-                {cancelButton}
+                <View style={styles.secondaryActionsContainer}>
+                    {cancelButton}
+                    {transferButton}
+                </View>
             </View>
         );
     };
@@ -293,6 +314,12 @@ export default function StaffOrderDetailScreen() {
                 icon="call-outline"
                 iconColor="#ef4444"
             />
+            <TransferOrderModal
+                visible={isTransferModalVisible}
+                onClose={() => setTransferModalVisible(false)}
+                orderId={id}
+                onSuccess={handleTransferSuccess}
+            />
         </SafeAreaView>
     );
 }
@@ -306,77 +333,25 @@ const styles = StyleSheet.create({
     scrollContainer: { paddingBottom: 40 },
     card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
     cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-    itemContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-    },
+    itemContainer: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
     itemImage: { width: 60, height: 60, borderRadius: 8, marginRight: 12 },
     itemDetails: { flex: 1 },
-    itemHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
+    itemHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     itemName: { fontSize: 16, fontWeight: '600', color: '#1f2937', flex: 1, marginRight: 8 },
     itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#1f2937' },
-    customizationsWrapper: {
-        marginTop: 8,
-        backgroundColor: '#fee2e2',
-        borderRadius: 8,
-        padding: 10,
-    },
-    customizationText: {
-        fontSize: 14,
-        color: '#374151',
-        lineHeight: 20,
-    },
-    customizationLabel: {
-        fontWeight: '600',
-        color: '#111827',
-    },
+    customizationsWrapper: { marginTop: 8, backgroundColor: '#fee2e2', borderRadius: 8, padding: 10 },
+    customizationText: { fontSize: 14, color: '#374151', lineHeight: 20 },
+    customizationLabel: { fontWeight: '600', color: '#111827' },
     infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     infoLabel: { fontSize: 16, color: '#666' },
     infoValue: { fontSize: 16, color: '#333', fontWeight: '500', flex: 1, textAlign: 'right' },
     separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
-    actionContainer: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-    },
-    actionButton: { 
-        backgroundColor: '#73509c', 
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    actionButtonText: { 
-        color: '#fff', 
-        fontSize: 16, 
-        fontWeight: 'bold' 
-    },
-    phoneLink: {
-        color: '#3b82f6',
-        textDecorationLine: 'underline',
-    },
-    cancelButton: { 
-        backgroundColor: '#fee2e2', 
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ef4444',
-    },
-    cancelButtonText: { 
-        color: '#ef4444', 
-        fontSize: 16, 
-        fontWeight: 'bold' 
-    },
+    actionContainer: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
+    actionButton: { backgroundColor: '#73509c', paddingVertical: 14, borderRadius: 12, alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4 },
+    actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    phoneLink: { color: '#3b82f6', textDecorationLine: 'underline' },
+    secondaryActionsContainer: { flexDirection: 'row', gap: 12 },
+    secondaryButton: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+    secondaryButtonText: { fontSize: 16, fontWeight: 'bold' },
 });

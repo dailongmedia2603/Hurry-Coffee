@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
 import { formatDisplayPhone } from '@/src/utils/formatters';
 import AttentionView from '@/src/components/AttentionView';
+import TransferOrderModal from '@/src/components/TransferOrderModal';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -29,6 +30,8 @@ export default function StaffOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [isTransferModalVisible, setTransferModalVisible] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async (isInitialLoad = false) => {
     if (isInitialLoad) {
@@ -54,6 +57,17 @@ export default function StaffOrdersScreen() {
     }, [fetchOrders])
   );
 
+  const handleOpenTransferModal = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setTransferModalVisible(true);
+  };
+
+  const handleTransferSuccess = () => {
+    setTransferModalVisible(false);
+    setSelectedOrderId(null);
+    fetchOrders(true);
+  };
+
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
     const needsVerification = !item.is_phone_verified;
@@ -64,46 +78,52 @@ export default function StaffOrdersScreen() {
     const isNew = item.status === 'Đang xử lý';
 
     return (
-      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/staff/order/${item.id}`)}>
-        {needsVerification && (
-          <View style={styles.verificationBadge}>
-            <Ionicons name="call" size={14} color="#fff" />
-            <Text style={styles.verificationText}>Cần gọi xác nhận</Text>
-          </View>
-        )}
-        <View style={styles.itemHeader}>
-          <Text style={styles.itemName}>{orderTitle}</Text>
-          <View style={styles.headerRight}>
-            {isNew && (
-              <AttentionView style={styles.newOrderBadge}>
-                <Ionicons name="sparkles" size={14} color="#b91c1c" />
-                <Text style={styles.newOrderText}>Đơn mới</Text>
-              </AttentionView>
-            )}
-            <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-              <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
+      <View style={styles.itemCard}>
+        <TouchableOpacity onPress={() => router.push(`/staff/order/${item.id}`)}>
+          {needsVerification && (
+            <View style={styles.verificationBadge}>
+              <Ionicons name="call" size={14} color="#fff" />
+              <Text style={styles.verificationText}>Cần gọi xác nhận</Text>
+            </View>
+          )}
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemName}>{orderTitle}</Text>
+            <View style={styles.headerRight}>
+              {isNew && (
+                <AttentionView style={styles.newOrderBadge}>
+                  <Ionicons name="sparkles" size={14} color="#b91c1c" />
+                  <Text style={styles.newOrderText}>Đơn mới</Text>
+                </AttentionView>
+              )}
+              <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
+                <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
+              </View>
             </View>
           </View>
-        </View>
-        <View style={styles.itemInfoRow}>
-          <Ionicons name="person-outline" size={16} color="#6b7280" />
-          <Text style={styles.itemInfoText}>{item.customer_name || 'Khách vãng lai'}</Text>
-        </View>
-        <View style={styles.itemInfoRow}>
-          <Ionicons name="call-outline" size={16} color="#6b7280" />
-          <Text style={styles.itemInfoText}>{formatDisplayPhone(item.customer_phone) || 'Không có SĐT'}</Text>
-        </View>
-        {item.location_name && (
           <View style={styles.itemInfoRow}>
-            <Ionicons name="storefront-outline" size={16} color="#6b7280" />
-            <Text style={styles.itemInfoText}>{item.location_name}</Text>
+            <Ionicons name="person-outline" size={16} color="#6b7280" />
+            <Text style={styles.itemInfoText}>{item.customer_name || 'Khách vãng lai'}</Text>
           </View>
-        )}
-        <View style={styles.itemFooter}>
-          <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
-          <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
-        </View>
-      </TouchableOpacity>
+          <View style={styles.itemInfoRow}>
+            <Ionicons name="call-outline" size={16} color="#6b7280" />
+            <Text style={styles.itemInfoText}>{formatDisplayPhone(item.customer_phone) || 'Không có SĐT'}</Text>
+          </View>
+          {item.location_name && (
+            <View style={styles.itemInfoRow}>
+              <Ionicons name="storefront-outline" size={16} color="#6b7280" />
+              <Text style={styles.itemInfoText}>{item.location_name}</Text>
+            </View>
+          )}
+          <View style={styles.itemFooter}>
+            <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
+            <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.transferButton} onPress={() => handleOpenTransferModal(item.id)}>
+          <Ionicons name="swap-horizontal-outline" size={16} color="#3b82f6" />
+          <Text style={styles.transferButtonText}>Chuyển đơn</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -125,6 +145,12 @@ export default function StaffOrdersScreen() {
           refreshing={loading}
         />
       )}
+      <TransferOrderModal
+        visible={isTransferModalVisible}
+        onClose={() => setTransferModalVisible(false)}
+        orderId={selectedOrderId}
+        onSuccess={handleTransferSuccess}
+      />
     </SafeAreaView>
   );
 }
@@ -137,23 +163,8 @@ const styles = StyleSheet.create({
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   itemName: { fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 8 },
   headerRight: { alignItems: 'flex-end' },
-  newOrderBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fca5a5',
-    marginBottom: 6,
-  },
-  newOrderText: {
-    color: '#b91c1c',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
+  newOrderBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#fca5a5', marginBottom: 6 },
+  newOrderText: { color: '#b91c1c', fontSize: 12, fontWeight: 'bold', marginLeft: 4 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-end' },
   statusText: { fontSize: 12, fontWeight: '500' },
   itemInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
@@ -161,29 +172,10 @@ const styles = StyleSheet.create({
   itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 12, marginTop: 8 },
   itemDate: { fontSize: 12, color: '#6b7280' },
   itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#16a34a' },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  verificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  verificationText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 6,
-  },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 16, color: '#6b7280' },
+  verificationBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ef4444', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 12 },
+  verificationText: { color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
+  transferButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingVertical: 10, borderRadius: 8, marginTop: 12, borderWidth: 1, borderColor: '#dbeafe' },
+  transferButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 6 },
 });
