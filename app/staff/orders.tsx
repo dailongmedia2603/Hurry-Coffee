@@ -181,12 +181,19 @@ export default function StaffOrdersScreen() {
     const selectedLocationName = selectedLocationId === 'all'
       ? 'Tất cả địa điểm'
       : assignedLocations.find(loc => loc.id === selectedLocationId)?.name || 'Tất cả địa điểm';
+    
+    const countForSelected = newOrderCounts[selectedLocationId] || 0;
 
     return (
       <View style={styles.filterContainer}>
         <TouchableOpacity style={styles.filterButton} onPress={() => setIsFilterOpen(!isFilterOpen)}>
           <Ionicons name="storefront-outline" size={20} color="#6b7280" />
           <Text style={styles.filterButtonText}>{selectedLocationName}</Text>
+          {!isFilterOpen && countForSelected > 0 && (
+            <View style={[styles.badge, { marginRight: 8 }]}>
+              <Text style={styles.badgeText}>{countForSelected}</Text>
+            </View>
+          )}
           <Ionicons name={isFilterOpen ? "chevron-up-outline" : "chevron-down-outline"} size={20} color="#6b7280" />
         </TouchableOpacity>
 
