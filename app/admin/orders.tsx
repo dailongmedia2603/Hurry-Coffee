@@ -85,6 +85,9 @@ export default function ManageOrdersScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Quản lý Đơn hàng ({orders.length})</Text>
+      </View>
       {loading ? (
         <ActivityIndicator size="large" color="#73509c" style={styles.loader} />
       ) : orders.length === 0 ? (
@@ -107,6 +110,8 @@ export default function ManageOrdersScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
+  header: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  headerTitle: { fontSize: 18, fontWeight: '600' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContainer: { padding: 16 },
   itemCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },

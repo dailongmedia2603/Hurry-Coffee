@@ -2,7 +2,7 @@ import React from "react";
 import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
-import { View, ActivityIndicator, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
 import { useScreenSize } from "@/src/hooks/useScreenSize";
 import DesktopAdminLayout from "@/src/components/admin/DesktopAdminLayout";
@@ -11,7 +11,7 @@ const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
 
 export default function AdminLayout() {
-  const { session, profile, loading, signOut } = useAuth();
+  const { session, profile, loading } = useAuth();
   const { isDesktop } = useScreenSize();
 
   if (loading) {
@@ -38,22 +38,14 @@ export default function AdminLayout() {
     return <Redirect href={profile.role === 'staff' ? '/staff' : '/(customer)'} />;
   }
 
-  // Nếu là màn hình desktop và đang chạy trên web, hiển thị layout mới.
   if (isDesktop && Platform.OS === 'web') {
     return <DesktopAdminLayout />;
   }
 
-  // Ngược lại, giữ nguyên giao diện Tabs cho mobile.
   return (
     <Tabs
       screenOptions={{
-        headerStyle: {
-          backgroundColor: "#FFFFFF",
-        },
-        headerTintColor: "#111827",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
+        headerShown: false, // Tắt header mặc định
         tabBarActiveTintColor: ACTIVE_COLOR,
         tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarStyle: {
@@ -63,18 +55,12 @@ export default function AdminLayout() {
         tabBarLabelStyle: {
           fontWeight: "500",
         },
-        headerRight: () => (
-          <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-            <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-          </TouchableOpacity>
-        ),
       }}
     >
       <Tabs.Screen
         name="products"
         options={{
           title: "Sản phẩm",
-          headerTitle: "Quản lý Sản phẩm",
           tabBarIcon: ({ color, size }) => <Ionicons name="fast-food-outline" color={color} size={size} />,
         }}
       />
@@ -82,7 +68,6 @@ export default function AdminLayout() {
         name="orders"
         options={{
           title: "Đơn hàng",
-          headerTitle: "Quản lý Đơn hàng",
           tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
         }}
       />
@@ -90,7 +75,6 @@ export default function AdminLayout() {
         name="locations"
         options={{
           title: "Địa điểm",
-          headerTitle: "Quản lý Địa điểm",
           tabBarIcon: ({ color, size }) => <Ionicons name="location-outline" color={color} size={size} />,
         }}
       />
@@ -98,7 +82,6 @@ export default function AdminLayout() {
         name="accounts"
         options={{
           title: "Tài khoản",
-          headerTitle: "Quản lý Tài khoản",
           tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" color={color} size={size} />,
         }}
       />
@@ -106,21 +89,13 @@ export default function AdminLayout() {
         name="settings"
         options={{
           title: "Cài đặt",
-          headerTitle: "Cài đặt ứng dụng",
           tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} />,
         }}
       />
 
       {/* Hidden screens */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen
-        name="order/[id]"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-          headerTitle: "Chi tiết đơn hàng",
-        }}
-      />
+      <Tabs.Screen name="order/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
