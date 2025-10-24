@@ -110,14 +110,20 @@ export default function StaffOrdersScreen() {
   }, [orders, selectedLocationId, selectedStatus, selectedDate]);
 
   const onDateChange = (event: any, selectedDateValue?: Date) => {
+    // Chỉ xử lý các sự kiện rõ ràng từ người dùng: 'set' (chọn ngày) hoặc 'dismissed' (hủy).
+    // Điều này ngăn picker tự động đóng ngay khi vừa hiện lên trên web.
     if (event.type === 'set') {
-      setDatePickerVisible(false);
+      // Người dùng đã xác nhận một ngày.
+      setDatePickerVisible(false); // Ẩn picker đi.
       if (selectedDateValue) {
-        setSelectedDate(selectedDateValue);
+        setSelectedDate(selectedDateValue); // Cập nhật ngày đã chọn.
       }
-    } else {
-      setDatePickerVisible(false);
+    } else if (event.type === 'dismissed') {
+      // Người dùng đã hủy (ví dụ: bấm ra ngoài).
+      setDatePickerVisible(false); // Chỉ cần ẩn picker đi.
     }
+    // Nếu event.type là một giá trị khác (hoặc undefined), chúng ta không làm gì cả.
+    // Điều này sẽ giữ cho picker hiển thị trên màn hình để người dùng tương tác.
   };
 
   const clearFilters = () => {
