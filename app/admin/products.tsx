@@ -9,6 +9,7 @@ import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
 import CategoryManagerModal from '@/src/components/admin/CategoryManagerModal';
 import ToppingManagerModal from '@/src/components/admin/ToppingManagerModal';
 import ImportProductsModal from '@/src/components/admin/ImportProductsModal';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 
@@ -22,6 +23,9 @@ export default function ManageProductsScreen() {
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isToppingModalVisible, setToppingModalVisible] = useState(false);
   const [isImportModalVisible, setImportModalVisible] = useState(false);
+  const { width } = useScreenSize();
+
+  const numColumns = Math.min(5, Math.max(1, Math.floor((width - 32) / 280)));
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -89,22 +93,26 @@ export default function ManageProductsScreen() {
       ) : (
         <FlatList
           data={products}
+          key={numColumns}
+          numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.itemCard}>
-              <Image source={{ uri: item.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+              <Image source={{ uri: item.image_url || 'https://via.placeholder.com/280' }} style={styles.itemImage} />
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.itemCategory}>{item.category}</Text>
-                <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+                <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                <Text style={styles.itemCategory}>{item.category || 'Chưa phân loại'}</Text>
               </View>
-              <View style={styles.itemActions}>
-                <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
-                  <Ionicons name="pencil" size={20} color="#3b82f6" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                </TouchableOpacity>
+              <View style={styles.cardFooter}>
+                <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+                <View style={styles.itemActions}>
+                  <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+                    <Ionicons name="pencil" size={20} color="#3b82f6" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -161,26 +169,59 @@ const styles = StyleSheet.create({
   },
   addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#73509c', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginLeft: 4 },
-  loader: { marginTop: 20 },
-  listContainer: { padding: 16 },
+  loader: { marginTop: 20, flex: 1 },
+  listContainer: { padding: 8 },
   itemCard: { 
-    flexDirection: 'row', 
+    flex: 1,
+    flexDirection: 'column',
     backgroundColor: '#fff', 
-    padding: 16, 
+    margin: 8,
     borderRadius: 12, 
-    marginBottom: 12, 
-    alignItems: 'center',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+    overflow: 'hidden',
   },
-  itemImage: { width: 60, height: 60, borderRadius: 8, marginRight: 16 },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-  itemCategory: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  itemPrice: { fontSize: 14, fontWeight: '500', color: '#16a34a' },
-  itemActions: { flexDirection: 'row' },
-  actionButton: { padding: 8, marginLeft: 8 },
+  itemImage: { 
+    width: '100%', 
+    height: 140,
+    backgroundColor: '#f3f4f6',
+  },
+  itemInfo: { 
+    flex: 1,
+    padding: 12,
+  },
+  itemName: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    marginBottom: 4,
+    minHeight: 40,
+  },
+  itemCategory: { 
+    fontSize: 12, 
+    color: '#6b7280', 
+    marginBottom: 4 
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 4,
+  },
+  itemPrice: { 
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#16a34a' 
+  },
+  itemActions: { 
+    flexDirection: 'row' 
+  },
+  actionButton: { 
+    padding: 4,
+    marginLeft: 8 
+  },
 });
