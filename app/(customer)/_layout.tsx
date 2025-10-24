@@ -95,22 +95,21 @@ function CustomerLayoutContent() {
           ),
         }}
       />
-      {/* Chỉ hiển thị tab Profile nếu tính năng được bật */}
-      {settings.feature_profile_enabled && (
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: "Profile",
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? "person" : "person-outline"}
-                color={color}
-                size={size}
-              />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          // Đây là thay đổi: Dùng href: null để ẩn tab
+          href: settings.feature_profile_enabled ? '/(customer)/profile' : null,
+          title: "Profile",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
       <Tabs.Screen name="category/[name]" options={{ href: null }} />
       <Tabs.Screen name="product/[id]" options={{ href: null, tabBarStyle: { display: "none" } }} />
       <Tabs.Screen name="order/[id]" options={{ href: null, tabBarStyle: { display: "none" } }} />
