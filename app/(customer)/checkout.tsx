@@ -115,7 +115,6 @@ export default function CheckoutScreen() {
   const handleCloseVerifyModal = () => {
     setVerifyModalVisible(false);
     router.replace('/(customer)/cart');
-    Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
   };
 
   return (

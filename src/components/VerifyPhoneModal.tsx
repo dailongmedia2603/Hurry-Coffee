@@ -67,8 +67,6 @@ const VerifyPhoneModal = ({ visible, phone, onClose }: VerifyPhoneModalProps) =>
       setErrorMessage("Mã OTP không hợp lệ. Vui lòng thử lại.");
       setLoading(false);
     } else {
-      // On success, the AuthProvider will handle the session update.
-      // We just need to close the modal.
       onClose();
     }
   }, [otp, phone, loading, onClose]);
@@ -102,18 +100,24 @@ const VerifyPhoneModal = ({ visible, phone, onClose }: VerifyPhoneModalProps) =>
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
           
-          <Ionicons name="shield-checkmark-outline" size={48} color="#73509c" style={styles.icon} />
-          <Text style={styles.title}>Xác minh số điện thoại</Text>
-          
           {!otpSent ? (
             <>
+              <Ionicons name="checkmark-circle-outline" size={48} color="#00C853" style={styles.icon} />
+              <Text style={styles.title}>Đặt đơn thành công!</Text>
+              <Text style={styles.message}>Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ xử lý đơn hàng của bạn ngay.</Text>
+              
+              <View style={styles.separator} />
+
+              <Text style={styles.subTitle}>Xác minh số điện thoại</Text>
               <Text style={styles.message}>Xác minh ngay để quản lý đơn hàng và nhận các ưu đãi hấp dẫn nhé!</Text>
               <TouchableOpacity style={styles.actionButton} onPress={handleSendOtp} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionButtonText}>Xác minh số điện thoại</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionButtonText}>Xác minh ngay</Text>}
               </TouchableOpacity>
             </>
           ) : (
             <>
+              <Ionicons name="shield-checkmark-outline" size={48} color="#73509c" style={styles.icon} />
+              <Text style={styles.title}>Xác minh số điện thoại</Text>
               <Text style={styles.message}>Nhập mã OTP được gửi đến số {phone}.</Text>
               <View style={styles.otpContainer}>
                 {[...Array(6)].map((_, index) => (
@@ -143,9 +147,11 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContainer: { width: '90%', maxWidth: 340, backgroundColor: 'white', borderRadius: 24, padding: 24, alignItems: 'center' },
   closeButton: { position: 'absolute', top: 16, right: 16 },
-  icon: { marginBottom: 16 },
+  icon: { marginBottom: 8 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' },
+  subTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 4, textAlign: 'center' },
   message: { fontSize: 16, color: '#6b7280', textAlign: 'center', marginBottom: 24 },
+  separator: { height: 1, backgroundColor: '#e5e7eb', width: '100%', marginVertical: 20 },
   actionButton: { backgroundColor: '#73509c', paddingVertical: 14, borderRadius: 12, alignItems: 'center', width: '100%' },
   actionButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   otpContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 20 },
