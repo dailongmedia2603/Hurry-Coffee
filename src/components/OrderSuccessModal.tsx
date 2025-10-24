@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 type OrderSuccessModalProps = {
   visible: boolean;
   onClose: () => void;
+  onViewOrder: () => void;
 };
 
-const OrderSuccessModal = ({ visible, onClose }: OrderSuccessModalProps) => {
+const OrderSuccessModal = ({ visible, onClose, onViewOrder }: OrderSuccessModalProps) => {
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
@@ -16,7 +17,7 @@ const OrderSuccessModal = ({ visible, onClose }: OrderSuccessModalProps) => {
           <Ionicons name="checkmark-circle-outline" size={64} color="#00C853" style={styles.icon} />
           <Text style={styles.title}>Đặt đơn thành công!</Text>
           <Text style={styles.message}>Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ xử lý đơn hàng của bạn ngay.</Text>
-          <TouchableOpacity style={styles.actionButton} onPress={onClose}>
+          <TouchableOpacity style={styles.actionButton} onPress={onViewOrder}>
             <Text style={styles.actionButtonText}>Xem đơn hàng</Text>
           </TouchableOpacity>
         </View>

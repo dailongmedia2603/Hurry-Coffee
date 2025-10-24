@@ -25,6 +25,7 @@ export default function CheckoutScreen() {
   const [isVerifyModalVisible, setVerifyModalVisible] = useState(false);
   const [phoneToVerify, setPhoneToVerify] = useState('');
   const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
+  const [successOrderId, setSuccessOrderId] = useState<string | null>(null);
 
   const handlePlaceOrder = async (details: ConfirmationDetails) => {
     setLoading(true);
@@ -93,11 +94,10 @@ export default function CheckoutScreen() {
       clearCart();
 
       if (!user) {
-        // Guest user, show verification modal
         setPhoneToVerify(details.phone);
         setVerifyModalVisible(true);
       } else {
-        // Logged in user, show success modal
+        setSuccessOrderId(newOrder.id);
         setSuccessModalVisible(true);
       }
 
@@ -120,7 +120,16 @@ export default function CheckoutScreen() {
 
   const handleCloseSuccessModal = () => {
     setSuccessModalVisible(false);
+    setSuccessOrderId(null);
     router.replace('/(customer)/cart');
+  };
+
+  const handleViewSuccessOrder = () => {
+    if (successOrderId) {
+      setSuccessModalVisible(false);
+      router.push(`/order/${successOrderId}`);
+      setSuccessOrderId(null);
+    }
   };
 
   return (
@@ -219,6 +228,7 @@ export default function CheckoutScreen() {
       <OrderSuccessModal
         visible={isSuccessModalVisible}
         onClose={handleCloseSuccessModal}
+        onViewOrder={handleViewSuccessOrder}
       />
     </SafeAreaView>
   );
