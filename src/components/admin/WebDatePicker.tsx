@@ -1,8 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import DatePicker from 'react-datepicker';
+import DatePicker, { registerLocale } from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { Ionicons } from '@expo/vector-icons';
+import { vi } from 'date-fns/locale/vi';
+
+// Đăng ký ngôn ngữ tiếng Việt
+registerLocale('vi', vi);
 
 // Tùy chỉnh giao diện cho react-datepicker để phù hợp với ứng dụng
 const customDatePickerStyles = `
@@ -75,6 +79,7 @@ const WebDatePicker = ({ selectedDate, onChange }: WebDatePickerProps) => {
         customInput={<CustomInput />}
         dateFormat="dd/MM/yyyy"
         popperPlacement="bottom-start"
+        locale="vi"
       />
     </View>
   );

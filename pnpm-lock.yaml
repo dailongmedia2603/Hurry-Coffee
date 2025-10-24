@@ -29,6 +29,9 @@ importers:
       base64-arraybuffer:
         specifier: ^1.0.2
         version: 1.0.2
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       expo:
         specifier: ~53.0.0
         version: 53.0.23(@babel/core@7.28.4)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.4)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)

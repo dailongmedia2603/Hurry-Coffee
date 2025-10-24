@@ -21,6 +21,7 @@
     "@types/react-datepicker": "^7.0.0",
     "babel-plugin-module-resolver": "^5.0.2",
     "base64-arraybuffer": "^1.0.2",
+    "date-fns": "^4.1.0",
     "expo": "~53.0.0",
     "expo-constants": "~17.1.7",
     "expo-image-picker": "^17.0.8",
