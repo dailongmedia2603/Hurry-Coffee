@@ -234,6 +234,8 @@ export default function StaffOrderDetailScreen() {
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const deliveryFee = order.total - subtotal;
+    const isCancelled = order.status === 'Đã hủy';
+    const cancellationReason = isCancelled && order.notes?.startsWith('Lý do hủy: ') ? order.notes.substring(12) : null;
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -246,6 +248,17 @@ export default function StaffOrderDetailScreen() {
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <OrderStatusTracker status={order.status} orderType={order.order_type} />
+                
+                {cancellationReason && (
+                    <View style={styles.cancellationReasonContainer}>
+                        <Ionicons name="information-circle-outline" size={24} color="#b91c1c" />
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                            <Text style={styles.cancellationReasonTitle}>Đơn hàng đã bị hủy</Text>
+                            <Text style={styles.cancellationReasonText}>Lý do: {cancellationReason}</Text>
+                        </View>
+                    </View>
+                )}
+
                 {renderActionButtons()}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
@@ -295,7 +308,7 @@ export default function StaffOrderDetailScreen() {
                     <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
                     <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
                     <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
-                    <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
+                    {!cancellationReason && <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />}
                 </View>
             </ScrollView>
             <CancelOrderModal
@@ -340,4 +353,25 @@ const styles = StyleSheet.create({
     secondaryButton: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
     secondaryButtonText: { fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
     phoneLink: { color: '#3b82f6', textDecorationLine: 'underline' },
+    cancellationReasonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fee2e2',
+        borderRadius: 12,
+        padding: 16,
+        marginHorizontal: 16,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#fca5a5',
+    },
+    cancellationReasonTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#b91c1c',
+    },
+    cancellationReasonText: {
+        fontSize: 14,
+        color: '#b91c1c',
+        marginTop: 4,
+    },
 });

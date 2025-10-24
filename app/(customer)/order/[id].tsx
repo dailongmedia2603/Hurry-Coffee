@@ -126,6 +126,8 @@ export default function OrderDetailScreen() {
 
     const subtotal = order.order_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const deliveryFee = order.total - subtotal;
+    const isCancelled = order.status === 'Đã hủy';
+    const cancellationReason = isCancelled && order.notes?.startsWith('Lý do hủy: ') ? order.notes.substring(12) : null;
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -136,6 +138,17 @@ export default function OrderDetailScreen() {
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <OrderStatusTracker status={order.status} orderType={order.order_type} />
+                
+                {cancellationReason && (
+                    <View style={styles.cancellationReasonContainer}>
+                        <Ionicons name="information-circle-outline" size={24} color="#b91c1c" />
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                            <Text style={styles.cancellationReasonTitle}>Đơn hàng đã bị hủy</Text>
+                            <Text style={styles.cancellationReasonText}>Lý do: {cancellationReason}</Text>
+                        </View>
+                    </View>
+                )}
+
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
                     {order.order_items.map((item, index) => (
@@ -175,7 +188,7 @@ export default function OrderDetailScreen() {
                     <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
                     <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
                     <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
-                    <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
+                    {!cancellationReason && <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />}
                 </View>
 
                 {order.status === 'Đang xử lý' && (
@@ -269,5 +282,26 @@ const styles = StyleSheet.create({
         color: '#D50000',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    cancellationReasonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fee2e2',
+        borderRadius: 12,
+        padding: 16,
+        marginHorizontal: 16,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#fca5a5',
+    },
+    cancellationReasonTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#b91c1c',
+    },
+    cancellationReasonText: {
+        fontSize: 14,
+        color: '#b91c1c',
+        marginTop: 4,
     },
 });
