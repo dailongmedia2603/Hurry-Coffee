@@ -61,23 +61,23 @@ export default function ManageOrdersScreen() {
     const statusStyle = getStatusStyle(item.status);
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/admin/order/${item.id}`)}>
-        <View style={styles.itemHeader}>
-          <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
+        <View style={styles.itemContent}>
+            <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
+            <View style={styles.itemInfoRow}>
+                <Ionicons name="person-outline" size={16} color="#6b7280" />
+                <Text style={styles.itemInfoText}>{item.customer_name || 'Khách vãng lai'}</Text>
+            </View>
+            <View style={styles.itemInfoRow}>
+                <Ionicons name="call-outline" size={16} color="#6b7280" />
+                <Text style={styles.itemInfoText}>{item.customer_phone || 'Không có SĐT'}</Text>
+            </View>
+            <View style={styles.itemFooter}>
+                <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
+                <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
+            </View>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
             <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
-          </View>
-        </View>
-        <View style={styles.itemInfoRow}>
-          <Ionicons name="person-outline" size={16} color="#6b7280" />
-          <Text style={styles.itemInfoText}>{item.customer_name || 'Khách vãng lai'}</Text>
-        </View>
-        <View style={styles.itemInfoRow}>
-          <Ionicons name="call-outline" size={16} color="#6b7280" />
-          <Text style={styles.itemInfoText}>{item.customer_phone || 'Không có SĐT'}</Text>
-        </View>
-        <View style={styles.itemFooter}>
-          <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
-          <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -114,16 +114,30 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContainer: { padding: 16 },
-  itemCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  itemName: { fontSize: 16, fontWeight: 'bold' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 12, fontWeight: '500' },
-  itemInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  itemCard: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
+    padding: 16, 
+    borderRadius: 12, 
+    marginBottom: 12, 
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  itemInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   itemInfoText: { fontSize: 14, color: '#374151', marginLeft: 8 },
-  itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 12, marginTop: 8 },
+  itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, marginTop: 8 },
   itemDate: { fontSize: 12, color: '#6b7280' },
   itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#16a34a' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, alignSelf: 'center', marginLeft: 16 },
+  statusText: { fontSize: 12, fontWeight: '500' },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
