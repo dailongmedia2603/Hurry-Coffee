@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,28 +48,27 @@ export default function OrderDetailScreen() {
     const [isCancelling, setIsCancelling] = useState(false);
     const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
 
-    useEffect(() => {
+    const fetchOrderDetails = useCallback(async (isInitialLoad = false) => {
         if (!id) return;
+        if (isInitialLoad) setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`*, order_items (quantity, price, size, toppings, options, products (*)), locations (*)`)
+                .eq('id', id)
+                .single();
+            if (error) throw error;
+            setOrder(data as any);
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            setOrder(null);
+        } finally {
+            if (isInitialLoad) setLoading(false);
+        }
+    }, [id]);
 
-        const fetchOrderDetails = async () => {
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select(`*, order_items (quantity, price, size, toppings, options, products (*)), locations (*)`)
-                    .eq('id', id)
-                    .single();
-                if (error) throw error;
-                setOrder(data as any);
-            } catch (error) {
-                console.error('Error fetching order details:', error);
-                setOrder(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchOrderDetails();
+    useEffect(() => {
+        fetchOrderDetails(true);
 
         const channel = supabase
             .channel(`customer-order-${id}`)
@@ -77,14 +76,14 @@ export default function OrderDetailScreen() {
                 'postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
                 (payload) => {
-                    setOrder((currentOrder) => 
-                        currentOrder ? { ...currentOrder, ...payload.new } : null
-                    );
+                    // Khi có cập nhật, tải lại toàn bộ chi tiết đơn hàng
+                    // để đảm bảo dữ liệu (bao gồm cả join) là mới nhất.
+                    fetchOrderDetails(false);
                 }
             )
             .subscribe();
         return () => { supabase.removeChannel(channel); };
-    }, [id]);
+    }, [id, fetchOrderDetails]);
 
     const handleCancelOrder = () => {
         setConfirmModalVisible(true);

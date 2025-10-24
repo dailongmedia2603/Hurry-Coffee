@@ -184,6 +184,7 @@ export default function StaffOrderDetailScreen() {
 
         const nextStatus = getNextStatus();
         const isCompleting = nextStatus === 'Hoàn thành';
+        const isActionable = !['Hoàn thành', 'Đã hủy', 'Không liên hệ được'].includes(order.status);
 
         const mainActionButton = nextStatus ? (
             <TouchableOpacity 
@@ -195,7 +196,7 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        const transferButton = (
+        const transferButton = isActionable ? (
             <TouchableOpacity 
                 style={styles.transferButton} 
                 onPress={handleOpenTransferModal}
@@ -204,9 +205,9 @@ export default function StaffOrderDetailScreen() {
                 <Ionicons name="swap-horizontal-outline" size={20} color="#3b82f6" />
                 <Text style={styles.transferButtonText}>Chuyển</Text>
             </TouchableOpacity>
-        );
+        ) : null;
 
-        const callButton = order.customer_phone ? (
+        const callButton = isActionable && order.customer_phone ? (
             <TouchableOpacity 
                 style={[styles.smallSecondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
                 onPress={handleCallCustomer}
@@ -217,8 +218,7 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        const canCancel = !['Hoàn thành', 'Đã hủy', 'Không liên hệ được'].includes(order.status);
-        const uncontactableButton = canCancel ? (
+        const uncontactableButton = isActionable ? (
             <TouchableOpacity 
                 style={[styles.largeSecondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
                 onPress={handleUncontactable}
@@ -229,7 +229,7 @@ export default function StaffOrderDetailScreen() {
             </TouchableOpacity>
         ) : null;
 
-        if (!mainActionButton && !uncontactableButton && !callButton) {
+        if (!mainActionButton && !uncontactableButton && !callButton && !transferButton) {
             return null;
         }
 
