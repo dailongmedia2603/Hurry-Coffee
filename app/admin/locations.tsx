@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Location } from '@/types';
 import LocationForm from '@/src/components/admin/LocationForm';
 import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 export default function ManageLocationsScreen() {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -14,6 +15,9 @@ export default function ManageLocationsScreen() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { width } = useScreenSize();
+
+  const numColumns = Math.min(4, Math.max(1, Math.floor((width - 32) / 350)));
 
   const fetchLocations = async () => {
     setLoading(true);
@@ -70,6 +74,8 @@ export default function ManageLocationsScreen() {
       ) : (
         <FlatList
           data={locations}
+          key={numColumns}
+          numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.itemCard}>
@@ -119,25 +125,31 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600' },
   addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#73509c', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginLeft: 4 },
-  loader: { marginTop: 20 },
-  listContainer: { padding: 16 },
+  loader: { marginTop: 20, flex: 1 },
+  listContainer: { padding: 8 },
   itemCard: { 
-    flexDirection: 'row', 
+    flex: 1,
     backgroundColor: '#fff', 
-    padding: 16, 
     borderRadius: 12, 
-    marginBottom: 12, 
-    alignItems: 'center',
+    margin: 8, 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+    overflow: 'hidden',
+    maxWidth: 350,
   },
-  itemImage: { width: 60, height: 60, borderRadius: 8, marginRight: 16 },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-  itemAddress: { fontSize: 12, color: '#6b7280' },
-  itemActions: { flexDirection: 'row' },
-  actionButton: { padding: 8, marginLeft: 8 },
+  itemImage: { width: '100%', height: 120, backgroundColor: '#f3f4f6' },
+  itemInfo: { padding: 12 },
+  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  itemAddress: { fontSize: 14, color: '#6b7280' },
+  itemActions: { 
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    padding: 8,
+  },
+  actionButton: { padding: 4, marginLeft: 8 },
 });

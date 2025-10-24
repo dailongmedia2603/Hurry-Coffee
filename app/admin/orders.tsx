@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -27,6 +28,9 @@ export default function ManageOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { width } = useScreenSize();
+
+  const numColumns = Math.min(4, Math.max(1, Math.floor((width - 32) / 400)));
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -61,23 +65,23 @@ export default function ManageOrdersScreen() {
     const statusStyle = getStatusStyle(item.status);
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/admin/order/${item.id}`)}>
-        <View style={styles.itemContent}>
+        <View style={styles.itemHeader}>
             <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
-            <View style={styles.itemInfoRow}>
-                <Ionicons name="person-outline" size={16} color="#6b7280" />
-                <Text style={styles.itemInfoText}>{item.customer_name || 'Khách vãng lai'}</Text>
-            </View>
-            <View style={styles.itemInfoRow}>
-                <Ionicons name="call-outline" size={16} color="#6b7280" />
-                <Text style={styles.itemInfoText}>{item.customer_phone || 'Không có SĐT'}</Text>
-            </View>
-            <View style={styles.itemFooter}>
-                <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
-                <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
+                <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
             </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-            <Text style={[styles.statusText, { color: statusStyle.color }]}>{statusStyle.text}</Text>
+        <View style={styles.itemInfoRow}>
+            <Ionicons name="person-outline" size={16} color="#6b7280" />
+            <Text style={styles.itemInfoText}>{item.customer_name || 'Khách vãng lai'}</Text>
+        </View>
+        <View style={styles.itemInfoRow}>
+            <Ionicons name="call-outline" size={16} color="#6b7280" />
+            <Text style={styles.itemInfoText}>{item.customer_phone || 'Không có SĐT'}</Text>
+        </View>
+        <View style={styles.itemFooter}>
+            <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
+            <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -97,6 +101,8 @@ export default function ManageOrdersScreen() {
       ) : (
         <FlatList
           data={orders}
+          key={numColumns}
+          numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={renderOrderItem}
           contentContainerStyle={styles.listContainer}
@@ -113,30 +119,33 @@ const styles = StyleSheet.create({
   header: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   headerTitle: { fontSize: 18, fontWeight: '600' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContainer: { padding: 16 },
+  listContainer: { padding: 8 },
   itemCard: { 
-    flexDirection: 'row', 
+    flex: 1,
     backgroundColor: '#fff', 
     padding: 16, 
     borderRadius: 12, 
-    marginBottom: 12, 
-    alignItems: 'center',
+    margin: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+    maxWidth: 400,
   },
-  itemContent: {
-    flex: 1,
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  itemName: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  itemInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  itemName: { fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 8 },
+  itemInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   itemInfoText: { fontSize: 14, color: '#374151', marginLeft: 8 },
-  itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, marginTop: 8 },
+  itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 12, marginTop: 8 },
   itemDate: { fontSize: 12, color: '#6b7280' },
   itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#16a34a' },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, alignSelf: 'center', marginLeft: 16 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
   statusText: { fontSize: 12, fontWeight: '500' },
   emptyContainer: {
     flex: 1,
