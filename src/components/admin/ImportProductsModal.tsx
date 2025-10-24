@@ -40,6 +40,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
         size_2_name: 'L',
         size_2_price: 30000,
         available_options: 'Ít ngọt, Nhiều đá, Đá riêng',
+        available_toppings: 'Kem phô mai, Pudding trứng',
       },
       {
         name: 'Trà sữa trân châu',
@@ -48,6 +49,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
         size_1_name: 'M',
         size_1_price: 35000,
         available_options: '70% đường, 50% đường, 100% đá',
+        available_toppings: 'Trân châu đen, Thạch cà phê',
       },
     ]);
     const workbook = XLSX.utils.book_new();
@@ -58,7 +60,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
       { wch: 15 }, { wch: 15 }, // size 1
       { wch: 15 }, { wch: 15 }, // size 2
       { wch: 15 }, { wch: 15 }, // size 3
-      { wch: 40 },
+      { wch: 40 }, { wch: 40 }, // options, toppings
     ];
 
     const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -171,7 +173,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
           </TouchableOpacity>
 
           <Text style={styles.instructions}>2. Điền thông tin sản phẩm vào file mẫu và lưu lại.</Text>
-          <Text style={styles.note}>Lưu ý: Tên phân loại (category) phải khớp với tên đã có trong hệ thống.</Text>
+          <Text style={styles.note}>Lưu ý: Tên phân loại (category) và tên topping phải khớp với tên đã có trong hệ thống.</Text>
 
           <Text style={styles.instructions}>3. Tải file đã điền thông tin lên hệ thống.</Text>
           <TouchableOpacity style={styles.uploadButton} onPress={handlePickFile}>

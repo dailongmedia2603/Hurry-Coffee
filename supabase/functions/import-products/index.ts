@@ -49,16 +49,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: categories, error: catError } = await adminSupabaseClient.from('product_categories').select('name');
-    if (catError) throw catError;
-    const categoryNames = new Set(categories.map(c => c.name));
+    const [catRes, topRes] = await Promise.all([
+      adminSupabaseClient.from('product_categories').select('name'),
+      adminSupabaseClient.from('toppings').select('id, name')
+    ]);
+    if (catRes.error) throw catRes.error;
+    if (topRes.error) throw topRes.error;
+    
+    const categoryNames = new Set(catRes.data.map(c => c.name));
+    const toppingNameToIdMap = new Map(topRes.data.map(t => [t.name, t.id]));
 
-    const productsToInsert = [];
+    const productsToUpsert = [];
+    const productToppingsMap = new Map(); // Map productName -> toppingIds
     const errors = [];
 
     for (let i = 0; i < products.length; i++) {
       const row = products[i];
       const rowNum = i + 2;
+      let hasRowError = false;
 
       if (!row.name) {
         errors.push(`Dòng ${rowNum}: Tên sản phẩm là bắt buộc.`);
@@ -66,22 +74,24 @@ serve(async (req) => {
       }
       if (row.category && !categoryNames.has(row.category)) {
         errors.push(`Dòng ${rowNum}: Phân loại "${row.category}" không tồn tại.`);
-        continue;
+        hasRowError = true;
       }
 
       const parsedSizes = [];
-      for (let j = 1; j <= 3; j++) { // Check for up to 3 sizes
+      for (let j = 1; j <= 3; j++) {
         const sizeName = row[`size_${j}_name`];
         const sizePrice = row[`size_${j}_price`];
         if (sizeName && (sizePrice !== undefined && sizePrice !== null)) {
           const price = Number(sizePrice);
           if (isNaN(price)) {
             errors.push(`Dòng ${rowNum}: Giá của size ${j} ("${sizePrice}") không hợp lệ.`);
-            continue;
+            hasRowError = true;
+            break;
           }
           parsedSizes.push({ name: String(sizeName), price });
         }
       }
+      if (hasRowError) continue;
 
       if (parsedSizes.length === 0) {
         errors.push(`Dòng ${rowNum}: Sản phẩm phải có ít nhất một size hợp lệ (size_1_name và size_1_price).`);
@@ -89,6 +99,20 @@ serve(async (req) => {
       }
       
       const basePrice = parsedSizes[0].price;
+
+      const toppingIds = [];
+      if (row.available_toppings) {
+        const toppingNames = String(row.available_toppings).split(',').map(s => s.trim()).filter(Boolean);
+        for (const name of toppingNames) {
+          if (toppingNameToIdMap.has(name)) {
+            toppingIds.push(toppingNameToIdMap.get(name));
+          } else {
+            errors.push(`Dòng ${rowNum}: Topping "${name}" không tồn tại.`);
+            hasRowError = true;
+          }
+        }
+      }
+      if (hasRowError) continue;
 
       const productRecord = {
         name: row.name,
@@ -98,33 +122,72 @@ serve(async (req) => {
         sizes: parsedSizes,
         available_options: row.available_options ? String(row.available_options).split(',').map(s => s.trim()) : [],
       };
-      productsToInsert.push(productRecord);
+      productsToUpsert.push(productRecord);
+      if (toppingIds.length > 0) {
+        productToppingsMap.set(row.name, toppingIds);
+      }
     }
 
-    if (productsToInsert.length > 0) {
-      const { error: insertError } = await adminSupabaseClient.from('products').insert(productsToInsert);
-      if (insertError) {
+    if (productsToUpsert.length > 0) {
+      const { data: savedProducts, error: upsertError } = await adminSupabaseClient
+        .from('products')
+        .upsert(productsToUpsert, { onConflict: 'name' })
+        .select('id, name');
+
+      if (upsertError) {
         return new Response(JSON.stringify({ 
-          error: `Lỗi khi thêm vào database: ${insertError.message}`,
+          error: `Lỗi khi thêm/cập nhật sản phẩm: ${upsertError.message}`,
           successCount: 0,
           errorCount: products.length,
           errors: [...errors, 'Tất cả sản phẩm hợp lệ đều không thể thêm. Có thể do tên sản phẩm bị trùng.'],
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (savedProducts && savedProducts.length > 0) {
+        const productIds = savedProducts.map(p => p.id);
+        
+        const { error: deleteError } = await adminSupabaseClient
+          .from('product_toppings')
+          .delete()
+          .in('product_id', productIds);
+        
+        if (deleteError) {
+          console.error("Error clearing old toppings:", deleteError.message);
+          errors.push(`Lỗi khi xóa topping cũ: ${deleteError.message}`);
+        }
+
+        const productToppingsToInsert = [];
+        for (const product of savedProducts) {
+          if (productToppingsMap.has(product.name)) {
+            const toppingIds = productToppingsMap.get(product.name);
+            for (const toppingId of toppingIds) {
+              productToppingsToInsert.push({
+                product_id: product.id,
+                topping_id: toppingId,
+              });
+            }
+          }
+        }
+
+        if (productToppingsToInsert.length > 0) {
+          const { error: toppingInsertError } = await adminSupabaseClient
+            .from('product_toppings')
+            .insert(productToppingsToInsert);
+          
+          if (toppingInsertError) {
+            console.error("Error inserting new toppings:", toppingInsertError.message);
+            errors.push(`Lỗi khi gán topping mới: ${toppingInsertError.message}`);
+          }
+        }
       }
     }
 
     return new Response(JSON.stringify({
       message: 'Import completed.',
-      successCount: productsToInsert.length,
+      successCount: productsToUpsert.length,
       errorCount: errors.length,
       errors,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('Error in import-products function:', error);
