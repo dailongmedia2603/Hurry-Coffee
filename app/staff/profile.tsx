@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { supabase } from '@/src/integrations/supabase/client';
 
 export default function StaffProfileScreen() {
   const { user, profile } = useAuth();
-  const [locationName, setLocationName] = useState<string | null>(null);
+  const [locationNames, setLocationNames] = useState<string[]>([]);
   const [loadingLocation, setLoadingLocation] = useState(false);
 
   useEffect(() => {
@@ -20,14 +20,21 @@ export default function StaffProfileScreen() {
         
         if (error) {
           console.error("Error fetching locations:", error);
-          setLocationName('Không tìm thấy địa điểm');
+          setLocationNames([]);
         } else if (data) {
-          const names = data.map(item => (item.locations as any)?.name).filter(Boolean).join(', ');
-          setLocationName(names || null);
+          const names = data
+            .map(item => {
+              if (item.locations && typeof item.locations === 'object' && 'name' in item.locations) {
+                return (item.locations as { name: string }).name;
+              }
+              return null;
+            })
+            .filter((name): name is string => name !== null);
+          setLocationNames(names);
         }
         setLoadingLocation(false);
       } else {
-        setLocationName(null);
+        setLocationNames([]);
       }
     };
 
@@ -46,7 +53,7 @@ export default function StaffProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView style={styles.container}>
         <View style={styles.profileHeader}>
           <Ionicons name="person-circle-outline" size={100} color="#73509c" />
           <Text style={styles.profileName}>{profile.full_name || 'Nhân viên'}</Text>
@@ -57,19 +64,23 @@ export default function StaffProfileScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Ionicons name="storefront-outline" size={24} color="#73509c" style={styles.infoIcon} />
+          <Text style={styles.cardTitle}>Địa điểm làm việc</Text>
+          {loadingLocation ? (
+            <ActivityIndicator size="small" color="#73509c" style={{ marginTop: 8 }} />
+          ) : locationNames.length > 0 ? (
             <View>
-              <Text style={styles.infoLabel}>Địa điểm làm việc</Text>
-              {loadingLocation ? (
-                <ActivityIndicator size="small" color="#73509c" />
-              ) : (
-                <Text style={styles.infoValue}>{locationName || 'Chưa được gán'}</Text>
-              )}
+              {locationNames.map((name, index) => (
+                <View key={index} style={styles.locationChip}>
+                  <Ionicons name="storefront-outline" size={16} color="#4b5563" style={{ marginRight: 8 }} />
+                  <Text style={styles.locationChipText} numberOfLines={1}>{name}</Text>
+                </View>
+              ))}
             </View>
-          </View>
+          ) : (
+            <Text style={styles.noLocationText}>Chưa được gán địa điểm</Text>
+          )}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -131,21 +142,30 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  infoIcon: {
-    marginRight: 16,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  infoValue: {
+  cardTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+    marginBottom: 12,
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  locationChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    flex: 1,
+  },
+  noLocationText: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 4,
   },
 });
