@@ -23,9 +23,8 @@ const StatusStep = ({ icon, label, isCompleted, isActive }: StatusStepProps) => 
 };
 
 const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderType: 'delivery' | 'pickup' }) => {
-  const statuses: OrderStatus[] = orderType === 'delivery'
-    ? ['Đang xử lý', 'Đang làm', 'Hoàn thành']
-    : ['Đang xử lý', 'Đang làm', 'Sẵn sàng', 'Hoàn thành'];
+  // Simplified status flow for both delivery and pickup
+  const statuses: OrderStatus[] = ['Đang xử lý', 'Đang làm', 'Hoàn thành'];
   
   const currentIndex = statuses.indexOf(status);
 
@@ -33,8 +32,8 @@ const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderT
     switch (s) {
       case 'Đang xử lý': return 'receipt-outline';
       case 'Đang làm': return 'flame-outline';
-      case 'Đang giao': return 'bicycle-outline';
-      case 'Sẵn sàng': return 'bag-handle-outline';
+      case 'Đang giao': return 'bicycle-outline'; // Kept for icon mapping if needed elsewhere
+      case 'Sẵn sàng': return 'bag-handle-outline'; // Kept for icon mapping if needed elsewhere
       case 'Hoàn thành': return 'checkmark-done-circle-outline';
       default: return 'help-circle-outline';
     }
