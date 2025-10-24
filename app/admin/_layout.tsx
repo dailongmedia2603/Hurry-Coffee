@@ -2,14 +2,17 @@ import React from "react";
 import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
-import { View, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
+import { View, ActivityIndicator, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import AdminLoginScreen from "@/src/components/admin/AdminLoginScreen";
+import { useScreenSize } from "@/src/hooks/useScreenSize";
+import DesktopAdminLayout from "@/src/components/admin/DesktopAdminLayout";
 
 const ACTIVE_COLOR = "#73509c";
 const INACTIVE_COLOR = "#9ca3af";
 
 export default function AdminLayout() {
   const { session, profile, loading, signOut } = useAuth();
+  const { isDesktop } = useScreenSize();
 
   if (loading) {
     return (
@@ -35,6 +38,12 @@ export default function AdminLayout() {
     return <Redirect href={profile.role === 'staff' ? '/staff' : '/(customer)'} />;
   }
 
+  // Nếu là màn hình desktop và đang chạy trên web, hiển thị layout mới.
+  if (isDesktop && Platform.OS === 'web') {
+    return <DesktopAdminLayout />;
+  }
+
+  // Ngược lại, giữ nguyên giao diện Tabs cho mobile.
   return (
     <Tabs
       screenOptions={{
