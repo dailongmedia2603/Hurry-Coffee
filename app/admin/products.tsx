@@ -23,9 +23,9 @@ export default function ManageProductsScreen() {
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isToppingModalVisible, setToppingModalVisible] = useState(false);
   const [isImportModalVisible, setImportModalVisible] = useState(false);
-  const { width } = useScreenSize();
+  const { width, isDesktop } = useScreenSize();
 
-  const numColumns = Math.min(5, Math.max(1, Math.floor((width - 32) / 280)));
+  const numColumns = isDesktop ? Math.min(5, Math.max(1, Math.floor((width - 32) / 280))) : 1;
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -67,6 +67,56 @@ export default function ManageProductsScreen() {
     setItemToDelete(null);
   };
 
+  const renderItem = ({ item }: { item: Product }) => {
+    if (!isDesktop) {
+      // Mobile List Layout
+      return (
+        <View style={styles.mobileItemCard}>
+          <Image source={{ uri: item.image_url || 'https://via.placeholder.com/100' }} style={styles.mobileItemImage} />
+          <View style={styles.mobileItemInfo}>
+            <View>
+              <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+              <Text style={styles.itemCategory}>{item.category || 'Chưa phân loại'}</Text>
+            </View>
+            <View style={styles.mobileCardFooter}>
+              <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+              <View style={styles.itemActions}>
+                <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+                  <Ionicons name="pencil" size={20} color="#3b82f6" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Desktop Grid Layout
+    return (
+      <View style={styles.itemCard}>
+        <Image source={{ uri: item.image_url || 'https://via.placeholder.com/280' }} style={styles.itemImage} />
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.itemCategory}>{item.category || 'Chưa phân loại'}</Text>
+        </View>
+        <View style={styles.cardFooter}>
+          <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+          <View style={styles.itemActions}>
+            <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
+              <Ionicons name="pencil" size={20} color="#3b82f6" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -96,27 +146,8 @@ export default function ManageProductsScreen() {
           key={numColumns}
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.itemCard}>
-              <Image source={{ uri: item.image_url || 'https://via.placeholder.com/280' }} style={styles.itemImage} />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.itemCategory}>{item.category || 'Chưa phân loại'}</Text>
-              </View>
-              <View style={styles.cardFooter}>
-                <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
-                <View style={styles.itemActions}>
-                  <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
-                    <Ionicons name="pencil" size={20} color="#3b82f6" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
-          contentContainerStyle={styles.listContainer}
+          renderItem={renderItem}
+          contentContainerStyle={isDesktop ? styles.listContainer : styles.mobileListContainer}
         />
       )}
 
@@ -171,6 +202,7 @@ const styles = StyleSheet.create({
   addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginLeft: 4 },
   loader: { marginTop: 20, flex: 1 },
   listContainer: { padding: 8 },
+  mobileListContainer: { paddingHorizontal: 0, paddingVertical: 8 },
   itemCard: { 
     flex: 1,
     flexDirection: 'column',
@@ -198,7 +230,6 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: 'bold', 
     marginBottom: 4,
-    minHeight: 40,
   },
   itemCategory: { 
     fontSize: 12, 
@@ -224,5 +255,34 @@ const styles = StyleSheet.create({
   actionButton: { 
     padding: 4,
     marginLeft: 8 
+  },
+  mobileItemCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  mobileItemImage: {
+    width: 100,
+    height: 'auto',
+    backgroundColor: '#f3f4f6',
+  },
+  mobileItemInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  mobileCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
   },
 });

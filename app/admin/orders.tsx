@@ -28,9 +28,9 @@ export default function ManageOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { width } = useScreenSize();
+  const { width, isDesktop } = useScreenSize();
 
-  const numColumns = Math.min(4, Math.max(1, Math.floor((width - 32) / 400)));
+  const numColumns = isDesktop ? Math.min(4, Math.max(1, Math.floor((width - 32) / 400))) : 1;
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -64,7 +64,7 @@ export default function ManageOrdersScreen() {
   const renderOrderItem = ({ item }: { item: OrderWithItemCount }) => {
     const statusStyle = getStatusStyle(item.status);
     return (
-      <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/admin/order/${item.id}`)}>
+      <TouchableOpacity style={[styles.itemCard, isDesktop && styles.desktopItemCard]} onPress={() => router.push(`/admin/order/${item.id}`)}>
         <View style={styles.itemHeader}>
             <Text style={styles.itemName}>Đơn hàng #{item.id.substring(0, 8)}</Text>
             <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
@@ -105,7 +105,7 @@ export default function ManageOrdersScreen() {
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={renderOrderItem}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={isDesktop ? styles.listContainer : styles.mobileListContainer}
           onRefresh={fetchOrders}
           refreshing={loading}
         />
@@ -120,6 +120,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContainer: { padding: 8 },
+  mobileListContainer: { paddingHorizontal: 16, paddingTop: 16 },
   itemCard: { 
     flex: 1,
     backgroundColor: '#fff', 
@@ -131,6 +132,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+  },
+  desktopItemCard: {
     maxWidth: 400,
   },
   itemHeader: {
