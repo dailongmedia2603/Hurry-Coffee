@@ -166,8 +166,7 @@ export default function StaffOrderDetailScreen() {
         const getNextStatus = (): OrderStatus | null => {
             switch (order.status) {
                 case 'Đang xử lý': return 'Đang làm';
-                case 'Đang làm': return order.order_type === 'pickup' ? 'Sẵn sàng' : 'Đang giao';
-                case 'Sẵn sàng': case 'Đang giao': return 'Hoàn thành';
+                case 'Đang làm': return 'Hoàn thành';
                 default: return null;
             }
         };
@@ -175,9 +174,7 @@ export default function StaffOrderDetailScreen() {
         const getButtonText = (): string => {
             switch (order.status) {
                 case 'Đang xử lý': return 'Bắt đầu làm';
-                case 'Đang làm': return order.order_type === 'pickup' ? 'Đã làm xong' : 'Bắt đầu giao';
-                case 'Sẵn sàng': return 'Hoàn thành (Khách đã lấy)';
-                case 'Đang giao': return 'Hoàn thành (Đã giao)';
+                case 'Đang làm': return 'Hoàn thành';
                 default: return '';
             }
         };
@@ -185,7 +182,7 @@ export default function StaffOrderDetailScreen() {
         const nextStatus = getNextStatus();
         const mainActionButton = nextStatus ? (
             <TouchableOpacity 
-                style={styles.actionButton} 
+                style={[styles.actionButton, order.status === 'Đang làm' && styles.completeButton]} 
                 onPress={() => handleUpdateStatus(nextStatus)}
                 disabled={updating}
             >
@@ -368,6 +365,7 @@ const styles = StyleSheet.create({
     actionContainer: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
     mainActionsRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
     actionButton: { flex: 1, backgroundColor: '#73509c', paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4 },
+    completeButton: { backgroundColor: '#00C853' },
     actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
     transferButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#3b82f6' },
     transferButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 6, fontSize: 16 },

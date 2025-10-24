@@ -24,7 +24,7 @@ const StatusStep = ({ icon, label, isCompleted, isActive }: StatusStepProps) => 
 
 const OrderStatusTracker = ({ status, orderType }: { status: OrderStatus, orderType: 'delivery' | 'pickup' }) => {
   const statuses: OrderStatus[] = orderType === 'delivery'
-    ? ['Đang xử lý', 'Đang làm', 'Đang giao', 'Hoàn thành']
+    ? ['Đang xử lý', 'Đang làm', 'Hoàn thành']
     : ['Đang xử lý', 'Đang làm', 'Sẵn sàng', 'Hoàn thành'];
   
   const currentIndex = statuses.indexOf(status);
