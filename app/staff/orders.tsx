@@ -51,6 +51,7 @@ export default function StaffOrdersScreen() {
   const [isLocationFilterOpen, setLocationFilterOpen] = useState(false);
 
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
+  const [isStatusFilterOpen, setStatusFilterOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -197,16 +198,29 @@ export default function StaffOrdersScreen() {
       
       {showAdvancedFilters && (
         <View style={styles.filterPanel}>
-          <Text style={styles.filterSectionTitle}>Trạng thái</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusFilterContainer}>
-            {STATUS_OPTIONS.map(option => (<TouchableOpacity key={option.value} style={[styles.statusButton, selectedStatus === option.value && styles.statusButtonActive]} onPress={() => setSelectedStatus(option.value)}><Text style={[styles.statusButtonText, selectedStatus === option.value && styles.statusButtonTextActive]}>{option.label}</Text></TouchableOpacity>))}
-          </ScrollView>
-          <Text style={styles.filterSectionTitle}>Thời gian</Text>
-          <View style={styles.dateFilterContainer}>
-            <WebDatePicker selectedDate={selectedDate} onChange={(date) => setSelectedDate(date)} />
-            {selectedDate && (<TouchableOpacity onPress={() => setSelectedDate(null)}><Ionicons name="close-circle" size={24} color="#999" /></TouchableOpacity>)}
-          </View>
-          <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}><Text style={styles.clearFilterButtonText}>Xoá bộ lọc</Text></TouchableOpacity>
+            <View style={styles.filterRow}>
+                <View style={styles.statusFilterWrapper}>
+                    <TouchableOpacity style={styles.filterButton} onPress={() => setStatusFilterOpen(!isStatusFilterOpen)}>
+                        <Ionicons name="funnel-outline" size={20} color="#6b7280" />
+                        <Text style={styles.filterButtonText}>{STATUS_OPTIONS.find(o => o.value === selectedStatus)?.label}</Text>
+                        <Ionicons name={isStatusFilterOpen ? "chevron-up-outline" : "chevron-down-outline"} size={20} color="#6b7280" />
+                    </TouchableOpacity>
+                    {isStatusFilterOpen && (
+                        <View style={styles.filterDropdown}>
+                            {STATUS_OPTIONS.map(option => (
+                            <TouchableOpacity key={option.value} style={styles.filterOption} onPress={() => { setSelectedStatus(option.value); setStatusFilterOpen(false); }}>
+                                <Text style={styles.filterOptionText}>{option.label}</Text>
+                            </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                </View>
+                <View style={styles.datePickerWrapper}>
+                    <WebDatePicker selectedDate={selectedDate} onChange={(date) => setSelectedDate(date)} />
+                    {selectedDate && (<TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDateButton}><Ionicons name="close-circle" size={24} color="#999" /></TouchableOpacity>)}
+                </View>
+            </View>
+            <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}><Text style={styles.clearFilterButtonText}>Xoá bộ lọc</Text></TouchableOpacity>
         </View>
       )}
       
@@ -288,14 +302,32 @@ const styles = StyleSheet.create({
   filterOptionText: { fontSize: 16, marginRight: 8 },
   badge: { backgroundColor: '#73509c', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   badgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
-  filterPanel: { backgroundColor: '#fff', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  filterSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 },
-  statusFilterContainer: { paddingBottom: 12 },
-  statusButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#f3f4f6', marginRight: 10 },
-  statusButtonActive: { backgroundColor: '#73509c' },
-  statusButtonText: { color: '#374151', fontWeight: '500' },
-  statusButtonTextActive: { color: '#fff' },
-  dateFilterContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  clearFilterButton: { marginTop: 16, alignItems: 'center' },
+  filterPanel: { 
+    backgroundColor: '#fff', 
+    padding: 16, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#e5e7eb',
+    zIndex: 20,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    zIndex: 30,
+  },
+  statusFilterWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  datePickerWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clearDateButton: {
+    marginLeft: -35,
+    zIndex: 5,
+  },
+  clearFilterButton: { marginTop: 0, alignItems: 'center' },
   clearFilterButtonText: { color: '#73509c', fontWeight: 'bold' },
 });

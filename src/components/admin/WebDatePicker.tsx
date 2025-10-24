@@ -82,13 +82,11 @@ const WebDatePicker = ({ selectedDate, onChange }: WebDatePickerProps) => {
 
 const styles = StyleSheet.create({
   datePickerButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f3f4f6',
     padding: 12,
     borderRadius: 8,
-    marginRight: 10,
   },
   datePickerButtonText: {
     marginLeft: 8,
