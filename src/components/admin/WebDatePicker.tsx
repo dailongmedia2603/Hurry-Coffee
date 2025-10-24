@@ -55,7 +55,7 @@ type WebDatePickerProps = {
 };
 
 const WebDatePicker = ({ selectedDate, onChange }: WebDatePickerProps) => {
-  const CustomInput = React.forwardRef<TouchableOpacity, { value?: string; onClick?: () => void }>(
+  const CustomInput = React.forwardRef<any, { value?: string; onClick?: () => void }>(
     ({ value, onClick }, ref) => (
       <TouchableOpacity style={styles.datePickerButton} onPress={onClick} ref={ref}>
         <Ionicons name="calendar-outline" size={20} color="#666" />
