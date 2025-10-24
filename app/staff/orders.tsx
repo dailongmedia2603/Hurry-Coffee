@@ -322,16 +322,18 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   statusFilterWrapper: {
-    flex: 1,
     position: 'relative',
   },
   datePickerWrapper: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    minWidth: 0,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
   },
   clearDateButton: {
-    marginLeft: -35,
-    zIndex: 5,
+    padding: 12,
   },
   clearFilterButton: { marginTop: 0, alignItems: 'center' },
   clearFilterButtonText: { color: '#73509c', fontWeight: 'bold' },

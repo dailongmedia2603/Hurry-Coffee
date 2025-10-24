@@ -62,19 +62,30 @@ type WebDatePickerProps = {
 const WebDatePicker = ({ startDate, endDate, onChange }: WebDatePickerProps) => {
   const CustomInput = React.forwardRef<any, { value?: string; onClick?: () => void }>(
     ({ value, onClick }, ref) => {
-      const formatDate = (date: Date | null) => date ? date.toLocaleDateString('vi-VN') : '';
+      const formatDateShort = (date: Date | null) => {
+        if (!date) return '';
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}/${month}`;
+      };
       
       let displayText = 'Chọn ngày';
       if (startDate && !endDate) {
-        displayText = `${formatDate(startDate)} - ...`;
+        displayText = `${formatDateShort(startDate)} - ...`;
       } else if (startDate && endDate) {
-        displayText = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+        if (startDate.getFullYear() !== endDate.getFullYear()) {
+            const startYear = startDate.getFullYear().toString().slice(-2);
+            const endYear = endDate.getFullYear().toString().slice(-2);
+            displayText = `${formatDateShort(startDate)}/${startYear} - ${formatDateShort(endDate)}/${endYear}`;
+        } else {
+            displayText = `${formatDateShort(startDate)} - ${formatDateShort(endDate)}`;
+        }
       }
 
       return (
         <TouchableOpacity style={styles.datePickerButton} onPress={onClick} ref={ref}>
           <Ionicons name="calendar-outline" size={20} color="#666" />
-          <Text style={styles.datePickerButtonText}>
+          <Text style={styles.datePickerButtonText} numberOfLines={1}>
             {displayText}
           </Text>
         </TouchableOpacity>
@@ -101,16 +112,18 @@ const WebDatePicker = ({ startDate, endDate, onChange }: WebDatePickerProps) => 
 
 const styles = StyleSheet.create({
   datePickerButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingLeft: 12,
   },
   datePickerButtonText: {
     marginLeft: 8,
     fontSize: 16,
     color: '#333',
+    flex: 1,
+    minWidth: 0,
   },
 });
 
