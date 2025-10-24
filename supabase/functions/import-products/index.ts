@@ -139,7 +139,7 @@ serve(async (req) => {
           error: `Lỗi khi thêm/cập nhật sản phẩm: ${upsertError.message}`,
           successCount: 0,
           errorCount: products.length,
-          errors: [...errors, 'Tất cả sản phẩm hợp lệ đều không thể thêm. Có thể do tên sản phẩm bị trùng.'],
+          errors: [...errors, 'Tất cả sản phẩm hợp lệ đều không thể thêm. Có thể do tên sản phẩm bị trùng hoặc lỗi cấu trúc database.'],
         }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 

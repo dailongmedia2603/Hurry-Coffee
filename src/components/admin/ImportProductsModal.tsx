@@ -143,7 +143,11 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
           if (result.successCount > 0) onSuccess();
         } catch (err: any) {
           setImportStatus('error');
-          setImportResult(`Lỗi: ${err.message}`);
+          let errorMessage = err.message;
+          if (err.context && err.context.error) {
+            errorMessage = err.context.error;
+          }
+          setImportResult(`Lỗi: ${errorMessage}`);
         } finally {
           setLoading(false);
         }
