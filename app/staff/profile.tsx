@@ -10,20 +10,20 @@ export default function StaffProfileScreen() {
   const [loadingLocation, setLoadingLocation] = useState(false);
 
   useEffect(() => {
-    const fetchLocation = async () => {
-      if (profile?.location_id) {
+    const fetchLocations = async () => {
+      if (user) {
         setLoadingLocation(true);
         const { data, error } = await supabase
-          .from('locations')
-          .select('name')
-          .eq('id', profile.location_id)
-          .single();
+          .from('staff_locations')
+          .select('locations(name)')
+          .eq('staff_id', user.id);
         
         if (error) {
-          console.error("Error fetching location:", error);
+          console.error("Error fetching locations:", error);
           setLocationName('Không tìm thấy địa điểm');
         } else if (data) {
-          setLocationName(data.name);
+          const names = data.map(item => (item.locations as any)?.name).filter(Boolean).join(', ');
+          setLocationName(names || null);
         }
         setLoadingLocation(false);
       } else {
@@ -31,10 +31,10 @@ export default function StaffProfileScreen() {
       }
     };
 
-    if (profile) {
-      fetchLocation();
+    if (user) {
+      fetchLocations();
     }
-  }, [profile]);
+  }, [user]);
 
   if (!user || !profile) {
     return (
