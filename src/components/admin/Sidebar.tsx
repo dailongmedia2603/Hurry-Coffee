@@ -21,8 +21,8 @@ const NavLink = ({ href, label, icon }: { href: string; label: string; icon: key
   const isActive = pathname.startsWith(href);
 
   return (
-    <Link href={href} asChild>
-      <TouchableOpacity style={[styles.navLink, isActive && styles.navLinkActive]}>
+    <Link href={href} style={[styles.navLink, isActive && styles.navLinkActive]} asChild>
+      <TouchableOpacity>
         <Ionicons 
           name={icon} 
           size={22} 
