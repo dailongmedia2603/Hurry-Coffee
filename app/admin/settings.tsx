@@ -132,50 +132,52 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         )}
       </View>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Ảnh quảng cáo ở trang chủ</Text>
-        <Text style={styles.subtitle}>Ảnh này sẽ hiển thị ở đầu màn hình Menu của khách hàng.</Text>
-        
-        <View style={styles.imageContainer}>
-          {loadingImage ? (
-            <ActivityIndicator size="large" color="#73509c" />
-          ) : (
-            <Image 
-              source={{ uri: imageUrl || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }} 
-              style={styles.imagePreview} 
-            />
-          )}
-        </View>
-
-        <TouchableOpacity style={styles.changeButton} onPress={pickImage}>
-          <Ionicons name="image-outline" size={20} color="#73509c" />
-          <Text style={styles.changeButtonText}>Thay đổi ảnh</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveImage} disabled={uploading || !selectedImage}>
-          {uploading ? <ActivityIndicator color="#fff" /> : (<><Ionicons name="save-outline" size={20} color="#fff" /><Text style={styles.saveButtonText}>Lưu thay đổi</Text></>)}
-        </TouchableOpacity>
-
-        <View style={styles.separator} />
-
-        <Text style={styles.title}>Quản lý tính năng</Text>
-        <Text style={styles.subtitle}>Bật hoặc tắt các tính năng cho người dùng cuối.</Text>
-
-        <View style={styles.featureRow}>
-          <View style={styles.featureInfo}>
-            <Text style={styles.featureLabel}>Hồ sơ & Xác thực SĐT</Text>
-            <Text style={styles.featureDescription}>Cho phép người dùng đăng nhập, quản lý hồ sơ và xác thực số điện thoại sau khi đặt hàng.</Text>
+      <ScrollView>
+        <View style={styles.contentWrapper}>
+          <Text style={styles.title}>Ảnh quảng cáo ở trang chủ</Text>
+          <Text style={styles.subtitle}>Ảnh này sẽ hiển thị ở đầu màn hình Menu của khách hàng.</Text>
+          
+          <View style={styles.imageContainer}>
+            {loadingImage ? (
+              <ActivityIndicator size="large" color="#73509c" />
+            ) : (
+              <Image 
+                source={{ uri: imageUrl || 'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png' }} 
+                style={styles.imagePreview} 
+              />
+            )}
           </View>
-          {loadingFeatures ? <ActivityIndicator color="#73509c" /> : (
-            <Switch
-              trackColor={{ false: "#d1d5db", true: "#a78bfa" }}
-              thumbColor={isProfileFeatureEnabled ? "#73509c" : "#f4f3f4"}
-              ios_backgroundColor="#3e3e3e"
-              onValueChange={handleToggleProfileFeature}
-              value={isProfileFeatureEnabled}
-              disabled={savingFeatures}
-            />
-          )}
+
+          <TouchableOpacity style={styles.changeButton} onPress={pickImage}>
+            <Ionicons name="image-outline" size={20} color="#73509c" />
+            <Text style={styles.changeButtonText}>Thay đổi ảnh</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveImage} disabled={uploading || !selectedImage}>
+            {uploading ? <ActivityIndicator color="#fff" /> : (<><Ionicons name="save-outline" size={20} color="#fff" /><Text style={styles.saveButtonText}>Lưu thay đổi</Text></>)}
+          </TouchableOpacity>
+
+          <View style={styles.separator} />
+
+          <Text style={styles.title}>Quản lý tính năng</Text>
+          <Text style={styles.subtitle}>Bật hoặc tắt các tính năng cho người dùng cuối.</Text>
+
+          <View style={styles.featureRow}>
+            <View style={styles.featureInfo}>
+              <Text style={styles.featureLabel}>Hồ sơ & Xác thực SĐT</Text>
+              <Text style={styles.featureDescription}>Cho phép người dùng đăng nhập, quản lý hồ sơ và xác thực số điện thoại sau khi đặt hàng.</Text>
+            </View>
+            {loadingFeatures ? <ActivityIndicator color="#73509c" /> : (
+              <Switch
+                trackColor={{ false: "#d1d5db", true: "#a78bfa" }}
+                thumbColor={isProfileFeatureEnabled ? "#73509c" : "#f4f3f4"}
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={handleToggleProfileFeature}
+                value={isProfileFeatureEnabled}
+                disabled={savingFeatures}
+              />
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -186,7 +188,12 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   headerTitle: { fontSize: 18, fontWeight: '600' },
-  container: { padding: 16 },
+  contentWrapper: {
+    maxWidth: 960,
+    width: '100%',
+    alignSelf: 'center',
+    padding: 24,
+  },
   title: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
   subtitle: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
   imageContainer: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#e5e7eb', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 16, overflow: 'hidden' },
