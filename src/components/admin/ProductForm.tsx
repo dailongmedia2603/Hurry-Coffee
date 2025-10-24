@@ -6,6 +6,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Product, ProductCategory, Topping } from '@/types';
 import CategoryPickerModal from './CategoryPickerModal';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 const formatCurrency = (value: string) => {
   if (!value) return '';
@@ -47,6 +48,8 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
   const [allCategories, setAllCategories] = useState<ProductCategory[]>([]);
   const [isCategoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   const fetchData = useCallback(async () => {
     setDataLoading(true);
@@ -217,9 +220,9 @@ const ProductForm = ({ visible, onClose, onSave, product: existingProduct }: Pro
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{existingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
@@ -315,6 +318,18 @@ const styles = StyleSheet.create({
   toppingPrice: { fontSize: 16, color: '#6b7280' },
   saveButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default ProductForm;

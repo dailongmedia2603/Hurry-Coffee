@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   mobileItemImage: {
     width: 100,
-    height: 100,
+    height: 'auto',
     backgroundColor: '#f3f4f6',
   },
   mobileItemInfo: {
