@@ -54,28 +54,42 @@ const customDatePickerStyles = `
 `;
 
 type WebDatePickerProps = {
-  selectedDate: Date | null;
-  onChange: (date: Date | null) => void;
+  startDate: Date | null;
+  endDate: Date | null;
+  onChange: (dates: [Date | null, Date | null]) => void;
 };
 
-const WebDatePicker = ({ selectedDate, onChange }: WebDatePickerProps) => {
+const WebDatePicker = ({ startDate, endDate, onChange }: WebDatePickerProps) => {
   const CustomInput = React.forwardRef<any, { value?: string; onClick?: () => void }>(
-    ({ value, onClick }, ref) => (
-      <TouchableOpacity style={styles.datePickerButton} onPress={onClick} ref={ref}>
-        <Ionicons name="calendar-outline" size={20} color="#666" />
-        <Text style={styles.datePickerButtonText}>
-          {selectedDate ? selectedDate.toLocaleDateString('vi-VN') : 'Chọn ngày'}
-        </Text>
-      </TouchableOpacity>
-    )
+    ({ value, onClick }, ref) => {
+      const formatDate = (date: Date | null) => date ? date.toLocaleDateString('vi-VN') : '';
+      
+      let displayText = 'Chọn ngày';
+      if (startDate && !endDate) {
+        displayText = `${formatDate(startDate)} - ...`;
+      } else if (startDate && endDate) {
+        displayText = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+      }
+
+      return (
+        <TouchableOpacity style={styles.datePickerButton} onPress={onClick} ref={ref}>
+          <Ionicons name="calendar-outline" size={20} color="#666" />
+          <Text style={styles.datePickerButtonText}>
+            {displayText}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
   );
 
   return (
     <View>
       <style>{customDatePickerStyles}</style>
       <DatePicker
-        selected={selectedDate}
+        startDate={startDate}
+        endDate={endDate}
         onChange={onChange}
+        selectsRange
         customInput={<CustomInput />}
         dateFormat="dd/MM/yyyy"
         popperPlacement="bottom-start"

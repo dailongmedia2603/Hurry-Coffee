@@ -52,7 +52,7 @@ export default function StaffOrdersScreen() {
 
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
   const [isStatusFilterOpen, setStatusFilterOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const fetchOrders = useCallback(async (isInitialLoad = false) => {
@@ -96,22 +96,26 @@ export default function StaffOrdersScreen() {
     let filtered = orders;
     if (selectedLocationId !== 'all') filtered = filtered.filter(order => order.pickup_location_id === selectedLocationId);
     if (selectedStatus !== 'all') filtered = filtered.filter(order => order.status === selectedStatus);
-    if (selectedDate) {
-        const startDate = new Date(selectedDate);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(selectedDate);
-        endDate.setHours(23, 59, 59, 999);
+    
+    const [startDate, endDate] = dateRange;
+    if (startDate) {
+        const rangeStart = new Date(startDate);
+        rangeStart.setHours(0, 0, 0, 0);
+        
+        const rangeEnd = endDate ? new Date(endDate) : new Date(startDate);
+        rangeEnd.setHours(23, 59, 59, 999);
+
         filtered = filtered.filter(order => {
             const orderDate = new Date(order.created_at);
-            return orderDate >= startDate && orderDate <= endDate;
+            return orderDate >= rangeStart && orderDate <= rangeEnd;
         });
     }
     return filtered;
-  }, [orders, selectedLocationId, selectedStatus, selectedDate]);
+  }, [orders, selectedLocationId, selectedStatus, dateRange]);
 
   const clearFilters = () => {
     setSelectedStatus('all');
-    setSelectedDate(null);
+    setDateRange([null, null]);
   };
 
   const handleOpenTransferModal = (orderId: string) => {
@@ -160,6 +164,7 @@ export default function StaffOrdersScreen() {
 
   const selectedLocationName = selectedLocationId === 'all' ? 'Tất cả địa điểm' : assignedLocations.find(loc => loc.id === selectedLocationId)?.name || 'Tất cả địa điểm';
   const countForSelected = newOrderCounts[selectedLocationId] || 0;
+  const [startDate, endDate] = dateRange;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -216,8 +221,8 @@ export default function StaffOrdersScreen() {
                     )}
                 </View>
                 <View style={styles.datePickerWrapper}>
-                    <WebDatePicker selectedDate={selectedDate} onChange={(date) => setSelectedDate(date)} />
-                    {selectedDate && (<TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDateButton}><Ionicons name="close-circle" size={24} color="#999" /></TouchableOpacity>)}
+                    <WebDatePicker startDate={startDate} endDate={endDate} onChange={(update) => setDateRange(update)} />
+                    {(startDate || endDate) && (<TouchableOpacity onPress={() => setDateRange([null, null])} style={styles.clearDateButton}><Ionicons name="close-circle" size={24} color="#999" /></TouchableOpacity>)}
                 </View>
             </View>
             <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}><Text style={styles.clearFilterButtonText}>Xoá bộ lọc</Text></TouchableOpacity>
