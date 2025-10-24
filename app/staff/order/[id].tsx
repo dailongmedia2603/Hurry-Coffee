@@ -150,6 +150,16 @@ export default function StaffOrderDetailScreen() {
         ]);
     };
 
+    const handleCallCustomer = () => {
+        if (order && order.customer_phone) {
+            Linking.openURL(`tel:${order.customer_phone}`);
+        }
+    };
+
+    const handleOpenTransferModal = () => {
+        setTransferModalVisible(true);
+    };
+
     const renderActionButtons = () => {
         if (!order) return null;
 
@@ -186,7 +196,7 @@ export default function StaffOrderDetailScreen() {
         const transferButton = (
             <TouchableOpacity 
                 style={styles.transferButton} 
-                onPress={() => setTransferModalVisible(true)}
+                onPress={handleOpenTransferModal}
                 disabled={updating}
             >
                 <Ionicons name="swap-horizontal-outline" size={20} color="#3b82f6" />
@@ -197,7 +207,7 @@ export default function StaffOrderDetailScreen() {
         const callButton = order.customer_phone ? (
             <TouchableOpacity 
                 style={[styles.secondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
-                onPress={() => Linking.openURL(`tel:${order.customer_phone}`)}
+                onPress={handleCallCustomer}
                 disabled={updating}
             >
                 <Ionicons name="call-outline" size={20} color="#0284c7" />
