@@ -69,26 +69,26 @@ serve(async (req) => {
         continue;
       }
 
-      let parsedSizes = [];
-      let basePrice = 0;
-      try {
-        if (row.sizes) {
-          parsedSizes = JSON.parse(row.sizes);
-          if (!Array.isArray(parsedSizes) || parsedSizes.length === 0 || typeof parsedSizes[0].price === 'undefined') {
-            throw new Error("Định dạng JSON không hợp lệ hoặc thiếu giá.");
+      const parsedSizes = [];
+      for (let j = 1; j <= 3; j++) { // Check for up to 3 sizes
+        const sizeName = row[`size_${j}_name`];
+        const sizePrice = row[`size_${j}_price`];
+        if (sizeName && (sizePrice !== undefined && sizePrice !== null)) {
+          const price = Number(sizePrice);
+          if (isNaN(price)) {
+            errors.push(`Dòng ${rowNum}: Giá của size ${j} ("${sizePrice}") không hợp lệ.`);
+            continue;
           }
-          basePrice = Number(parsedSizes[0].price);
-        } else {
-          if (typeof row.price === 'undefined' || isNaN(Number(row.price))) {
-             throw new Error("Cột 'price' là bắt buộc nếu 'sizes' không được cung cấp.");
-          }
-          basePrice = Number(row.price);
-          parsedSizes = [{ name: 'M', price: basePrice }];
+          parsedSizes.push({ name: String(sizeName), price });
         }
-      } catch (e) {
-        errors.push(`Dòng ${rowNum}: Cột 'sizes' có lỗi: ${e.message}`);
+      }
+
+      if (parsedSizes.length === 0) {
+        errors.push(`Dòng ${rowNum}: Sản phẩm phải có ít nhất một size hợp lệ (size_1_name và size_1_price).`);
         continue;
       }
+      
+      const basePrice = parsedSizes[0].price;
 
       const productRecord = {
         name: row.name,
@@ -96,7 +96,7 @@ serve(async (req) => {
         category: row.category || null,
         price: basePrice,
         sizes: parsedSizes,
-        available_options: row.available_options ? row.available_options.split(',').map(s => s.trim()) : [],
+        available_options: row.available_options ? String(row.available_options).split(',').map(s => s.trim()) : [],
       };
       productsToInsert.push(productRecord);
     }

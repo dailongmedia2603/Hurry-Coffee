@@ -33,16 +33,18 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
         name: 'Cà phê sữa đá',
         description: 'Cà phê đậm đà kết hợp với sữa đặc ngọt ngào.',
         category: 'Coffee',
-        price: 25000,
-        sizes: '[{"name": "M", "price": 25000}, {"name": "L", "price": 30000}]',
+        size_1_name: 'M',
+        size_1_price: 25000,
+        size_2_name: 'L',
+        size_2_price: 30000,
         available_options: 'Ít ngọt, Nhiều đá, Đá riêng',
       },
       {
         name: 'Trà sữa trân châu',
         description: 'Trà sữa béo ngậy cùng trân châu dai ngon.',
         category: 'Trà Sữa',
-        price: 35000,
-        sizes: '[{"name": "M", "price": 35000}]',
+        size_1_name: 'M',
+        size_1_price: 35000,
         available_options: '70% đường, 50% đường, 100% đá',
       },
     ]);
@@ -50,7 +52,11 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Sản phẩm');
     
     worksheet['!cols'] = [
-      { wch: 30 }, { wch: 50 }, { wch: 20 }, { wch: 15 }, { wch: 50 }, { wch: 40 },
+      { wch: 30 }, { wch: 50 }, { wch: 20 },
+      { wch: 15 }, { wch: 15 }, // size 1
+      { wch: 15 }, { wch: 15 }, // size 2
+      { wch: 15 }, { wch: 15 }, // size 3
+      { wch: 40 },
     ];
 
     const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
