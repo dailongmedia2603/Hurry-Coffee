@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, TouchableOpacity, Platform, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
@@ -50,7 +50,6 @@ export default function StaffOrdersScreen() {
   const [selectedLocationId, setSelectedLocationId] = useState<string | 'all'>('all');
   const [isLocationFilterOpen, setLocationFilterOpen] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
@@ -107,12 +106,8 @@ export default function StaffOrdersScreen() {
             return orderDate >= startDate && orderDate <= endDate;
         });
     }
-    if (searchQuery) {
-        const lowercasedQuery = searchQuery.toLowerCase();
-        filtered = filtered.filter(order => order.id.substring(0, 8).toLowerCase().includes(lowercasedQuery));
-    }
     return filtered;
-  }, [orders, selectedLocationId, selectedStatus, selectedDate, searchQuery]);
+  }, [orders, selectedLocationId, selectedStatus, selectedDate]);
 
   const onDateChange = (event: any, selectedDateValue?: Date) => {
     setDatePickerVisible(Platform.OS === 'ios');
@@ -168,47 +163,44 @@ export default function StaffOrdersScreen() {
     );
   };
 
-  const renderLocationFilter = () => {
-    if (assignedLocations.length <= 1) return null;
-    const selectedLocationName = selectedLocationId === 'all' ? 'Tất cả địa điểm' : assignedLocations.find(loc => loc.id === selectedLocationId)?.name || 'Tất cả địa điểm';
-    const countForSelected = newOrderCounts[selectedLocationId] || 0;
-
-    return (
-      <View style={styles.locationFilterContainer}>
-        <TouchableOpacity style={styles.filterButton} onPress={() => setLocationFilterOpen(!isLocationFilterOpen)}>
-          <Ionicons name="storefront-outline" size={20} color="#6b7280" />
-          <Text style={styles.filterButtonText}>{selectedLocationName}</Text>
-          {!isLocationFilterOpen && countForSelected > 0 && (<View style={[styles.badge, { marginRight: 8 }]}><Text style={styles.badgeText}>{countForSelected}</Text></View>)}
-          <Ionicons name={isLocationFilterOpen ? "chevron-up-outline" : "chevron-down-outline"} size={20} color="#6b7280" />
-        </TouchableOpacity>
-        {isLocationFilterOpen && (
-          <View style={styles.filterDropdown}>
-            <TouchableOpacity style={styles.filterOption} onPress={() => { setSelectedLocationId('all'); setLocationFilterOpen(false); }}>
-              <Text style={styles.filterOptionText}>Tất cả địa điểm</Text>
-              {newOrderCounts['all'] > 0 && (<View style={styles.badge}><Text style={styles.badgeText}>{newOrderCounts['all']}</Text></View>)}
-            </TouchableOpacity>
-            {assignedLocations.map(location => {
-              const count = newOrderCounts[location.id] || 0;
-              return (
-                <TouchableOpacity key={location.id} style={styles.filterOption} onPress={() => { setSelectedLocationId(location.id); setLocationFilterOpen(false); }}>
-                  <Text style={styles.filterOptionText}>{location.name}</Text>
-                  {count > 0 && (<View style={styles.badge}><Text style={styles.badgeText}>{count}</Text></View>)}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-      </View>
-    );
-  };
+  const selectedLocationName = selectedLocationId === 'all' ? 'Tất cả địa điểm' : assignedLocations.find(loc => loc.id === selectedLocationId)?.name || 'Tất cả địa điểm';
+  const countForSelected = newOrderCounts[selectedLocationId] || 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {renderLocationFilter()}
-      <View style={styles.searchAndFilterContainer}>
-        <View style={styles.searchBar}><Ionicons name="search" size={20} color="#989898" style={{marginRight: 12}} /><TextInput placeholder="Tìm theo mã đơn hàng..." style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} /></View>
-        <TouchableOpacity style={styles.filterToggleButton} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}><Ionicons name="options-outline" size={24} color="#333" /></TouchableOpacity>
+      <View style={styles.topControlsContainer}>
+        {assignedLocations.length > 1 && (
+            <View style={styles.locationFilterWrapper}>
+                <TouchableOpacity style={styles.filterButton} onPress={() => setLocationFilterOpen(!isLocationFilterOpen)}>
+                    <Ionicons name="storefront-outline" size={20} color="#6b7280" />
+                    <Text style={styles.filterButtonText}>{selectedLocationName}</Text>
+                    {!isLocationFilterOpen && countForSelected > 0 && (<View style={[styles.badge, { marginRight: 8 }]}><Text style={styles.badgeText}>{countForSelected}</Text></View>)}
+                    <Ionicons name={isLocationFilterOpen ? "chevron-up-outline" : "chevron-down-outline"} size={20} color="#6b7280" />
+                </TouchableOpacity>
+                {isLocationFilterOpen && (
+                    <View style={styles.filterDropdown}>
+                        <TouchableOpacity style={styles.filterOption} onPress={() => { setSelectedLocationId('all'); setLocationFilterOpen(false); }}>
+                            <Text style={styles.filterOptionText}>Tất cả địa điểm</Text>
+                            {newOrderCounts['all'] > 0 && (<View style={styles.badge}><Text style={styles.badgeText}>{newOrderCounts['all']}</Text></View>)}
+                        </TouchableOpacity>
+                        {assignedLocations.map(location => {
+                            const count = newOrderCounts[location.id] || 0;
+                            return (
+                                <TouchableOpacity key={location.id} style={styles.filterOption} onPress={() => { setSelectedLocationId(location.id); setLocationFilterOpen(false); }}>
+                                    <Text style={styles.filterOptionText}>{location.name}</Text>
+                                    {count > 0 && (<View style={styles.badge}><Text style={styles.badgeText}>{count}</Text></View>)}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
+            </View>
+        )}
+        <TouchableOpacity style={styles.filterToggleButton} onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+            <Ionicons name="options-outline" size={24} color="#333" />
+        </TouchableOpacity>
       </View>
+      
       {showAdvancedFilters && (
         <View style={styles.filterPanel}>
           <Text style={styles.filterSectionTitle}>Trạng thái</Text>
@@ -233,7 +225,7 @@ export default function StaffOrdersScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f4f6' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContainer: { padding: 16, paddingTop: 0 },
+  listContainer: { padding: 16, paddingTop: 16 },
   itemCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   itemName: { fontSize: 16, fontWeight: 'bold', flex: 1, marginRight: 8 },
@@ -253,18 +245,54 @@ const styles = StyleSheet.create({
   verificationText: { color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
   transferButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingVertical: 10, borderRadius: 8, marginTop: 12, borderWidth: 1, borderColor: '#dbeafe' },
   transferButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 6 },
-  locationFilterContainer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, backgroundColor: '#f3f4f6', zIndex: 10 },
-  filterButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' },
+  topControlsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#f3f4f6',
+    gap: 12,
+  },
+  locationFilterWrapper: {
+    flex: 1,
+    zIndex: 10,
+  },
+  filterButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    paddingVertical: 12, 
+    paddingHorizontal: 16, 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    borderColor: '#e5e7eb' 
+  },
   filterButtonText: { flex: 1, marginLeft: 8, fontSize: 16, fontWeight: '500' },
-  filterDropdown: { backgroundColor: '#fff', borderRadius: 8, marginTop: 4, borderWidth: 1, borderColor: '#e5e7eb', position: 'absolute', top: 65, left: 16, right: 16 },
+  filterToggleButton: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 8, 
+    backgroundColor: '#fff', 
+    borderColor: '#e5e7eb', 
+    borderWidth: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  filterDropdown: { 
+    backgroundColor: '#fff', 
+    borderRadius: 8, 
+    marginTop: 4, 
+    borderWidth: 1, 
+    borderColor: '#e5e7eb', 
+    position: 'absolute', 
+    top: 55, 
+    left: 0, 
+    right: 0 
+  },
   filterOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   filterOptionText: { fontSize: 16, marginRight: 8 },
   badge: { backgroundColor: '#73509c', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   badgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
-  searchAndFilterContainer: { flexDirection: 'row', padding: 16, paddingTop: 0, alignItems: 'center', backgroundColor: '#f3f4f6' },
-  searchBar: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderColor: "#e5e7eb", borderRadius: 8, borderWidth: 1, paddingHorizontal: 16, height: 50, marginRight: 12 },
-  searchInput: { color: "#333", fontSize: 14, flex: 1 },
-  filterToggleButton: { width: 50, height: 50, borderRadius: 8, backgroundColor: '#fff', borderColor: '#e5e7eb', borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
   filterPanel: { backgroundColor: '#fff', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   filterSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 },
   statusFilterContainer: { paddingBottom: 12 },
