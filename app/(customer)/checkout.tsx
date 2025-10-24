@@ -7,6 +7,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import ConfirmationModal, { ConfirmationDetails } from '@/src/components/ConfirmationModal';
 import { getAnonymousId } from '@/src/utils/anonymousId';
 import VerifyPhoneModal from '@/src/components/VerifyPhoneModal';
+import OrderSuccessModal from '@/src/components/OrderSuccessModal';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -23,6 +24,7 @@ export default function CheckoutScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isVerifyModalVisible, setVerifyModalVisible] = useState(false);
   const [phoneToVerify, setPhoneToVerify] = useState('');
+  const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
 
   const handlePlaceOrder = async (details: ConfirmationDetails) => {
     setLoading(true);
@@ -95,9 +97,8 @@ export default function CheckoutScreen() {
         setPhoneToVerify(details.phone);
         setVerifyModalVisible(true);
       } else {
-        // Logged in user, show success and navigate
-        router.replace('/(customer)/cart');
-        Alert.alert("Thành công", "Đơn hàng của bạn đã được đặt thành công!");
+        // Logged in user, show success modal
+        setSuccessModalVisible(true);
       }
 
     } catch (error) {
@@ -114,6 +115,11 @@ export default function CheckoutScreen() {
 
   const handleCloseVerifyModal = () => {
     setVerifyModalVisible(false);
+    router.replace('/(customer)/cart');
+  };
+
+  const handleCloseSuccessModal = () => {
+    setSuccessModalVisible(false);
     router.replace('/(customer)/cart');
   };
 
@@ -209,6 +215,10 @@ export default function CheckoutScreen() {
         visible={isVerifyModalVisible}
         phone={phoneToVerify}
         onClose={handleCloseVerifyModal}
+      />
+      <OrderSuccessModal
+        visible={isSuccessModalVisible}
+        onClose={handleCloseSuccessModal}
       />
     </SafeAreaView>
   );
