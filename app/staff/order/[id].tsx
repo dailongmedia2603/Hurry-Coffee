@@ -166,7 +166,8 @@ export default function StaffOrderDetailScreen() {
         const getNextStatus = (): OrderStatus | null => {
             switch (order.status) {
                 case 'Đang xử lý': return 'Đang làm';
-                case 'Đang làm': return 'Hoàn thành';
+                case 'Đang làm': return order.order_type === 'pickup' ? 'Sẵn sàng' : 'Đang giao';
+                case 'Sẵn sàng': case 'Đang giao': return 'Hoàn thành';
                 default: return null;
             }
         };
@@ -174,7 +175,9 @@ export default function StaffOrderDetailScreen() {
         const getButtonText = (): string => {
             switch (order.status) {
                 case 'Đang xử lý': return 'Bắt đầu làm';
-                case 'Đang làm': return 'Hoàn thành';
+                case 'Đang làm': return order.order_type === 'pickup' ? 'Đã làm xong' : 'Bắt đầu giao';
+                case 'Sẵn sàng': return 'Hoàn thành (Khách đã lấy)';
+                case 'Đang giao': return 'Hoàn thành (Đã giao)';
                 default: return '';
             }
         };
@@ -182,7 +185,7 @@ export default function StaffOrderDetailScreen() {
         const nextStatus = getNextStatus();
         const mainActionButton = nextStatus ? (
             <TouchableOpacity 
-                style={[styles.actionButton, order.status === 'Đang làm' && styles.completeButton]} 
+                style={styles.actionButton} 
                 onPress={() => handleUpdateStatus(nextStatus)}
                 disabled={updating}
             >
@@ -301,7 +304,7 @@ export default function StaffOrderDetailScreen() {
                     <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Số điện thoại</Text>
-                        <TouchableOpacity onPress={() => order.customer_phone && Linking.openURL(`tel:${order.customer_phone}`)}>
+                        <TouchableOpacity onPress={handleCallCustomer}>
                             <Text style={[styles.infoValue, styles.phoneLink]}>
                                 {formatDisplayPhone(order.customer_phone) || 'Không có'}
                             </Text>
