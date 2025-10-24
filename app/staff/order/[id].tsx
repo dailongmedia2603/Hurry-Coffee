@@ -206,7 +206,7 @@ export default function StaffOrderDetailScreen() {
 
         const callButton = order.customer_phone ? (
             <TouchableOpacity 
-                style={[styles.secondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
+                style={[styles.smallSecondaryButton, { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }]} 
                 onPress={handleCallCustomer}
                 disabled={updating}
             >
@@ -218,12 +218,12 @@ export default function StaffOrderDetailScreen() {
         const canCancel = !['Hoàn thành', 'Đã hủy', 'Không liên hệ được'].includes(order.status);
         const uncontactableButton = canCancel ? (
             <TouchableOpacity 
-                style={[styles.secondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
+                style={[styles.largeSecondaryButton, { backgroundColor: '#fee2e2', borderColor: '#ef4444' }]} 
                 onPress={handleUncontactable}
                 disabled={updating}
             >
                 <Ionicons name="close-circle-outline" size={20} color="#ef4444" />
-                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không liên hệ</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không liên hệ được</Text>
             </TouchableOpacity>
         ) : null;
 
@@ -239,8 +239,8 @@ export default function StaffOrderDetailScreen() {
                 </View>
                 {(callButton || uncontactableButton) && (
                     <View style={styles.secondaryActionsContainer}>
-                        {callButton}
                         {uncontactableButton}
+                        {callButton}
                     </View>
                 )}
             </View>
@@ -372,7 +372,8 @@ const styles = StyleSheet.create({
     transferButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#3b82f6' },
     transferButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 6, fontSize: 16 },
     secondaryActionsContainer: { flexDirection: 'row', gap: 12 },
-    secondaryButton: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
+    largeSecondaryButton: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
+    smallSecondaryButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
     secondaryButtonText: { fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
     phoneLink: { color: '#3b82f6', textDecorationLine: 'underline' },
 });
