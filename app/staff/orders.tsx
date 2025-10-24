@@ -110,12 +110,13 @@ export default function StaffOrdersScreen() {
   }, [orders, selectedLocationId, selectedStatus, selectedDate]);
 
   const onDateChange = (event: any, selectedDateValue?: Date) => {
-    const isSet = event.type === 'set';
-    if (Platform.OS !== 'web' || isSet) {
+    if (event.type === 'set') {
       setDatePickerVisible(false);
-    }
-    if (isSet && selectedDateValue) {
-      setSelectedDate(selectedDateValue);
+      if (selectedDateValue) {
+        setSelectedDate(selectedDateValue);
+      }
+    } else {
+      setDatePickerVisible(false);
     }
   };
 
