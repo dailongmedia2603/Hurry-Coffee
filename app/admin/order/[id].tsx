@@ -6,6 +6,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { Order, OrderStatus, Product, Location, Topping } from '@/types';
 import OrderStatusTracker from '@/src/components/OrderStatusTracker';
 import { formatDisplayPhone } from '@/src/utils/formatters';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type OrderItemWithProduct = {
   quantity: number;
@@ -45,6 +46,7 @@ export default function AdminOrderDetailScreen() {
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
+    const { isDesktop } = useScreenSize();
 
     useEffect(() => {
         if (!id) return;
@@ -151,7 +153,7 @@ export default function AdminOrderDetailScreen() {
         if (!nextStatus) return null;
 
         return (
-            <View style={styles.actionContainer}>
+            <View style={[styles.actionContainer, !isDesktop && { paddingHorizontal: 16 }]}>
                 <TouchableOpacity 
                     style={styles.actionButton} 
                     onPress={() => handleUpdateStatus(nextStatus)}
@@ -184,51 +186,107 @@ export default function AdminOrderDetailScreen() {
                 <View style={{ width: 24 }} /> 
             </View>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <OrderStatusTracker status={order.status} orderType={order.order_type} />
-                {renderActionButtons()}
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
-                    {order.order_items.map((item, index) => (
-                        <View key={index} style={[styles.itemContainer, index === order.order_items.length - 1 && { borderBottomWidth: 0 }]}>
-                            <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
-                            <View style={styles.itemDetails}>
-                                <View style={styles.itemHeaderRow}>
-                                    <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
-                                    <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
-                                </View>
-                                
-                                {(item.size || (item.toppings && item.toppings.length > 0) || (item.options && item.options.length > 0)) && (
-                                    <View style={styles.customizationsWrapper}>
-                                        {item.size && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Size:</Text> {item.size}</Text>}
-                                        {item.toppings && item.toppings.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Topping:</Text> {item.toppings.map(t => t.name).join(', ')}</Text>}
-                                        {item.options && item.options.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Tuỳ chọn:</Text> {item.options.join(', ')}</Text>}
+                {isDesktop ? (
+                    <View style={styles.desktopContainer}>
+                        <View style={styles.leftColumn}>
+                            <OrderStatusTracker status={order.status} orderType={order.order_type} />
+                            {renderActionButtons()}
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
+                                {order.order_items.map((item, index) => (
+                                    <View key={index} style={[styles.itemContainer, index === order.order_items.length - 1 && { borderBottomWidth: 0 }]}>
+                                        <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+                                        <View style={styles.itemDetails}>
+                                            <View style={styles.itemHeaderRow}>
+                                                <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
+                                                <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
+                                            </View>
+                                            
+                                            {(item.size || (item.toppings && item.toppings.length > 0) || (item.options && item.options.length > 0)) && (
+                                                <View style={styles.customizationsWrapper}>
+                                                    {item.size && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Size:</Text> {item.size}</Text>}
+                                                    {item.toppings && item.toppings.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Topping:</Text> {item.toppings.map(t => t.name).join(', ')}</Text>}
+                                                    {item.options && item.options.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Tuỳ chọn:</Text> {item.options.join(', ')}</Text>}
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
-                                )}
+                                ))}
+                            </View>
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Chi phí</Text>
+                                <InfoRow label="Tạm tính" value={formatPrice(subtotal)} />
+                                <InfoRow label="Phí giao hàng" value={formatPrice(deliveryFee)} />
+                                <View style={styles.separator} />
+                                <InfoRow label="Tổng cộng" value={formatPrice(order.total)} valueStyle={styles.totalPrice} />
                             </View>
                         </View>
-                    ))}
-                </View>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Chi phí</Text>
-                    <InfoRow label="Tạm tính" value={formatPrice(subtotal)} />
-                    <InfoRow label="Phí giao hàng" value={formatPrice(deliveryFee)} />
-                    <View style={styles.separator} />
-                    <InfoRow label="Tổng cộng" value={formatPrice(order.total)} valueStyle={styles.totalPrice} />
-                </View>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Thông tin</Text>
-                    <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
-                    <InfoRow label="Số điện thoại" value={formatDisplayPhone(order.customer_phone) || 'Không có'} />
-                    <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
-                    <InfoRow label="Địa điểm" value={order.locations?.name || 'Đang xác định...'} />
-                    <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
-                </View>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
-                    <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
-                    <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
-                    <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
-                </View>
+                        <View style={styles.rightColumn}>
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Thông tin</Text>
+                                <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
+                                <InfoRow label="Số điện thoại" value={formatDisplayPhone(order.customer_phone) || 'Không có'} />
+                                <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
+                                <InfoRow label="Địa điểm" value={order.locations?.name || 'Đang xác định...'} />
+                                <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
+                            </View>
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
+                                <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
+                                <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
+                                <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
+                            </View>
+                        </View>
+                    </View>
+                ) : (
+                    <>
+                        <OrderStatusTracker status={order.status} orderType={order.order_type} />
+                        {renderActionButtons()}
+                        <View style={[styles.card, { marginHorizontal: 16, marginTop: 16 }]}>
+                            <Text style={styles.cardTitle}>Tóm tắt đơn hàng</Text>
+                            {order.order_items.map((item, index) => (
+                                <View key={index} style={[styles.itemContainer, index === order.order_items.length - 1 && { borderBottomWidth: 0 }]}>
+                                    <Image source={{ uri: item.products?.image_url || 'https://via.placeholder.com/100' }} style={styles.itemImage} />
+                                    <View style={styles.itemDetails}>
+                                        <View style={styles.itemHeaderRow}>
+                                            <Text style={styles.itemName}>{item.quantity}x {item.products?.name}</Text>
+                                            <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
+                                        </View>
+                                        
+                                        {(item.size || (item.toppings && item.toppings.length > 0) || (item.options && item.options.length > 0)) && (
+                                            <View style={styles.customizationsWrapper}>
+                                                {item.size && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Size:</Text> {item.size}</Text>}
+                                                {item.toppings && item.toppings.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Topping:</Text> {item.toppings.map(t => t.name).join(', ')}</Text>}
+                                                {item.options && item.options.length > 0 && <Text style={styles.customizationText}><Text style={styles.customizationLabel}>Tuỳ chọn:</Text> {item.options.join(', ')}</Text>}
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                        <View style={[styles.card, { marginHorizontal: 16, marginTop: 16 }]}>
+                            <Text style={styles.cardTitle}>Chi phí</Text>
+                            <InfoRow label="Tạm tính" value={formatPrice(subtotal)} />
+                            <InfoRow label="Phí giao hàng" value={formatPrice(deliveryFee)} />
+                            <View style={styles.separator} />
+                            <InfoRow label="Tổng cộng" value={formatPrice(order.total)} valueStyle={styles.totalPrice} />
+                        </View>
+                        <View style={[styles.card, { marginHorizontal: 16, marginTop: 16 }]}>
+                            <Text style={styles.cardTitle}>Thông tin</Text>
+                            <InfoRow label="Tên khách hàng" value={order.customer_name || 'Không có'} />
+                            <InfoRow label="Số điện thoại" value={formatDisplayPhone(order.customer_phone) || 'Không có'} />
+                            <InfoRow label="Loại đơn" value={order.order_type === 'delivery' ? 'Giao hàng' : 'Ghé lấy'} />
+                            <InfoRow label="Địa điểm" value={order.locations?.name || 'Đang xác định...'} />
+                            <InfoRow label={order.order_type === 'delivery' ? 'Địa chỉ giao' : 'Nơi nhận'} value={order.order_type === 'delivery' ? (order.delivery_address || '') : (order.locations?.name || '')} />
+                        </View>
+                        <View style={[styles.card, { marginHorizontal: 16, marginTop: 16 }]}>
+                            <Text style={styles.cardTitle}>Chi tiết đơn hàng</Text>
+                            <InfoRow label="Mã đơn hàng" value={`#${order.id.substring(0, 8)}`} />
+                            <InfoRow label="Thời gian đặt" value={new Date(order.created_at).toLocaleString('vi-VN')} />
+                            <InfoRow label="Ghi chú" value={order.notes || 'Không có'} />
+                        </View>
+                    </>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -241,7 +299,7 @@ const styles = StyleSheet.create({
     backButton: { padding: 4 },
     headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center', marginHorizontal: 8 },
     scrollContainer: { paddingBottom: 40 },
-    card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+    card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
     cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
     itemContainer: {
         flexDirection: 'row',
@@ -280,7 +338,6 @@ const styles = StyleSheet.create({
     separator: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 8 },
     totalPrice: { fontWeight: 'bold', fontSize: 18, color: '#73509c' },
     actionContainer: {
-        paddingHorizontal: 16,
         paddingTop: 16,
     },
     actionButton: { 
@@ -298,5 +355,18 @@ const styles = StyleSheet.create({
         color: '#fff', 
         fontSize: 16, 
         fontWeight: 'bold' 
+    },
+    desktopContainer: {
+        flexDirection: 'row',
+        padding: 24,
+        gap: 24,
+    },
+    leftColumn: {
+        flex: 2,
+        gap: 24,
+    },
+    rightColumn: {
+        flex: 1,
+        gap: 24,
     },
 });
