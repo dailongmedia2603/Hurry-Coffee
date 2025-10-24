@@ -79,6 +79,23 @@ export default function StaffOrdersScreen() {
     }, [fetchOrders, fetchAssignedLocations])
   );
 
+  const newOrderCounts = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    let total = 0;
+
+    orders.forEach(order => {
+        if (order.status === 'Đang xử lý') {
+            total++;
+            if (order.pickup_location_id) {
+                counts[order.pickup_location_id] = (counts[order.pickup_location_id] || 0) + 1;
+            }
+        }
+    });
+
+    counts['all'] = total;
+    return counts;
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     if (selectedLocationId === 'all') {
       return orders;
@@ -183,19 +200,32 @@ export default function StaffOrdersScreen() {
               }}
             >
               <Text style={styles.filterOptionText}>Tất cả địa điểm</Text>
+              {newOrderCounts['all'] > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{newOrderCounts['all']}</Text>
+                </View>
+              )}
             </TouchableOpacity>
-            {assignedLocations.map(location => (
-              <TouchableOpacity
-                key={location.id}
-                style={styles.filterOption}
-                onPress={() => {
-                  setSelectedLocationId(location.id);
-                  setIsFilterOpen(false);
-                }}
-              >
-                <Text style={styles.filterOptionText}>{location.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {assignedLocations.map(location => {
+              const count = newOrderCounts[location.id] || 0;
+              return (
+                <TouchableOpacity
+                  key={location.id}
+                  style={styles.filterOption}
+                  onPress={() => {
+                    setSelectedLocationId(location.id);
+                    setIsFilterOpen(false);
+                  }}
+                >
+                  <Text style={styles.filterOptionText}>{location.name}</Text>
+                  {count > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{count}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>
@@ -289,6 +319,9 @@ const styles = StyleSheet.create({
     right: 16,
   },
   filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
@@ -296,5 +329,19 @@ const styles = StyleSheet.create({
   },
   filterOptionText: {
     fontSize: 16,
+    marginRight: 8,
+  },
+  badge: {
+    backgroundColor: '#73509c',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
