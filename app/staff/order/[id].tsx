@@ -166,7 +166,7 @@ export default function StaffOrderDetailScreen() {
         const getNextStatus = (): OrderStatus | null => {
             switch (order.status) {
                 case 'Đang xử lý': return 'Đang làm';
-                case 'Đang làm': return order.order_type === 'pickup' ? 'Sẵn sàng' : 'Đang giao';
+                case 'Đang làm': return 'Hoàn thành';
                 case 'Sẵn sàng': case 'Đang giao': return 'Hoàn thành';
                 default: return null;
             }
@@ -175,7 +175,7 @@ export default function StaffOrderDetailScreen() {
         const getButtonText = (): string => {
             switch (order.status) {
                 case 'Đang xử lý': return 'Bắt đầu làm';
-                case 'Đang làm': return order.order_type === 'pickup' ? 'Đã làm xong' : 'Bắt đầu giao';
+                case 'Đang làm': return 'Hoàn thành';
                 case 'Sẵn sàng': return 'Hoàn thành (Khách đã lấy)';
                 case 'Đang giao': return 'Hoàn thành (Đã giao)';
                 default: return '';
@@ -183,9 +183,11 @@ export default function StaffOrderDetailScreen() {
         };
 
         const nextStatus = getNextStatus();
+        const isCompleting = nextStatus === 'Hoàn thành';
+
         const mainActionButton = nextStatus ? (
             <TouchableOpacity 
-                style={styles.actionButton} 
+                style={[styles.actionButton, isCompleting && styles.completeButton]} 
                 onPress={() => handleUpdateStatus(nextStatus)}
                 disabled={updating}
             >
