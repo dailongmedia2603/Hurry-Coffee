@@ -23,7 +23,7 @@ const getStatusStyle = (status: OrderStatus) => {
   }
 };
 
-type OrderWithItemCount = Order & { items_count: number };
+type OrderWithItemCount = Order & { items_count: number; location_name: string | null };
 
 export default function StaffOrdersScreen() {
   const [orders, setOrders] = useState<OrderWithItemCount[]>([]);
@@ -93,6 +93,12 @@ export default function StaffOrdersScreen() {
           <Ionicons name="call-outline" size={16} color="#6b7280" />
           <Text style={styles.itemInfoText}>{formatDisplayPhone(item.customer_phone) || 'Không có SĐT'}</Text>
         </View>
+        {item.location_name && (
+          <View style={styles.itemInfoRow}>
+            <Ionicons name="storefront-outline" size={16} color="#6b7280" />
+            <Text style={styles.itemInfoText}>{item.location_name}</Text>
+          </View>
+        )}
         <View style={styles.itemFooter}>
           <Text style={styles.itemDate}>{formatDate(item.created_at)}</Text>
           <Text style={styles.itemPrice}>{formatPrice(item.total)}</Text>
