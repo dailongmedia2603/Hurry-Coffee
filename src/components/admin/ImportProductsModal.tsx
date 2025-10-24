@@ -15,11 +15,13 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<'success' | 'error' | null>(null);
 
   const resetState = () => {
     setFile(null);
     setLoading(false);
     setImportResult(null);
+    setImportStatus(null);
   };
 
   const handleClose = () => {
@@ -82,6 +84,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
       if (!result.canceled) {
         setFile(result.assets[0]);
         setImportResult(null);
+        setImportStatus(null);
       }
     } catch (err) {
       console.error('Error picking document:', err);
@@ -93,6 +96,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
     if (!file) return;
     setLoading(true);
     setImportResult(null);
+    setImportStatus(null);
 
     try {
       const response = await fetch(file.uri);
@@ -115,9 +119,28 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
 
           if (error) throw error;
 
-          setImportResult(`Thành công! Đã import ${result.successCount} sản phẩm. Thất bại: ${result.errorCount}. ${result.errors.length > 0 ? 'Chi tiết lỗi: ' + result.errors.join('; ') : ''}`);
+          const messageParts = [];
+          if (result.successCount > 0) {
+            messageParts.push(`Thành công: ${result.successCount} sản phẩm.`);
+          }
+          if (result.errorCount > 0) {
+            messageParts.push(`Thất bại: ${result.errorCount}.`);
+          }
+          if (result.errors.length > 0) {
+            messageParts.push(`Chi tiết lỗi: ${result.errors.join('; ')}`);
+          }
+
+          setImportResult(messageParts.join(' '));
+
+          if (result.errorCount > 0 || result.errors.length > 0) {
+            setImportStatus('error');
+          } else {
+            setImportStatus('success');
+          }
+
           if (result.successCount > 0) onSuccess();
         } catch (err: any) {
+          setImportStatus('error');
           setImportResult(`Lỗi: ${err.message}`);
         } finally {
           setLoading(false);
@@ -125,6 +148,7 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
       };
       reader.readAsBinaryString(blob);
     } catch (err: any) {
+      setImportStatus('error');
       setImportResult(`Lỗi: ${err.message}`);
       setLoading(false);
     }
@@ -155,7 +179,14 @@ const ImportProductsModal = ({ visible, onClose, onSuccess }: ImportProductsModa
             <Text style={styles.uploadButtonText} numberOfLines={1}>{file ? file.name : 'Chọn file Excel'}</Text>
           </TouchableOpacity>
 
-          {importResult && <Text style={styles.resultText}>{importResult}</Text>}
+          {importResult && (
+            <Text style={[
+              styles.resultText,
+              importStatus === 'error' ? styles.errorText : styles.successText
+            ]}>
+              {importResult}
+            </Text>
+          )}
 
           <TouchableOpacity style={styles.importButton} onPress={handleImport} disabled={loading || !file}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.importButtonText}>Bắt đầu Import</Text>}
@@ -180,7 +211,18 @@ const styles = StyleSheet.create({
   uploadButtonText: { color: '#3b82f6', fontWeight: 'bold', marginLeft: 8, flex: 1 },
   importButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 24 },
   importButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  resultText: { marginTop: 16, color: '#16a34a', textAlign: 'center', fontSize: 14 },
+  resultText: {
+    marginTop: 16,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  successText: {
+    color: '#16a34a',
+  },
+  errorText: {
+    color: '#ef4444',
+  },
 });
 
 export default ImportProductsModal;
