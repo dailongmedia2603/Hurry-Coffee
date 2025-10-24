@@ -201,7 +201,7 @@ export default function StaffOrderDetailScreen() {
                 disabled={updating}
             >
                 <Ionicons name="call-outline" size={20} color="#0284c7" />
-                <Text style={[styles.secondaryButtonText, { color: '#0284c7' }]}>Gọi điện</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#0284c7' }]}>Gọi</Text>
             </TouchableOpacity>
         ) : null;
 
@@ -213,7 +213,7 @@ export default function StaffOrderDetailScreen() {
                 disabled={updating}
             >
                 <Ionicons name="close-circle-outline" size={20} color="#ef4444" />
-                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không liên hệ được</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>Không liên hệ</Text>
             </TouchableOpacity>
         ) : null;
 
