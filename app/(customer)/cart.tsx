@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { SafeAreaView, View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import OrderCard from '@/src/components/OrderCard';
@@ -6,6 +6,7 @@ import { Order, Location } from '@/types';
 import { supabase } from "@/src/integrations/supabase/client";
 import { useFocusEffect } from "expo-router";
 import { storage } from "@/src/utils/storage";
+import { useAuth } from "@/src/context/AuthContext";
 
 const ANONYMOUS_ID_KEY = 'anonymous_device_id';
 
@@ -20,11 +21,11 @@ type OrderWithDetails = Order & {
 export default function MyOrdersScreen() {
     const [orders, setOrders] = useState<OrderWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
             let query = supabase.from('orders').select(`
                 *,
                 order_type,
@@ -74,13 +75,37 @@ export default function MyOrdersScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
 
     useFocusEffect(
         useCallback(() => {
             fetchOrders();
-        }, [])
+        }, [fetchOrders])
     );
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('public:orders')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'orders' },
+                (payload) => {
+                    setOrders((currentOrders) =>
+                        currentOrders.map((order) => {
+                            if (order.id === payload.new.id) {
+                                return { ...order, status: payload.new.status };
+                            }
+                            return order;
+                        })
+                    );
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
 	return (
 		<SafeAreaView style={styles.safeArea}>

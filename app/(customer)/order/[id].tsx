@@ -76,11 +76,11 @@ export default function OrderDetailScreen() {
             .on<OrderDetails>(
                 'postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
-                (payload) => setOrder((currentOrder) => 
-                    currentOrder && currentOrder.status !== payload.new.status 
-                    ? { ...currentOrder, ...payload.new } 
-                    : currentOrder
-                )
+                (payload) => {
+                    setOrder((currentOrder) => 
+                        currentOrder ? { ...currentOrder, ...payload.new } : null
+                    );
+                }
             )
             .subscribe();
         return () => { supabase.removeChannel(channel); };
