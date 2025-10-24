@@ -1,6 +1,7 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type IconPickerModalProps = {
   visible: boolean;
@@ -32,11 +33,14 @@ const ICONS: (keyof typeof Ionicons.glyphMap)[] = [
 ];
 
 const IconPickerModal = ({ visible, onClose, onSelectIcon }: IconPickerModalProps) => {
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
+
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <SafeAreaView style={styles.modalOverlay}>
+      <SafeAreaView style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Chọn Icon</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
@@ -74,6 +78,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 70,
     height: 70,
+  },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 600,
+    width: '100%',
+    maxHeight: '90%',
   },
 });
 

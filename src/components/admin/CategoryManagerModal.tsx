@@ -5,6 +5,7 @@ import { supabase } from '@/src/integrations/supabase/client';
 import { ProductCategory } from '@/types';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import IconPickerModal from './IconPickerModal';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -33,6 +34,8 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isIconPickerVisible, setIconPickerVisible] = useState(false);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -135,9 +138,9 @@ const CategoryManagerModal = ({ visible, onClose }: CategoryManagerModalProps) =
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}><Text style={styles.headerTitle}>Quản lý Phân loại</Text><TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity></View>
           <View style={styles.addForm}>
             <TouchableOpacity style={styles.iconEditButton} onPress={() => setIconPickerVisible(true)}><Ionicons name={newCategoryIcon} size={24} color="#73509c" /></TouchableOpacity>
@@ -174,6 +177,19 @@ const styles = StyleSheet.create({
     editingItem: { paddingVertical: 8 },
     editInput: { flex: 1, fontSize: 16, backgroundColor: '#f3f4f6', borderRadius: 8, padding: 10, marginHorizontal: 10 },
     iconEditButton: { padding: 12, backgroundColor: '#f3f4f6', borderRadius: 8 },
+    desktopModalOverlay: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    desktopModalContainer: {
+      borderRadius: 12,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      maxWidth: 500,
+      width: '100%',
+      maxHeight: '90%',
+      height: 'auto',
+    },
 });
 
 export default CategoryManagerModal;

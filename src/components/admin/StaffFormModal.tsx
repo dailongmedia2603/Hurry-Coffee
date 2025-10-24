@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 interface StaffProfile {
   id: string;
@@ -25,6 +26,8 @@ const StaffFormModal = ({ visible, onClose, onSave, staffMember }: StaffFormModa
   const [role, setRole] = useState<'staff' | 'admin'>('staff');
   const [loading, setLoading] = useState(false);
   const isEditing = !!staffMember;
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   useEffect(() => {
     if (visible) {
@@ -91,9 +94,9 @@ const StaffFormModal = ({ visible, onClose, onSave, staffMember }: StaffFormModa
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{isEditing ? 'Sửa thông tin' : 'Thêm nhân viên mới'}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
@@ -146,6 +149,18 @@ const styles = StyleSheet.create({
   roleButtonActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
   roleButtonText: { fontSize: 14, fontWeight: '500', color: '#6b7280' },
   roleButtonTextActive: { color: '#73509c' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default StaffFormModal;

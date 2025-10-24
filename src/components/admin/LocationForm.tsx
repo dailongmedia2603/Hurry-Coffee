@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Location } from '@/types';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type LocationFormProps = {
   visible: boolean;
@@ -22,6 +23,8 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   useEffect(() => {
     if (visible) {
@@ -129,9 +132,9 @@ const LocationForm = ({ visible, onClose, onSave, location: existingLocation }: 
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{existingLocation ? 'Sửa địa điểm' : 'Thêm địa điểm'}</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
@@ -181,6 +184,18 @@ const styles = StyleSheet.create({
   imagePreview: { width: '100%', height: '100%' },
   imagePlaceholder: { alignItems: 'center' },
   imagePlaceholderText: { marginTop: 8, color: '#6b7280' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default LocationForm;

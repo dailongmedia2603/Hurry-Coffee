@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { UserAddress } from '@/types';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type AddressModalProps = {
   visible: boolean;
@@ -26,6 +27,8 @@ const AddressModal = ({ visible, onClose, onSave, address: existingAddress }: Ad
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   useEffect(() => {
     if (existingAddress) {
@@ -97,10 +100,10 @@ const AddressModal = ({ visible, onClose, onSave, address: existingAddress }: Ad
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalOverlay}
+        style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}
       >
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{existingAddress ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}</Text>
             <TouchableOpacity onPress={onClose}>
@@ -143,6 +146,18 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#f3f4f6', borderRadius: 10, padding: 15, fontSize: 16 },
   saveButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center', marginTop: 24 },
   saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default AddressModal;

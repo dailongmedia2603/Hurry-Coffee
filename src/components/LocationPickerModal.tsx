@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Location } from '@/types';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type LocationPickerModalProps = {
   visible: boolean;
@@ -13,6 +14,8 @@ type LocationPickerModalProps = {
 const LocationPickerModal = ({ visible, onClose, onSelect }: LocationPickerModalProps) => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   useEffect(() => {
     if (visible) {
@@ -42,9 +45,9 @@ const LocationPickerModal = ({ visible, onClose, onSelect }: LocationPickerModal
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Chọn cửa hàng</Text>
             <TouchableOpacity onPress={onClose}>
@@ -85,6 +88,18 @@ const styles = StyleSheet.create({
   locationDetails: { flex: 1 },
   locationName: { fontSize: 16, fontWeight: 'bold' },
   locationAddress: { fontSize: 14, color: '#666', marginTop: 4 },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default LocationPickerModal;

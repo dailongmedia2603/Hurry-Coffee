@@ -19,6 +19,7 @@ import { Location, UserAddress } from '@/types';
 import LocationPickerModal from './LocationPickerModal';
 import AddressPickerModal from './AddressPickerModal';
 import { formatDisplayPhone } from '@/src/utils/formatters';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type OrderType = 'delivery' | 'pickup';
 
@@ -55,6 +56,8 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
   
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const phoneInputRef = useRef<TextInput>(null);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   const isPhoneVerified = !!user;
 
@@ -193,9 +196,9 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, loading }: Confirmatio
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}><Text style={styles.headerTitle}>Xác nhận đơn hàng</Text><TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity></View>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.sectionTitle}>Hình thức nhận hàng</Text>
@@ -244,6 +247,18 @@ const styles = StyleSheet.create({
   disabledInputText: { color: '#6b7280' },
   changePhoneButton: { marginLeft: 12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#eef2ff' },
   changePhoneButtonText: { color: '#4f46e5', fontWeight: '600' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default ConfirmationModal;

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ProductCategory } from '@/types';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type CategoryPickerModalProps = {
   visible: boolean;
@@ -11,11 +12,14 @@ type CategoryPickerModalProps = {
 };
 
 const CategoryPickerModal = ({ visible, onClose, categories, onSelect }: CategoryPickerModalProps) => {
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
+
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Chọn Phân loại</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
@@ -49,6 +53,18 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: 'bold' },
     categoryItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
     categoryName: { fontSize: 16 },
+    desktopModalOverlay: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    desktopModalContainer: {
+      borderRadius: 12,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      maxWidth: 400,
+      width: '100%',
+      maxHeight: '90%',
+    },
 });
 
 export default CategoryPickerModal;

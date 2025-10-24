@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Location } from '@/types';
 import ConfirmModal from './ConfirmModal';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 type TransferOrderModalProps = {
   visible: boolean;
@@ -19,6 +20,8 @@ const TransferOrderModal = ({ visible, onClose, orderId, onSuccess }: TransferOr
   const [transferring, setTransferring] = useState(false);
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   useEffect(() => {
     if (visible) {
@@ -75,9 +78,9 @@ const TransferOrderModal = ({ visible, onClose, orderId, onSuccess }: TransferOr
   return (
     <>
       <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Chuyển đơn hàng</Text>
               <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity>
@@ -142,6 +145,19 @@ const styles = StyleSheet.create({
   locationAddress: { fontSize: 14, color: '#6b7280', marginTop: 4 },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.8)', justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, fontSize: 16, color: '#333' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+    height: 'auto',
+  },
 });
 
 export default TransferOrderModal;

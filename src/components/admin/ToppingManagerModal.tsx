@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Topping } from '@/types';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 const formatCurrency = (value: string) => {
   if (!value) return '';
@@ -42,6 +43,8 @@ const ToppingManagerModal = ({ visible, onClose }: ToppingManagerModalProps) => 
 
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   const fetchToppings = async () => {
     setLoading(true);
@@ -147,9 +150,9 @@ const ToppingManagerModal = ({ visible, onClose }: ToppingManagerModalProps) => 
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <View style={styles.header}><Text style={styles.headerTitle}>Quản lý Topping</Text><TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color="#333" /></TouchableOpacity></View>
           <View style={styles.addForm}>
             <TextInput style={[styles.input, { flex: 1 }]} placeholder="Tên topping mới" value={newToppingName} onChangeText={setNewToppingName} />
@@ -179,6 +182,19 @@ const styles = StyleSheet.create({
     actionsContainer: { flexDirection: 'row', alignItems: 'center', marginLeft: 16 },
     actionButton: { paddingHorizontal: 8 },
     editingItem: { paddingVertical: 8 },
+    desktopModalOverlay: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    desktopModalContainer: {
+      borderRadius: 12,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      maxWidth: 500,
+      width: '100%',
+      maxHeight: '90%',
+      height: 'auto',
+    },
 });
 
 export default ToppingManagerModal;

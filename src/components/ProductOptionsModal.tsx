@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Product, Topping } from '@/types';
 import { supabase } from '@/src/integrations/supabase/client';
+import { useScreenSize } from '@/src/hooks/useScreenSize';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -38,6 +39,8 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
   const [loadingToppings, setLoadingToppings] = useState(false);
   const [selectedToppings, setSelectedToppings] = useState<Topping[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const { isDesktop } = useScreenSize();
+  const isWebDesktop = Platform.OS === 'web' && isDesktop;
 
   useEffect(() => {
     if (product) {
@@ -113,10 +116,10 @@ const ProductOptionsModal = ({ visible, product, onClose, onAddToCart }: Product
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalOverlay}
+        style={[styles.modalOverlay, isWebDesktop && styles.desktopModalOverlay]}
       >
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, isWebDesktop && styles.desktopModalContainer]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
               <Image source={{ uri: product.image_url || 'https://via.placeholder.com/150' }} style={styles.productImage} />
@@ -240,6 +243,18 @@ const styles = StyleSheet.create({
   quantityText: { fontSize: 20, fontWeight: 'bold', marginHorizontal: 16 },
   addToCartButton: { backgroundColor: '#73509c', padding: 16, borderRadius: 30, alignItems: 'center' },
   addToCartButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  desktopModalOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  desktopModalContainer: {
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90%',
+  },
 });
 
 export default ProductOptionsModal;
