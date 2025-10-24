@@ -8,7 +8,7 @@ import { formatDisplayPhone } from '@/src/utils/formatters';
 import AttentionView from '@/src/components/AttentionView';
 import TransferOrderModal from '@/src/components/TransferOrderModal';
 import { useAuth } from '@/src/context/AuthContext';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import WebDatePicker from '@/src/components/admin/WebDatePicker';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 const formatDate = (date: string) => new Date(date).toLocaleString('vi-VN');
@@ -52,7 +52,6 @@ export default function StaffOrdersScreen() {
 
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const fetchOrders = useCallback(async (isInitialLoad = false) => {
@@ -108,23 +107,6 @@ export default function StaffOrdersScreen() {
     }
     return filtered;
   }, [orders, selectedLocationId, selectedStatus, selectedDate]);
-
-  const onDateChange = (event: any, selectedDateValue?: Date) => {
-    // Chỉ xử lý các sự kiện rõ ràng từ người dùng: 'set' (chọn ngày) hoặc 'dismissed' (hủy).
-    // Điều này ngăn picker tự động đóng ngay khi vừa hiện lên trên web.
-    if (event.type === 'set') {
-      // Người dùng đã xác nhận một ngày.
-      setDatePickerVisible(false); // Ẩn picker đi.
-      if (selectedDateValue) {
-        setSelectedDate(selectedDateValue); // Cập nhật ngày đã chọn.
-      }
-    } else if (event.type === 'dismissed') {
-      // Người dùng đã hủy (ví dụ: bấm ra ngoài).
-      setDatePickerVisible(false); // Chỉ cần ẩn picker đi.
-    }
-    // Nếu event.type là một giá trị khác (hoặc undefined), chúng ta không làm gì cả.
-    // Điều này sẽ giữ cho picker hiển thị trên màn hình để người dùng tương tác.
-  };
 
   const clearFilters = () => {
     setSelectedStatus('all');
@@ -221,13 +203,13 @@ export default function StaffOrdersScreen() {
           </ScrollView>
           <Text style={styles.filterSectionTitle}>Thời gian</Text>
           <View style={styles.dateFilterContainer}>
-            <TouchableOpacity style={styles.datePickerButton} onPress={() => setDatePickerVisible(true)}><Ionicons name="calendar-outline" size={20} color="#666" /><Text style={styles.datePickerButtonText}>{selectedDate ? selectedDate.toLocaleDateString('vi-VN') : 'Chọn ngày'}</Text></TouchableOpacity>
+            <WebDatePicker selectedDate={selectedDate} onChange={(date) => setSelectedDate(date)} />
             {selectedDate && (<TouchableOpacity onPress={() => setSelectedDate(null)}><Ionicons name="close-circle" size={24} color="#999" /></TouchableOpacity>)}
           </View>
           <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}><Text style={styles.clearFilterButtonText}>Xoá bộ lọc</Text></TouchableOpacity>
         </View>
       )}
-      {isDatePickerVisible && (<DateTimePicker value={selectedDate || new Date()} mode="date" display="default" onChange={onDateChange} />)}
+      
       {loading ? (<ActivityIndicator size="large" color="#73509c" style={styles.loader} />) : filteredOrders.length === 0 ? (<View style={styles.emptyContainer}><Text style={styles.emptyText}>Không có đơn hàng nào.</Text></View>) : (<FlatList data={filteredOrders} keyExtractor={(item) => item.id} renderItem={renderOrderItem} contentContainerStyle={styles.listContainer} onRefresh={() => fetchOrders(true)} refreshing={loading} />)}
       <TransferOrderModal visible={isTransferModalVisible} onClose={() => setTransferModalVisible(false)} orderId={selectedOrderId} onSuccess={handleTransferSuccess} />
     </SafeAreaView>
@@ -314,8 +296,6 @@ const styles = StyleSheet.create({
   statusButtonText: { color: '#374151', fontWeight: '500' },
   statusButtonTextActive: { color: '#fff' },
   dateFilterContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  datePickerButton: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', padding: 12, borderRadius: 8, marginRight: 10 },
-  datePickerButtonText: { marginLeft: 8, fontSize: 16, color: '#333' },
   clearFilterButton: { marginTop: 16, alignItems: 'center' },
   clearFilterButtonText: { color: '#73509c', fontWeight: 'bold' },
 });
