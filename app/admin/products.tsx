@@ -8,6 +8,7 @@ import ProductForm from '@/src/components/admin/ProductForm';
 import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
 import CategoryManagerModal from '@/src/components/admin/CategoryManagerModal';
 import ToppingManagerModal from '@/src/components/admin/ToppingManagerModal';
+import ImportProductsModal from '@/src/components/admin/ImportProductsModal';
 
 const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 
@@ -20,6 +21,7 @@ export default function ManageProductsScreen() {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isToppingModalVisible, setToppingModalVisible] = useState(false);
+  const [isImportModalVisible, setImportModalVisible] = useState(false);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -66,6 +68,9 @@ export default function ManageProductsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Sản phẩm ({products.length})</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.manageButton} onPress={() => setImportModalVisible(true)}>
+            <Ionicons name="cloud-upload-outline" size={20} color="#73509c" />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.manageButton} onPress={() => setCategoryModalVisible(true)}>
             <Ionicons name="options-outline" size={20} color="#73509c" />
           </TouchableOpacity>
@@ -132,6 +137,11 @@ export default function ManageProductsScreen() {
       <ToppingManagerModal
         visible={isToppingModalVisible}
         onClose={() => setToppingModalVisible(false)}
+      />
+      <ImportProductsModal
+        visible={isImportModalVisible}
+        onClose={() => setImportModalVisible(false)}
+        onSuccess={fetchProducts}
       />
     </SafeAreaView>
   );
