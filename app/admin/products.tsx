@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Product } from '@/types';
+import { Product, ProductCategory } from '@/types';
 import ProductForm from '@/src/components/admin/ProductForm';
 import ConfirmDeleteModal from '@/src/components/admin/ConfirmDeleteModal';
 import CategoryManagerModal from '@/src/components/admin/CategoryManagerModal';
@@ -15,6 +15,8 @@ const formatPrice = (price: number) => new Intl.NumberFormat("vi-VN", { style: "
 
 export default function ManageProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFormModalVisible, setFormModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -27,18 +29,35 @@ export default function ManageProductsScreen() {
 
   const numColumns = isDesktop ? Math.min(5, Math.max(1, Math.floor((width - 32) / 280))) : 1;
 
-  const fetchProducts = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (error) {
+    const [productsRes, categoriesRes] = await Promise.all([
+      supabase.from('products').select('*').order('created_at', { ascending: false }),
+      supabase.from('product_categories').select('*').order('name', { ascending: true })
+    ]);
+
+    if (productsRes.error) {
       Alert.alert('Lỗi', 'Không thể tải danh sách sản phẩm.');
     } else {
-      setProducts(data || []);
+      setProducts(productsRes.data || []);
+    }
+
+    if (categoriesRes.error) {
+      Alert.alert('Lỗi', 'Không thể tải danh sách phân loại.');
+    } else {
+      setCategories(categoriesRes.data || []);
     }
     setLoading(false);
-  };
+  }, []);
 
-  useFocusEffect(useCallback(() => { fetchProducts(); }, []));
+  useFocusEffect(fetchData);
+
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategory) {
+      return products;
+    }
+    return products.filter(p => p.category === selectedCategory);
+  }, [products, selectedCategory]);
 
   const openAddModal = () => {
     setSelectedProduct(null);
@@ -61,7 +80,7 @@ export default function ManageProductsScreen() {
     if (error) {
       Alert.alert('Lỗi', 'Không thể xóa sản phẩm.');
     } else {
-      fetchProducts();
+      fetchData();
     }
     setConfirmModalVisible(false);
     setItemToDelete(null);
@@ -120,7 +139,7 @@ export default function ManageProductsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Sản phẩm ({products.length})</Text>
+        <Text style={styles.headerTitle}>Sản phẩm ({filteredProducts.length})</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.manageButton} onPress={() => setImportModalVisible(true)}>
             <Ionicons name="cloud-upload-outline" size={20} color="#73509c" />
@@ -138,11 +157,31 @@ export default function ManageProductsScreen() {
         </View>
       </View>
 
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollView}>
+          <TouchableOpacity
+            style={[styles.categoryChip, !selectedCategory ? styles.categoryChipActive : {}]}
+            onPress={() => setSelectedCategory(null)}
+          >
+            <Text style={[styles.categoryChipText, !selectedCategory ? styles.categoryChipTextActive : {}]}>Tất cả</Text>
+          </TouchableOpacity>
+          {categories.map(cat => (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.categoryChip, selectedCategory === cat.name ? styles.categoryChipActive : {}]}
+              onPress={() => setSelectedCategory(cat.name)}
+            >
+              <Text style={[styles.categoryChipText, selectedCategory === cat.name ? styles.categoryChipTextActive : {}]}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#73509c" style={styles.loader} />
       ) : (
         <FlatList
-          data={products}
+          data={filteredProducts}
           key={numColumns}
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
@@ -154,7 +193,7 @@ export default function ManageProductsScreen() {
       <ProductForm
         visible={isFormModalVisible}
         onClose={() => setFormModalVisible(false)}
-        onSave={fetchProducts}
+        onSave={fetchData}
         product={selectedProduct}
       />
 
@@ -180,7 +219,7 @@ export default function ManageProductsScreen() {
       <ImportProductsModal
         visible={isImportModalVisible}
         onClose={() => setImportModalVisible(false)}
-        onSuccess={fetchProducts}
+        onSuccess={fetchData}
       />
     </SafeAreaView>
   );
@@ -284,5 +323,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 8,
+  },
+  filterContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  filterScrollView: {
+    alignItems: 'center',
+  },
+  categoryChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  categoryChipActive: {
+    backgroundColor: '#f0eaf8',
+    borderColor: '#73509c',
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4b5563',
+  },
+  categoryChipTextActive: {
+    color: '#73509c',
+    fontWeight: '600',
   },
 });
