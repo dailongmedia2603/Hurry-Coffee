@@ -50,7 +50,11 @@ export default function ManageProductsScreen() {
     setLoading(false);
   }, []);
 
-  useFocusEffect(fetchData);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const filteredProducts = useMemo(() => {
     if (!selectedCategory) {
