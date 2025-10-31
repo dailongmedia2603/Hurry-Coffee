@@ -131,8 +131,12 @@ export default function DiscoverScreen() {
   }, [activeCategory, products, searchQuery]);
 
   const renderCategories = () => (
-    <View style={styles.categoriesContainer}>
-      {categories.slice(0, 4).map((cat) => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.categoriesContainer}
+    >
+      {categories.map((cat) => (
         <CategoryChip
           key={cat.id}
           label={cat.name}
@@ -141,7 +145,7 @@ export default function DiscoverScreen() {
           onPress={() => setActiveCategory(cat.name)}
         />
       ))}
-    </View>
+    </ScrollView>
   );
 
   return (
@@ -229,8 +233,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   categoriesContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     paddingHorizontal: 8,
     marginBottom: 20,
   },
