@@ -35,6 +35,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 16,
     marginHorizontal: 8,
+    paddingHorizontal: 4,
   },
   chipActive: {
     backgroundColor: "#73509c",
@@ -46,8 +47,9 @@ const styles = StyleSheet.create({
   },
   label: {
     marginTop: 4,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
   labelActive: {
     color: "#FFFFFF",
